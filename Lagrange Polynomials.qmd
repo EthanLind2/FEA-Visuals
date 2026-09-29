@@ -1,0 +1,664 @@
+---
+title: "Lagrange Polynomials & the Stiffness Matrix"
+subtitle: "Interactive notes for 1D linear FEA"
+author: "Ethan Lind"
+format:
+  html:
+    toc: true
+    toc-depth: 3
+execute:
+  echo: false
+---
+
+```{=html}
+<style>
+.kmat { border-collapse: collapse; margin: 0.5rem 0 1rem 0; font-variant-numeric: tabular-nums; }
+.kmat th { font-weight: 500; color: #777; font-size: 0.75rem; padding: 2px 4px; text-align: center; }
+.kmat td { border: 1px solid #ddd; text-align: center; font-size: 0.78rem; cursor: pointer; padding: 0; }
+.kmat td:hover { outline: 2px solid #888; outline-offset: -2px; }
+.kmat td.sel { outline: 3px solid #111; outline-offset: -3px; }
+.kmat td.empty { color: #bbb; background: #fafafa; }
+.kmat td.rowsum { background: #f3f3f3; color: #555; cursor: default; font-style: italic; }
+.kmat td.rowsum:hover { outline: none; }
+.readout { font-family: var(--bs-font-monospace, monospace); font-size: 0.85rem; background: #f6f8fa; border-radius: 6px; padding: 0.6rem 0.8rem; margin: 0.5rem 0 1rem 0; line-height: 1.6; }
+.chip { display: inline-block; padding: 1px 8px; border-radius: 10px; color: white; font-size: 0.8rem; margin: 2px 4px 2px 0; }
+</style>
+```
+
+```{ojs}
+//| output: false
+// ---------- Numerical helpers (shared by every section) ----------
+function linspace(a, b, n) { return Array.from({length: n}, (_, k) => a + (b - a) * k / (n - 1)); }
+
+// Legendre polynomial P_n(x) and its derivative
+function legendre(n, x) {
+  if (n === 0) return [1, 0];
+  let p0 = 1, p1 = x;
+  for (let k = 2; k <= n; k++) { const p2 = ((2*k - 1) * x * p1 - (k - 1) * p0) / k; p0 = p1; p1 = p2; }
+  return [p1, n * (x * p1 - p0) / (x * x - 1)];
+}
+
+// Gauss–Legendre points and weights on [-1, 1]
+function gauss(n) {
+  const pts = [];
+  for (let i = 0; i < n; i++) {
+    let x = Math.cos(Math.PI * (i + 0.75) / (n + 0.5));
+    for (let it = 0; it < 100; it++) {
+      const [P, dP] = legendre(n, x);
+      const dx = P / dP; x -= dx;
+      if (Math.abs(dx) < 1e-15) break;
+    }
+    const [, dP] = legendre(n, x);
+    pts.push({xi: x, w: 2 / ((1 - x * x) * dP * dP)});
+  }
+  return pts.sort((a, b) => a.xi - b.xi);
+}
+
+// Node sets on the reference element [-1, 1] (p+1 nodes, ordered left to right)
+function refNodes(p, type) {
+  if (type === "Chebyshev–Lobatto") return d3.range(p + 1).map(k => -Math.cos(k * Math.PI / p));
+  if (type === "Gauss–Lobatto–Legendre") {
+    const x = [-1];
+    for (let k = 1; k < p; k++) {
+      let z = -Math.cos(k * Math.PI / p);
+      for (let it = 0; it < 100; it++) {
+        const [P, dP] = legendre(p, z);
+        const d2P = (2 * z * dP - p * (p + 1) * P) / (1 - z * z);
+        const dz = dP / d2P; z -= dz;
+        if (Math.abs(dz) < 1e-15) break;
+      }
+      x.push(z);
+    }
+    x.push(1);
+    return x;
+  }
+  return d3.range(p + 1).map(k => -1 + 2 * k / p);   // equally spaced
+}
+
+// Lagrange basis N_i(xi) = prod_{k != i} (xi - xi_k)/(xi_i - xi_k)
+function lagrange(nodes, i, x) {
+  let v = 1;
+  for (let k = 0; k < nodes.length; k++) if (k !== i) v *= (x - nodes[k]) / (nodes[i] - nodes[k]);
+  return v;
+}
+// dN_i/dxi via the product rule
+function dlagrange(nodes, i, x) {
+  let s = 0;
+  for (let m = 0; m < nodes.length; m++) {
+    if (m === i) continue;
+    let t = 1 / (nodes[i] - nodes[m]);
+    for (let k = 0; k < nodes.length; k++) if (k !== i && k !== m) t *= (x - nodes[k]) / (nodes[i] - nodes[k]);
+    s += t;
+  }
+  return s;
+}
+
+function fmt(v, d = 4) {
+  if (Math.abs(v) < 1e-10) return "0";
+  return (+v.toPrecision(d)).toString();
+}
+
+// Dense Gaussian elimination with partial pivoting
+function solveDense(A, b) {
+  const n = b.length, M = A.map((r, i) => [...r, b[i]]);
+  for (let c = 0; c < n; c++) {
+    let piv = c;
+    for (let r = c + 1; r < n; r++) if (Math.abs(M[r][c]) > Math.abs(M[piv][c])) piv = r;
+    [M[c], M[piv]] = [M[piv], M[c]];
+    for (let r = c + 1; r < n; r++) {
+      const f = M[r][c] / M[c][c];
+      for (let k = c; k <= n; k++) M[r][k] -= f * M[c][k];
+    }
+  }
+  const x = new Array(n).fill(0);
+  for (let r = n - 1; r >= 0; r--) {
+    let s = M[r][n];
+    for (let k = r + 1; k < n; k++) s -= M[r][k] * x[k];
+    x[r] = s / M[r][r];
+  }
+  return x;
+}
+
+// Clickable, color-coded matrix table
+function matrixTable(M, opts = {}) {
+  const {sel = null, onPick = () => {}, outline = () => null, empty = () => false,
+         showNumbers = true, rowSums = false, cell = 60} = opts;
+  const n = M.length;
+  const maxAbs = d3.max(M.flat(), Math.abs) || 1;
+  const table = document.createElement("table");
+  table.className = "kmat";
+  const head = table.createTHead().insertRow();
+  head.appendChild(document.createElement("th"));
+  for (let j = 0; j < n; j++) { const th = document.createElement("th"); th.textContent = j + 1; head.appendChild(th); }
+  if (rowSums) { const th = document.createElement("th"); th.textContent = "row Σ"; head.appendChild(th); }
+  const body = table.createTBody();
+  for (let i = 0; i < n; i++) {
+    const row = body.insertRow();
+    const th = document.createElement("th"); th.textContent = i + 1; row.appendChild(th);
+    for (let j = 0; j < n; j++) {
+      const td = row.insertCell();
+      td.style.width = td.style.height = cell + "px";
+      td.style.minWidth = cell + "px";
+      const v = M[i][j];
+      if (empty(i, j)) { td.className = "empty"; td.textContent = showNumbers ? "0" : ""; }
+      else {
+        const t = v / maxAbs;
+        td.style.background = d3.interpolateRdBu(0.5 + 0.45 * t);
+        td.style.color = Math.abs(t) > 0.55 ? "white" : "#111";
+        if (showNumbers) td.textContent = fmt(v, 4);
+      }
+      td.title = `K[${i + 1},${j + 1}] = ${fmt(v, 6)}`;
+      if (sel && sel[0] === i && sel[1] === j) td.classList.add("sel");
+      const oc = outline(i, j);
+      if (oc) td.style.boxShadow = `inset 0 0 0 3px ${oc}`;
+      td.onclick = () => onPick(i, j);
+    }
+    if (rowSums) {
+      const td = row.insertCell(); td.className = "rowsum";
+      td.style.minWidth = cell + "px";
+      td.textContent = fmt(d3.sum(M[i]), 3);
+    }
+  }
+  return table;
+}
+
+colI = "#1f6fb4"
+colJ = "#e8710a"
+elemColors = d3.schemeTableau10
+W = Math.min(width, 820)
+```
+
+# Part 1 — Lagrange polynomials
+
+## What they are
+
+On the **reference element** $\xi \in [-1, 1]$ we place $p+1$ nodes $\xi_1, \dots, \xi_{p+1}$. The Lagrange basis function attached to node $i$ is
+
+$$
+N_i(\xi) \;=\; \prod_{\substack{k=1 \\ k\neq i}}^{p+1} \frac{\xi - \xi_k}{\xi_i - \xi_k}.
+$$
+
+Two properties make them the workhorse of FEA:
+
+1. **Kronecker delta:** $N_i(\xi_j) = \delta_{ij}$. Each numerator is zero at every *other* node, and the denominator is chosen so the value at node $i$ is exactly 1. So the coefficient in front of $N_i$ is *literally the value of the field at node $i$*.
+2. **Partition of unity:** $\sum_i N_i(\xi) = 1$ for every $\xi$. So a constant field (a rigid-body translation) is reproduced exactly, and $\sum_i N_i'(\xi) = 0$.
+
+## Explore the basis
+
+```{ojs}
+viewof p1 = Inputs.range([1, 8], {step: 1, value: 2, label: "Degree p"})
+viewof nodeType1 = Inputs.radio(["Equally spaced", "Gauss–Lobatto–Legendre", "Chebyshev–Lobatto"], {value: "Equally spaced", label: "Node placement"})
+viewof sel1 = Inputs.radio(["All", ...d3.range(1, p1 + 2)], {value: "All", label: "Highlight Nᵢ"})
+viewof show1 = Inputs.checkbox(["Sum ΣNᵢ", "Derivatives dNᵢ/dξ"], {value: [], label: "Also show"})
+```
+
+```{ojs}
+nodes1 = refNodes(p1, nodeType1)
+basis1 = {
+  const xs = linspace(-1, 1, 401), out = [];
+  for (let i = 0; i <= p1; i++)
+    for (const x of xs) out.push({i: i + 1, xi: x, N: lagrange(nodes1, i, x), dN: dlagrange(nodes1, i, x)});
+  return out;
+}
+{
+  const hi = sel1 === "All" ? null : sel1;
+  const sum = linspace(-1, 1, 201).map(x => ({xi: x, s: d3.sum(nodes1, (_, i) => lagrange(nodes1, i, x))}));
+  const colorDomain = d3.range(1, p1 + 2);
+  const mk = (yKey, ylabel, height) => Plot.plot({
+    width: W, height,
+    x: {label: "ξ", domain: [-1, 1]},
+    y: {label: ylabel, grid: true},
+    color: {domain: colorDomain, range: d3.schemeTableau10, legend: yKey === "N"},
+    marks: [
+      Plot.ruleY([0]),
+      Plot.ruleX(nodes1, {stroke: "#aaa", strokeDasharray: "3,3"}),
+      Plot.line(basis1, {x: "xi", y: yKey, z: "i", stroke: "i", strokeWidth: 2, strokeOpacity: hi ? 0.15 : 0.9}),
+      hi ? Plot.line(basis1.filter(d => d.i === hi), {x: "xi", y: yKey, stroke: "i", strokeWidth: 4}) : null,
+      yKey === "N" && show1.includes("Sum ΣNᵢ") ? Plot.line(sum, {x: "xi", y: "s", stroke: "black", strokeWidth: 2.5, strokeDasharray: "6,4"}) : null,
+      yKey === "N" && show1.includes("Sum ΣNᵢ") ? Plot.text([{xi: 0.7, s: 1}], {x: "xi", y: "s", text: () => "ΣNᵢ = 1", dy: -10, fontSize: 13}) : null,
+      yKey === "N" ? Plot.dot(nodes1, {x: d => d, y: 0, r: 4, fill: "white", stroke: "black"}) : null,
+      yKey === "N" && hi ? Plot.dot([nodes1[hi - 1]], {x: d => d, y: 1, r: 6, fill: d3.schemeTableau10[(hi - 1) % 10], stroke: "black"}) : null,
+      yKey === "N" && hi ? Plot.dot(nodes1.filter((_, k) => k !== hi - 1), {x: d => d, y: 0, r: 6, fill: d3.schemeTableau10[(hi - 1) % 10], stroke: "black"}) : null,
+    ]
+  });
+  const out = [mk("N", "Nᵢ(ξ)", 360)];
+  if (show1.includes("Derivatives dNᵢ/dξ")) out.push(mk("dN", "dNᵢ/dξ", 300));
+  return html`${out}`;
+}
+```
+
+```{ojs}
+{
+  if (sel1 === "All") return md`*Pick a single $N_i$ above to see its product formula written out with the actual node locations.*`;
+  const i = sel1 - 1;
+  const terms = nodes1.map((xk, k) => k === i ? null :
+      `\\frac{\\xi - (${fmt(xk, 3)})}{${fmt(nodes1[i], 3)} - (${fmt(xk, 3)})}`).filter(d => d);
+  const s = `N_{${sel1}}(\\xi) = ${terms.join("\\;")}`;
+  return html`<div style="overflow-x:auto">${tex.block`${s}`}</div>
+  <div class="readout">Node locations ξⱼ: [${nodes1.map(d => fmt(d, 3)).join(", ")}]<br>
+  N<sub>${sel1}</sub>(ξⱼ) at every node: [${nodes1.map(x => fmt(lagrange(nodes1, i, x), 3)).join(", ")}] ← exactly one 1, the rest 0</div>`;
+}
+```
+
+::: {.callout-tip}
+## Try this
+- Highlight one $N_i$: the big dot sits at height 1 on its own node and the others sit at 0. That's the Kronecker delta property. **Between** the nodes, $N_i$ can be negative or bigger than 1, and that's fine.
+- Turn on **Sum ΣNᵢ**. However ugly the individual functions get, they always add to exactly 1.
+- Set $p = 8$ with **equally spaced** nodes. The basis functions near the ends blow up (the Runge phenomenon). Switch to **Gauss–Lobatto–Legendre** and they calm down. This is why high-order (spectral) elements put their nodes at GLL points.
+- Turn on **derivatives**. At any $\xi$ the derivatives add up to 0 (because $\sum N_i = 1$). That fact will show up again as the zero row sums of the stiffness matrix.
+:::
+
+## Interpolation: a field as a weighted sum of basis functions
+
+In FEA we never store a function directly. We store **nodal values** $u_i$ and rebuild the field as
+
+$$
+u_h(\xi) = \sum_{i=1}^{p+1} N_i(\xi)\, u_i .
+$$
+
+Pick a target function, or choose *Manual* and set the nodal values yourself.
+
+```{ojs}
+viewof fnB = Inputs.select(["sin(πξ)", "Runge: 1/(1+25ξ²)", "|ξ|", "ξ³ − ξ", "exp(ξ)", "Manual (set nodal values)"], {value: "sin(πξ)", label: "Target function"})
+viewof pB = Inputs.range([1, 12], {step: 1, value: 3, label: "Degree p"})
+viewof nodeTypeB = Inputs.radio(["Equally spaced", "Gauss–Lobatto–Legendre", "Chebyshev–Lobatto"], {value: "Equally spaced", label: "Node placement"})
+viewof showContrib = Inputs.toggle({label: "Show each term Nᵢ·uᵢ", value: true})
+```
+
+```{ojs}
+nodesB = refNodes(pB, nodeTypeB)
+fB = ({
+  "sin(πξ)": x => Math.sin(Math.PI * x),
+  "Runge: 1/(1+25ξ²)": x => 1 / (1 + 25 * x * x),
+  "|ξ|": x => Math.abs(x),
+  "ξ³ − ξ": x => x ** 3 - x,
+  "exp(ξ)": x => Math.exp(x),
+  "Manual (set nodal values)": null
+})[fnB]
+viewof manualVals = fnB.startsWith("Manual")
+  ? Inputs.form(nodesB.map((x, i) => Inputs.range([-2, 2], {step: 0.05, value: +Math.sin(Math.PI * x).toFixed(2), label: `u${i + 1}  (ξ = ${fmt(x, 3)})`})))
+  : Object.assign(html`<div></div>`, {value: null})
+```
+
+```{ojs}
+{
+  const uNodes = fB ? nodesB.map(fB) : manualVals;
+  const xs = linspace(-1, 1, 501);
+  const uh = xs.map(x => ({xi: x, u: d3.sum(nodesB, (_, i) => lagrange(nodesB, i, x) * uNodes[i])}));
+  const contrib = [];
+  if (showContrib) for (let i = 0; i <= pB; i++) for (const x of xs) contrib.push({i: i + 1, xi: x, v: lagrange(nodesB, i, x) * uNodes[i]});
+  const truth = fB ? xs.map(x => ({xi: x, f: fB(x)})) : [];
+  const vals = [...uh.map(d => d.u), ...truth.map(d => d.f), ...uNodes];
+  const lo = Math.max(-3, d3.min(vals)), hi = Math.min(3, d3.max(vals));
+  const pad = 0.1 * (hi - lo || 1);
+  const plot = Plot.plot({
+    width: W, height: 400, clip: true,
+    x: {label: "ξ", domain: [-1, 1]},
+    y: {label: "u", grid: true, domain: [lo - pad, hi + pad]},
+    color: {domain: d3.range(1, pB + 2), range: d3.schemeTableau10},
+    marks: [
+      Plot.ruleY([0]),
+      showContrib ? Plot.line(contrib, {x: "xi", y: "v", z: "i", stroke: "i", strokeWidth: 1.3, strokeOpacity: 0.8}) : null,
+      fB ? Plot.line(truth, {x: "xi", y: "f", stroke: "#999", strokeWidth: 6, strokeOpacity: 0.45}) : null,
+      Plot.line(uh, {x: "xi", y: "u", stroke: "black", strokeWidth: 2.5}),
+      Plot.dot(nodesB.map((x, i) => ({x, u: uNodes[i], i: i + 1})), {x: "x", y: "u", r: 5, fill: "i", stroke: "black"}),
+    ]
+  });
+  const err = fB ? d3.max(xs, x => Math.abs(fB(x) - d3.sum(nodesB, (_, i) => lagrange(nodesB, i, x) * fB(nodesB[i])))) : null;
+  return html`${plot}
+  <div class="readout"><b>Black</b> = u<sub>h</sub>(ξ) = Σ Nᵢ uᵢ${fB ? html`  |  <span style="color:#888"><b>thick grey</b></span> = exact f(ξ)  |  max error = ${fmt(err, 3)}` : ""}${showContrib ? html`<br>Thin colored curves = the individual terms Nᵢ(ξ)·uᵢ. Add them up at any ξ and you get the black curve.` : ""}</div>`;
+}
+```
+
+::: {.callout-tip}
+## Try this
+- In **Manual** mode, drag one $u_i$. Only the $N_i$-shaped piece of the curve changes, and the curve still passes through every other node untouched.
+- Choose **ξ³ − ξ** and set $p = 3$: the error drops to ~0. A degree-$p$ Lagrange basis reproduces *any* polynomial of degree $\le p$ exactly. That's where FEA convergence rates come from.
+- Choose **Runge** with equally spaced nodes and raise $p$ to 10–12. The error *grows*. Switch to GLL and it shrinks. In FEA we usually refine by adding more low-order elements (h-refinement), not by cranking up $p$ on one element.
+:::
+
+# Part 2 — From weak form to stiffness matrix
+
+## The chain of ideas
+
+Model problem: an axial bar of length $L$ with stiffness $EA(x)$ and distributed load $f(x)$:
+
+$$
+-\frac{d}{dx}\!\left(EA\,\frac{du}{dx}\right) = f(x), \qquad u(0)=0, \qquad EA\,u'(L) = P .
+$$
+
+**Step 1: weak form.** Multiply by a test function $w$ (with $w(0)=0$), integrate over the bar, and integrate by parts:
+
+$$
+\int_0^L \frac{dw}{dx}\,EA\,\frac{du}{dx}\,dx \;=\; \int_0^L w\,f\,dx \;+\; w(L)\,P \qquad \text{for all admissible } w.
+$$
+
+**Step 2: Galerkin substitution.** Replace both $u$ and $w$ with combinations of the *same* Lagrange basis functions:
+
+$$
+u_h(x) = \sum_{j} N_j(x)\,d_j, \qquad w_h(x) = \sum_{i} N_i(x)\,c_i .
+$$
+
+**Step 3: pull out the constants.** $d_j$ and $c_i$ are just numbers, so they come out of the integral:
+
+$$
+\sum_i c_i \Bigg[ \sum_j \underbrace{\left(\int_0^L \frac{dN_i}{dx}\,EA\,\frac{dN_j}{dx}\,dx\right)}_{K_{ij}} d_j \;-\; \underbrace{\left(\int_0^L N_i f\,dx + N_i(L)P\right)}_{F_i} \Bigg] = 0 .
+$$
+
+Because this must hold for **every** choice of $c_i$, each bracket must vanish on its own, which gives $\mathbf{K}\mathbf{d} = \mathbf{F}$.
+
+::: {.callout-note}
+## The key picture
+- **Row $i$** of $\mathbf K$ is the weak form "tested" with $w = N_i$.
+- **Column $j$** of $\mathbf K$ is how much the trial function $N_j$ (the displacement shape of node $j$) contributes to that test.
+- $K_{ij}$ is **the area under the curve $EA\,N_i'\,N_j'$**. The interactive tools below let you look at that curve and its area directly.
+:::
+
+**Step 4: do it element by element.** Each element is mapped to the reference element with $x(\xi) = x_1^e + \tfrac{h}{2}(1+\xi)$, so $J = \frac{dx}{d\xi} = \frac{h}{2}$ and, by the chain rule, $\frac{dN}{dx} = \frac{1}{J}\frac{dN}{d\xi}$:
+
+$$
+K^e_{ab} = \int_{-1}^{1} EA(\xi)\,\frac{dN_a}{d\xi}\frac{dN_b}{d\xi}\,\frac{1}{J^2}\;J\,d\xi \;\approx\; \sum_{q=1}^{n_q} w_q\, EA(\xi_q)\,\frac{dN_a}{d\xi}(\xi_q)\,\frac{dN_b}{d\xi}(\xi_q)\,\frac{1}{J}.
+$$
+
+## Interactive 1 — Build one element stiffness matrix
+
+**Click any cell** of $\mathbf K^e$. The plots show where that number comes from.
+
+```{ojs}
+viewof pE = Inputs.range([1, 4], {step: 1, value: 2, label: "Element degree p"})
+viewof nodeTypeE = Inputs.radio(["Equally spaced", "Gauss–Lobatto–Legendre"], {value: "Equally spaced", label: "Node placement"})
+viewof hE = Inputs.range([0.25, 4], {step: 0.25, value: 1, label: "Element length h"})
+viewof EA0 = Inputs.range([0.5, 5], {step: 0.5, value: 1, label: "EA₀"})
+viewof alphaE = Inputs.range([-0.9, 0.9], {step: 0.1, value: 0, label: "EA slope α   (EA = EA₀(1+αξ))"})
+viewof nqE = Inputs.range([1, 6], {step: 1, value: 2, label: "Gauss points n_q"})
+```
+
+```{ojs}
+mutable selE = [0, 1]
+nodesE = refNodes(pE, nodeTypeE)
+JE = hE / 2
+EAE = xi => EA0 * (1 + alphaE * xi)
+integrandE = (a, b, xi) => EAE(xi) * dlagrange(nodesE, a, xi) * dlagrange(nodesE, b, xi) / (JE * JE)  // EA N_a' N_b' in x
+function buildKe(nq) {
+  const g = gauss(nq);
+  return d3.range(pE + 1).map(a => d3.range(pE + 1).map(b => d3.sum(g, q => q.w * integrandE(a, b, q.xi) * JE)));
+}
+KeExact = buildKe(12)
+KeQuad = buildKe(nqE)
+iE = Math.min(selE[0], pE)
+jE = Math.min(selE[1], pE)
+nqNeeded = Math.ceil((2 * (pE - 1) + (alphaE !== 0 ? 1 : 0) + 1) / 2)
+```
+
+```{ojs}
+html`<div style="display:flex; gap:2rem; flex-wrap:wrap; align-items:flex-start">
+<div>
+<b>K<sup>e</sup></b> (computed with ${nqE} Gauss point${nqE > 1 ? "s" : ""}). Click a cell:
+${matrixTable(KeQuad, {sel: [iE, jE], onPick: (i, j) => { mutable selE = [i, j]; }, rowSums: true, cell: 62})}
+</div>
+<div class="readout" style="max-width: 340px">
+Integrand EA·N'ᵢ·N'ⱼ is a polynomial of degree <b>${2 * (pE - 1) + (alphaE !== 0 ? 1 : 0)}</b>.<br>
+n-point Gauss is exact up to degree 2n−1, so you need <b>n<sub>q</sub> ≥ ${nqNeeded}</b>.<br>
+${nqE >= nqNeeded
+  ? html`<span style="color:#1a7f37">✔ n<sub>q</sub> = ${nqE}: this K<sup>e</sup> is exact.</span>`
+  : html`<span style="color:#c62828">✘ Under-integrated. Max error in K<sup>e</sup> = ${fmt(d3.max(KeQuad.flat().map((v, k) => Math.abs(v - KeExact.flat()[k]))), 3)}</span>`}
+<br><br>
+Row sums ≈ 0: pushing every node by the same amount (a rigid-body shift) produces no force. That means K<sup>e</sup> is <i>singular</i> until you add boundary conditions.
+${pE === 1 ? html`<br><br>For p = 1 with constant EA: K<sup>e</sup> = (EA/h)·[[1, −1], [−1, 1]] = ${fmt(EA0 / hE, 4)}·[[1,−1],[−1,1]]` : ""}
+</div>
+</div>`
+```
+
+```{ojs}
+{
+  const xs = linspace(-1, 1, 301);
+  const X = xi => (1 + xi) * JE;              // local physical coordinate, 0..h
+  const nodesX = nodesE.map(X);
+  const lab = k => `N${k + 1}`;
+  const bases = [], ders = [];
+  for (let k = 0; k <= pE; k++) for (const xi of xs) {
+    bases.push({k, x: X(xi), v: lagrange(nodesE, k, xi)});
+    ders.push({k, x: X(xi), v: dlagrange(nodesE, k, xi) / JE});
+  }
+  const hl = d => d.k === iE ? "i" : d.k === jE ? "j" : "other";
+  const strokeOf = {i: colI, j: colJ, other: "#ccc"};
+  const lineMarks = (data) => [
+    Plot.ruleY([0]),
+    Plot.ruleX(nodesX, {stroke: "#bbb", strokeDasharray: "3,3"}),
+    Plot.line(data.filter(d => d.k !== iE && d.k !== jE), {x: "x", y: "v", z: "k", stroke: "#ccc", strokeWidth: 1.2}),
+    Plot.line(data.filter(d => d.k === jE), {x: "x", y: "v", stroke: colJ, strokeWidth: 3}),
+    Plot.line(data.filter(d => d.k === iE), {x: "x", y: "v", stroke: colI, strokeWidth: 3, strokeDasharray: iE === jE ? "6,4" : null}),
+  ];
+  const xAxis = {label: "x (local, 0 → h)", domain: [0, hE]};
+
+  const plA = Plot.plot({width: W, height: 200, x: xAxis, y: {label: "shape functions", grid: true},
+    marks: [...lineMarks(bases), Plot.dot(nodesX, {x: d => d, y: 0, r: 4, fill: "white", stroke: "black"})]});
+  const plB = Plot.plot({width: W, height: 200, x: xAxis, y: {label: "dN/dx", grid: true}, marks: lineMarks(ders)});
+
+  const g = xs.map(xi => ({x: X(xi), g: integrandE(iE, jE, xi)}));
+  const gq = gauss(nqE).map(q => ({x: X(q.xi), g: integrandE(iE, jE, q.xi), w: q.w}));
+  const plC = Plot.plot({width: W, height: 260, x: xAxis, y: {label: "EA · N'ᵢ · N'ⱼ", grid: true},
+    marks: [
+      Plot.areaY(g, {x: "x", y: d => Math.max(d.g, 0), fill: "#2c7fb8", fillOpacity: 0.3}),
+      Plot.areaY(g, {x: "x", y: d => Math.min(d.g, 0), fill: "#d7301f", fillOpacity: 0.3}),
+      Plot.ruleY([0]),
+      Plot.line(g, {x: "x", y: "g", stroke: "black", strokeWidth: 2}),
+      Plot.ruleX(gq, {x: "x", y1: 0, y2: "g", stroke: "#6a1b9a", strokeWidth: 2}),
+      Plot.dot(gq, {x: "x", y: "g", r: 5, fill: "#6a1b9a"}),
+      Plot.text(gq, {x: "x", y: "g", text: d => `w=${fmt(d.w, 3)}`, dy: -12, fill: "#6a1b9a", fontSize: 11}),
+    ]});
+  const texStr = `K_{${iE + 1}${jE + 1}} = \\int_0^{h} EA\\,\\frac{dN_{${iE + 1}}}{dx}\\frac{dN_{${jE + 1}}}{dx}\\,dx = ${fmt(KeExact[iE][jE], 5)}
+    \\qquad \\text{Gauss: } \\sum_q w_q\\, g(\\xi_q)\\, J = ${fmt(KeQuad[iE][jE], 5)}`;
+  return html`
+  <div><span class="chip" style="background:${colI}">i = ${iE + 1} (test function w = N<sub>${iE + 1}</sub>)</span>
+       <span class="chip" style="background:${colJ}">j = ${jE + 1} (trial function N<sub>${jE + 1}</sub>)</span></div>
+  ${plA}${plB}${plC}
+  <div style="overflow-x:auto">${tex.block`${texStr}`}</div>
+  <div class="readout">Shaded <span style="color:#2c7fb8"><b>blue</b></span> area counts positive, <span style="color:#d7301f"><b>red</b></span> counts negative. Their sum is K<sub>${iE + 1}${jE + 1}</sub>.
+  Purple stems are the Gauss points: quadrature replaces the area with Σ (weight × height) × J.</div>`;
+}
+```
+
+::: {.callout-tip}
+## Try this
+- **p = 1, click (1,2).** $N_1'$ is negative and $N_2'$ is positive, so the product is negative and $K_{12} = -EA/h$. The off-diagonal terms of a stiffness matrix are negative because pulling one node drags its neighbour.
+- **Click a diagonal cell.** The integrand is $EA\,(N_i')^2 \ge 0$, so diagonal entries are always positive.
+- **Double h.** The derivatives halve, their product drops by 4, and the interval doubles, so $K \propto 1/h$ (a longer bar is softer).
+- **Set p = 3 and drop to n_q = 1.** The Gauss dot samples a single height, the entries go wrong, and the readout flags it. Turn on the **EA slope α** and watch the required $n_q$ go up.
+- **Check symmetry.** $K_{ij} = K_{ji}$ because $N_i'N_j' = N_j'N_i'$. That is a direct result of using the same functions for test and trial (Galerkin).
+:::
+
+## Interactive 2 — Assembly: element matrices → global K
+
+Each **global** basis function $N_A(x)$ is stitched together from the local functions of the elements that share node $A$. So a global entry $K_{AB}$ is the sum of the element contributions over the elements where **both** $N_A$ and $N_B$ are nonzero.
+
+Use the slider to add elements one at a time, then **click any cell** of the global matrix (zeros included).
+
+```{ojs}
+viewof neA = Inputs.range([1, 8], {step: 1, value: 3, label: "Number of elements"})
+viewof pA = Inputs.range([1, 3], {step: 1, value: 1, label: "Element degree p"})
+viewof stepA = Inputs.range([0, neA], {step: 1, value: 1, label: "Elements assembled so far"})
+```
+
+```{ojs}
+mutable selA = [1, 1]
+LA = 1
+hA = LA / neA
+JA = hA / 2
+nodesA = refNodes(pA, "Equally spaced")
+nDofA = neA * pA + 1
+xNodesA = d3.range(nDofA).map(A => A * hA / pA)
+KeA = d3.range(pA + 1).map(a => d3.range(pA + 1).map(b =>
+  d3.sum(gauss(6), q => q.w * dlagrange(nodesA, a, q.xi) * dlagrange(nodesA, b, q.xi) / JA)))   // EA = 1
+assembly = {
+  const K = d3.range(nDofA).map(() => new Array(nDofA).fill(0));
+  const who = d3.range(nDofA).map(() => d3.range(nDofA).map(() => []));
+  for (let e = 0; e < stepA; e++)
+    for (let a = 0; a <= pA; a++) for (let b = 0; b <= pA; b++) {
+      K[e * pA + a][e * pA + b] += KeA[a][b];
+      who[e * pA + a][e * pA + b].push(e);
+    }
+  return {K, who};
+}
+AA = Math.min(selA[0], nDofA - 1)
+BA = Math.min(selA[1], nDofA - 1)
+```
+
+```{ojs}
+{
+  const chips = d3.range(neA).map(e => html`<span class="chip" style="background:${elemColors[e % 10]}; opacity:${e < stepA ? 1 : 0.3}">
+      e${e + 1}: local 1…${pA + 1} → global ${e * pA + 1}…${e * pA + pA + 1}</span>`);
+  const big = nDofA > 13;
+  const last = stepA - 1;
+  return html`<div><b>Connectivity</b> (which global node each local node maps to):<br>${chips}</div>
+  <div style="overflow-x:auto">
+  ${matrixTable(assembly.K, {
+      sel: [AA, BA], onPick: (i, j) => { mutable selA = [i, j]; },
+      empty: (i, j) => assembly.who[i][j].length === 0,
+      outline: (i, j) => last >= 0 && assembly.who[i][j].includes(last) ? elemColors[last % 10] : null,
+      showNumbers: !big, cell: big ? 24 : 48})}
+  </div>
+  <div class="readout">${stepA === 0 ? "Empty so far: move the slider to add element 1." :
+    html`The outlined block is element ${stepA}'s K<sup>e</sup> being <b>added</b> into rows/columns ${last * pA + 1}…${last * pA + pA + 1}.
+    ${stepA > 1 ? html`Where it overlaps element ${stepA - 1} (global node ${last * pA + 1}) the numbers <b>add</b>. That shared node is stiffer because two elements hold it.` : ""}`}
+  <br>Selected: K<sub>${AA + 1},${BA + 1}</sub> = ${fmt(assembly.K[AA][BA], 5)}${assembly.who[AA][BA].length ? `  (from element${assembly.who[AA][BA].length > 1 ? "s" : ""} ${assembly.who[AA][BA].map(e => e + 1).join(" + ")})` : "  (no element has both nodes, so it's zero)"}</div>`;
+}
+```
+
+```{ojs}
+{
+  const glob = [], der = [], prod = [];
+  const ns = 60;
+  for (let e = 0; e < neA; e++) {
+    const x0 = e * hA;
+    for (const xi of linspace(-1, 1, ns)) {
+      const x = x0 + (1 + xi) * JA;
+      for (let a = 0; a <= pA; a++) {
+        const A = e * pA + a;
+        glob.push({A, e, x, v: lagrange(nodesA, a, xi)});
+        der.push({A, e, x, v: dlagrange(nodesA, a, xi) / JA});
+      }
+      const a = AA - e * pA, b = BA - e * pA;
+      const inside = a >= 0 && a <= pA && b >= 0 && b <= pA;
+      prod.push({e, x, g: inside ? dlagrange(nodesA, a, xi) * dlagrange(nodesA, b, xi) / (JA * JA) : 0, inside, assembled: e < stepA});
+    }
+  }
+  const series = (data, key) => {
+    const z = d => `${d.A}-${d.e}`;
+    return [
+      Plot.line(data.filter(d => d.A !== AA && d.A !== BA), {x: "x", y: "v", z, stroke: "#d0d0d0", strokeWidth: 1}),
+      Plot.line(data.filter(d => d.A === BA), {x: "x", y: "v", z, stroke: colJ, strokeWidth: 3}),
+      Plot.line(data.filter(d => d.A === AA), {x: "x", y: "v", z, stroke: colI, strokeWidth: 3, strokeDasharray: AA === BA ? "6,4" : null}),
+    ];
+  };
+  const edges = Plot.ruleX(d3.range(neA + 1).map(e => e * hA), {stroke: "#888"});
+  const xAx = {label: "x", domain: [0, LA]};
+  const plA = Plot.plot({width: W, height: 200, x: xAx, y: {label: "global N_A(x)", grid: true},
+    marks: [Plot.ruleY([0]), edges, ...series(glob),
+      Plot.dot(xNodesA, {x: d => d, y: 0, r: 3.5, fill: "white", stroke: "black"}),
+      Plot.text(d3.range(neA), {x: e => (e + 0.5) * hA, y: 1.12, text: e => `e${e + 1}`, fill: e => elemColors[e % 10], fontWeight: "bold"})]});
+  const plB = Plot.plot({width: W, height: 170, x: xAx, y: {label: "dN_A/dx", grid: true},
+    marks: [Plot.ruleY([0]), edges, ...series(der)]});
+  const contribs = d3.range(neA).map(e => {
+    const pts = prod.filter(d => d.e === e);
+    return {e, val: d3.sum(gauss(6), q => {
+      const a = AA - e * pA, b = BA - e * pA;
+      return a >= 0 && a <= pA && b >= 0 && b <= pA ? q.w * dlagrange(nodesA, a, q.xi) * dlagrange(nodesA, b, q.xi) / JA : 0;
+    }), inside: pts[0].inside};
+  });
+  const gmax = d3.max(prod, d => Math.abs(d.g)) || 1;
+  const plC = Plot.plot({width: W, height: 230, x: xAx, y: {label: "EA · N'_A · N'_B", grid: true, domain: [-1.25 * gmax, 1.25 * gmax]},
+    marks: [
+      ...d3.range(neA).map(e => Plot.areaY(prod.filter(d => d.e === e), {x: "x", y: "g", fill: elemColors[e % 10], fillOpacity: e < stepA ? 0.45 : 0.12})),
+      Plot.ruleY([0]), edges,
+      Plot.line(prod, {x: "x", y: "g", z: "e", stroke: "black", strokeWidth: 1.5}),
+      Plot.text(contribs.filter(c => c.inside), {x: c => (c.e + 0.5) * hA, y: 1.1 * gmax, text: c => `${fmt(c.val, 3)}`, fill: c => elemColors[c.e % 10], fontWeight: "bold"}),
+    ]});
+  const total = d3.sum(contribs, c => c.val);
+  return html`<div><span class="chip" style="background:${colI}">A = ${AA + 1} (test w = N<sub>${AA + 1}</sub>)</span>
+    <span class="chip" style="background:${colJ}">B = ${BA + 1} (trial N<sub>${BA + 1}</sub>)</span></div>
+    ${plA}${plB}${plC}
+    <div class="readout">K<sub>${AA + 1},${BA + 1}</sub> = Σ over elements of the shaded areas = ${contribs.filter(c => c.inside).map(c => fmt(c.val, 4)).join(" + ") || "0"} = <b>${fmt(total, 5)}</b>
+    ${contribs.every(c => !c.inside) ? html`<br>N<sub>${AA + 1}</sub> and N<sub>${BA + 1}</sub> never overlap, so their product is zero everywhere. <b>This is why K is sparse/banded.</b>` : ""}
+    ${stepA < neA ? html`<br>Faded areas belong to elements not yet assembled (slider = ${stepA}).` : ""}</div>`;
+}
+```
+
+::: {.callout-tip}
+## Try this
+- With **p = 1**, click $K_{22}$. $N_2$ is a hat spanning elements 1 and 2, and each element adds $1/h$, so $K_{22} = 2/h$. Now slide "elements assembled" from 1 → 2 and watch that entry go from $1/h$ to $2/h$.
+- Click $K_{13}$ (or any cell far from the diagonal). The two hats don't overlap, so the product is 0 everywhere. **Local support ⇒ sparse, banded K.**
+- Switch to **p = 2**. Interior (mid-element) nodes belong to just one element, so their rows are never shared. Only the element-end nodes get contributions from two elements.
+:::
+
+## Interactive 3 — Solve Kd = F and compare to the exact solution
+
+Same mesh as above ($EA = 1$, $L = 1$). The boundary condition $u(0) = 0$ is applied by deleting row/column 1 (that removes the rigid-body mode that made $\mathbf K$ singular). Then we solve.
+
+```{ojs}
+viewof loadType = Inputs.radio(["Uniform  f = q", "Linear  f = q·x/L", "Sinusoidal  f = q·sin(πx/L)"], {value: "Sinusoidal  f = q·sin(πx/L)", label: "Distributed load"})
+viewof qA = Inputs.range([-5, 5], {step: 0.5, value: 2, label: "q"})
+viewof PA = Inputs.range([-3, 3], {step: 0.25, value: 0, label: "End load P at x = L"})
+```
+
+```{ojs}
+fLoad = loadType.startsWith("Uniform") ? (x => qA) : loadType.startsWith("Linear") ? (x => qA * x / LA) : (x => qA * Math.sin(Math.PI * x / LA))
+uExact = {
+  const L = LA, q = qA, P = PA, pi = Math.PI;
+  if (loadType.startsWith("Uniform")) return {u: x => q * (L * x - x * x / 2) + P * x, du: x => q * (L - x) + P};
+  if (loadType.startsWith("Linear")) return {u: x => -q * x ** 3 / (6 * L) + (P + q * L / 2) * x, du: x => -q * x * x / (2 * L) + P + q * L / 2};
+  return {u: x => q * L * L / (pi * pi) * Math.sin(pi * x / L) + (P + q * L / pi) * x, du: x => q * L / pi * Math.cos(pi * x / L) + P + q * L / pi};
+}
+solution = {
+  const K = d3.range(nDofA).map(() => new Array(nDofA).fill(0));
+  const F = new Array(nDofA).fill(0);
+  const gq = gauss(8);
+  for (let e = 0; e < neA; e++)
+    for (let a = 0; a <= pA; a++) {
+      for (let b = 0; b <= pA; b++) K[e * pA + a][e * pA + b] += KeA[a][b];
+      F[e * pA + a] += d3.sum(gq, q => q.w * lagrange(nodesA, a, q.xi) * fLoad(e * hA + (1 + q.xi) * JA) * JA);
+    }
+  F[nDofA - 1] += PA;
+  const Kr = K.slice(1).map(r => r.slice(1));
+  const d = [0, ...solveDense(Kr, F.slice(1))];
+  return {K, F, d};
+}
+```
+
+```{ojs}
+{
+  const uh = [], duh = [];
+  for (let e = 0; e < neA; e++)
+    for (const xi of linspace(-1, 1, 50)) {
+      const x = e * hA + (1 + xi) * JA;
+      let u = 0, du = 0;
+      for (let a = 0; a <= pA; a++) { u += lagrange(nodesA, a, xi) * solution.d[e * pA + a]; du += dlagrange(nodesA, a, xi) / JA * solution.d[e * pA + a]; }
+      uh.push({x, u, e}); duh.push({x, du, e});
+    }
+  const ex = linspace(0, LA, 300).map(x => ({x, u: uExact.u(x), du: uExact.du(x)}));
+  const edges = Plot.ruleX(d3.range(neA + 1).map(e => e * hA), {stroke: "#ddd"});
+  const plA = Plot.plot({width: W, height: 280, x: {label: "x"}, y: {label: "displacement u", grid: true},
+    marks: [Plot.ruleY([0]), edges,
+      Plot.line(ex, {x: "x", y: "u", stroke: "#999", strokeWidth: 6, strokeOpacity: 0.45}),
+      Plot.line(uh, {x: "x", y: "u", z: "e", stroke: colI, strokeWidth: 2.5}),
+      Plot.dot(xNodesA.map((x, A) => ({x, u: solution.d[A]})), {x: "x", y: "u", r: 4, fill: colI, stroke: "white"})]});
+  const plB = Plot.plot({width: W, height: 230, x: {label: "x"}, y: {label: "strain du/dx", grid: true},
+    marks: [Plot.ruleY([0]), edges,
+      Plot.line(ex, {x: "x", y: "du", stroke: "#999", strokeWidth: 6, strokeOpacity: 0.45}),
+      Plot.line(duh, {x: "x", y: "du", z: "e", stroke: colJ, strokeWidth: 2.5})]});
+  const errNodes = d3.max(xNodesA, (x, A) => Math.abs(solution.d[A] - uExact.u(x)));
+  const rows = xNodesA.map((x, A) => html`<tr><td>${A + 1}</td><td>${fmt(x, 3)}</td><td>${fmt(solution.F[A], 4)}</td><td>${fmt(solution.d[A], 5)}</td><td>${fmt(uExact.u(x), 5)}</td></tr>`);
+  return html`${plA}${plB}
+  <div class="readout">Thick grey = exact. Colored = FE solution. Max nodal error = ${fmt(errNodes, 3)}</div>
+  <details><summary>Show nodal F and d</summary>
+  <table class="table table-sm" style="max-width:520px"><thead><tr><th>node</th><th>x</th><th>F<sub>A</sub></th><th>d<sub>A</sub> (FE)</th><th>u(x) exact</th></tr></thead><tbody>${rows}</tbody></table></details>`;
+}
+```
+
+::: {.callout-tip}
+## Try this
+- **p = 1, sinusoidal load, 1–2 elements:** the displacement is piecewise linear and the strain is piecewise *constant*, with jumps at element boundaries. Add elements and both converge.
+- Look at the **nodes** with p = 1. For this 1D problem the nodal values are exact (or very close) even on a coarse mesh. That's a special 1D "superconvergence" property, and the error lives *between* the nodes.
+- **Uniform load with p = 2:** the exact solution is quadratic, so one quadratic element gets it exactly (same reason ξ³ − ξ was exact with p = 3 in Part 1).
+- Set $q = 0$ and $P \ne 0$. With only an end load the exact solution is linear, so even one linear element is exact.
+:::
