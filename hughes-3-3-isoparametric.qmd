@@ -1,0 +1,1025 @@
+---
+title: "Isoparametric elements: when is a mapped element safe?"
+subtitle: "Hughes, Section 3.3 (and the first page of 3.4): the isoparametric concept, the Jacobian determinant, and why convergence conditions C1, C2 and C3 come for free"
+format:
+  html:
+    theme:
+      light: cosmo
+      dark: darkly
+    respect-user-color-scheme: true
+    toc: true
+    toc-depth: 2
+    toc-location: left
+    embed-resources: true
+    html-math-method: mathjax
+    fontsize: 1.05em
+    callout-appearance: simple
+execute:
+  echo: false
+---
+
+::: {.callout-note appearance="minimal"}
+**How to use this page.** Each part opens with its goal. Every equation is followed by a short *where* list that defines each symbol right where it is used. The gray boxes are live: drag the sliders, click the buttons, and in the big element explorer you can **drag the four nodes with your mouse or finger**. The interactive pieces work offline; the equations need an internet connection to typeset.
+:::
+
+```{=html}
+<style>
+.fe-widget{border:1px solid rgba(128,128,128,.35);border-radius:8px;padding:12px 14px;margin:1.2rem 0}
+.fe-ctrl{display:grid;grid-template-columns:minmax(110px,max-content) minmax(0,1fr) 3.5em;gap:6px 12px;align-items:center;margin-bottom:8px}
+.fe-ctrl output{text-align:right;font-variant-numeric:tabular-nums}
+.fe-legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.85em;margin:4px 0}
+.fe-legend i{display:inline-block;width:18px;height:0;border-top:3px solid;vertical-align:middle;margin-right:6px}
+.fe-out{margin:.5rem 0 0;font-variant-numeric:tabular-nums}
+.fe-table{border-collapse:collapse;font-variant-numeric:tabular-nums;margin-top:.5rem}
+.fe-table td,.fe-table th{padding:2px 10px;text-align:right}
+.iso-row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+.iso-row>div{flex:1 1 240px;min-width:0}
+.iso-row>.iso-wide{flex:2 1 320px}
+.iso-btns{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.iso-btns button{font:inherit;font-size:.85em;padding:3px 10px;border-radius:14px;border:1px solid rgba(128,128,128,.5);background:transparent;color:inherit;cursor:pointer}
+.iso-btns button:hover{border-color:#d4572a}
+.iso-btns button.on{background:#d4572a;border-color:#d4572a;color:#fff}
+.iso-mat{display:inline-table;border-left:2px solid currentColor;border-right:2px solid currentColor;border-radius:4px;vertical-align:middle;margin:0 4px}
+.iso-mat td{padding:1px 8px;text-align:right;font-variant-numeric:tabular-nums}
+.iso-status{margin-top:.6rem;padding:8px 12px;border-radius:6px;border-left:4px solid}
+.iso-ok{border-color:#1d9e75;background:rgba(29,158,117,.10)}
+.iso-warn{border-color:#e0a100;background:rgba(224,161,0,.12)}
+.iso-bad{border-color:#d62828;background:rgba(214,40,40,.10)}
+.iso-neg{color:#d62828;font-weight:600}
+main table.table{display:block;max-width:100%;overflow-x:auto}
+</style>
+<script>
+window.FE=(function(){
+  const C={orange:'#d4572a',purple:'#6c5ce7',teal:'#1d9e75',gray:'#8a8a8a',pink:'#c2185b',blue:'#2e86c1',red:'#d62828'};
+  function niceStep(raw){const p=Math.pow(10,Math.floor(Math.log10(raw)));const r=raw/p;return (r<1.5?1:r<3?2:r<7?5:10)*p;}
+  function ticks(a,b,n){const st=niceStep((b-a)/n);const out=[];for(let v=Math.ceil(a/st-1e-9)*st;v<=b+1e-9;v+=st)out.push(Math.abs(v)<st*1e-6?0:v);return out;}
+  function fmt(v){return Math.abs(v)<1e-9?'0':String(+v.toPrecision(3));}
+  function plot(id,o){
+    const W=640,H=o.height||280,m={l:o.noY?16:58,r:20,t:22,b:o.xlabel?46:28};
+    const x0=o.x[0],x1=o.x[1],y0=o.y[0],y1=o.y[1];
+    const sx=v=>m.l+(v-x0)/(x1-x0)*(W-m.l-m.r), sy=v=>H-m.b-(v-y0)/(y1-y0)*(H-m.t-m.b);
+    let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block;font-size:13px" role="img" aria-label="${o.label||'plot'}">`;
+    const grid='stroke="currentColor" stroke-opacity="0.12"';
+    if(!o.noX) ticks(x0,x1,o.xt||6).forEach(t=>{s+=`<line x1="${sx(t)}" x2="${sx(t)}" y1="${m.t}" y2="${H-m.b}" ${grid}/><text x="${sx(t)}" y="${H-m.b+16}" text-anchor="middle" fill="currentColor">${fmt(t)}</text>`;});
+    if(!o.noY) ticks(y0,y1,o.yt||5).forEach(t=>{s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(t)}" y2="${sy(t)}" ${grid}/><text x="${m.l-8}" y="${sy(t)+4}" text-anchor="end" fill="currentColor">${fmt(t)}</text>`;});
+    s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${H-m.b}" y2="${H-m.b}" stroke="currentColor" stroke-opacity="0.5"/>`;
+    if(o.xlabel) s+=`<text x="${(m.l+W-m.r)/2}" y="${H-6}" text-anchor="middle" fill="currentColor" opacity="0.8">${o.xlabel}</text>`;
+    if(o.ylabel) s+=`<text x="${m.l}" y="${m.t-8}" text-anchor="start" fill="currentColor" opacity="0.8">${o.ylabel}</text>`;
+    (o.rects||[]).forEach(r=>{s+=`<rect x="${sx(r.x1)}" y="${sy(r.y2)}" width="${sx(r.x2)-sx(r.x1)}" height="${sy(r.y1)-sy(r.y2)}" fill="${r.color}" fill-opacity="${r.opacity||0.14}"/>`;});
+    (o.hrules||[]).forEach(r=>{s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(r.y)}" y2="${sy(r.y)}" stroke="${r.color||'currentColor'}" stroke-opacity="0.7" stroke-dasharray="4 3"/>`;});
+    (o.vrules||[]).forEach(r=>{s+=`<line x1="${sx(r.x)}" x2="${sx(r.x)}" y1="${m.t}" y2="${H-m.b}" stroke="currentColor" stroke-opacity="0.6" stroke-dasharray="4 3"/>`;});
+    (o.lines||[]).forEach(l=>{s+=`<polyline fill="none" stroke="${l.color}" stroke-width="${l.width||2}" stroke-opacity="${l.opacity||1}" ${l.dash?'stroke-dasharray="6 4"':''} stroke-linejoin="round" points="${l.pts.map(q=>sx(q[0]).toFixed(1)+','+sy(q[1]).toFixed(1)).join(' ')}"/>`;});
+    (o.dots||[]).forEach(d=>{s+=`<circle cx="${sx(d.x)}" cy="${sy(d.y)}" r="${d.r||5}" fill="${d.color}"/>`;});
+    (o.texts||[]).forEach(t=>{s+=`<text x="${sx(t.x)+(t.dx||0)}" y="${sy(t.y)+(t.dy||0)}" text-anchor="${t.anchor||'middle'}" fill="${t.color||'currentColor'}">${t.text}</text>`;});
+    s+='</svg>';
+    if(o.legend) s+='<div class="fe-legend">'+o.legend.map(l=>`<span><i style="border-color:${l.color};${l.dash?'border-top-style:dashed;':''}"></i>${l.label}</span>`).join('')+'</div>';
+    document.getElementById(id).innerHTML=s;
+  }
+  function val(id){return +document.getElementById(id).value;}
+  function bind(ids,fn){
+    const show=id=>{const e=document.getElementById(id),st=String(e.step||'1');const d=st.includes('.')?st.split('.')[1].length:0;const o=document.getElementById(id+'-v');if(o)o.textContent=(+e.value).toFixed(d);};
+    ids.forEach(id=>{document.getElementById(id).addEventListener('input',()=>{show(id);fn();});show(id);});
+    fn();
+  }
+  return {C,plot,val,bind,fmt};
+})();
+
+/* 2D helpers for the bilinear quadrilateral */
+window.ISO=(function(){
+  const XI=[-1,1,1,-1], ETA=[-1,-1,1,1];
+  const NC=['#6c5ce7','#1d9e75','#d4572a','#2e86c1'];
+  function N(xi,eta){return [0,1,2,3].map(a=>0.25*(1+XI[a]*xi)*(1+ETA[a]*eta));}
+  function dNxi(xi,eta){return [0,1,2,3].map(a=>0.25*XI[a]*(1+ETA[a]*eta));}
+  function dNeta(xi,eta){return [0,1,2,3].map(a=>0.25*ETA[a]*(1+XI[a]*xi));}
+  function map(P,xi,eta,s){s=(s==null)?1:s;const n=N(xi,eta);let x=0,y=0;for(let a=0;a<4;a++){x+=s*n[a]*P[a][0];y+=s*n[a]*P[a][1];}return [x,y];}
+  function jac(P,xi,eta){const a=dNxi(xi,eta),b=dNeta(xi,eta);let xx=0,xe=0,yx=0,ye=0;
+    for(let k=0;k<4;k++){xx+=a[k]*P[k][0];yx+=a[k]*P[k][1];xe+=b[k]*P[k][0];ye+=b[k]*P[k][1];}
+    return {xx:xx,xe:xe,yx:yx,ye:ye,j:xx*ye-xe*yx};}
+  function f(v,d){d=(d==null)?2:d;const r=+v.toFixed(d);return (Math.abs(r)<0.5*Math.pow(10,-d)?0:r).toFixed(d);}
+  function view(W,H,box,pad){pad=pad||16;const sc=Math.min((W-2*pad)/(box[1]-box[0]),(H-2*pad)/(box[3]-box[2]));
+    const ox=pad+((W-2*pad)-sc*(box[1]-box[0]))/2, oy=pad+((H-2*pad)-sc*(box[3]-box[2]))/2;
+    return {sx:x=>ox+(x-box[0])*sc, sy:y=>H-oy-(y-box[2])*sc, ix:px=>box[0]+(px-ox)/sc, iy:py=>box[2]+(H-oy-py)/sc, sc:sc};}
+  function poly(pts,v){return pts.map(p=>v.sx(p[0]).toFixed(1)+','+v.sy(p[1]).toFixed(1)).join(' ');}
+  const quad={P:[[0,0],[4,0],[3,2],[1,2]],subs:[]};
+  function setQuad(P){quad.P=P.map(p=>p.slice());quad.subs.forEach(fn=>fn());}
+  return {XI,ETA,NC,N,dNxi,dNeta,map,jac,f,view,poly,quad,setQuad};
+})();
+</script>
+```
+
+# The big picture: what is the goal of this section?
+
+In Chapter 1 every element was a piece of a line, and the map from the parent element ($-1\le\xi\le1$) to the real element was a simple stretch. Nothing could go wrong with it as long as the element had positive length.
+
+In Chapter 3 the elements are **2D and 3D shapes**: quadrilaterals, triangles, bricks. Section 3.2 built the **bilinear quadrilateral** by taking a perfect parent square and **mapping** it onto whatever four-sided shape your mesher drew. Real meshes are full of skewed, tapered, stretched elements. That raises two questions that Section 3.3 answers:
+
+1. **Is the map safe?** Can a badly shaped element fold over on itself, turn inside out, or collapse? How would a program detect it?
+2. **Does the FE solution still converge** to the right answer as the mesh is refined, when the elements are not perfect squares?
+
+The answer is the **isoparametric concept**: use the *same* shape functions to describe the **geometry** of the element and the **field** inside it. If you do that, and if one number called the **Jacobian determinant** stays positive, then the three mathematical conditions that guarantee convergence (C1, C2, C3 from Section 3.1) are satisfied **automatically**. That is why essentially every 2D and 3D solid and thermal element in ANSYS, Abaqus, COMSOL and LS-DYNA is isoparametric.
+
+```{mermaid}
+%%| fig-cap: "The logic of Section 3.3. Each arrow is one proposition or remark in the book."
+flowchart TD
+  A["Isoparametric element: same N_a for geometry x and field u"] --> B["Jacobian determinant j > 0 everywhere"]
+  B --> C["Map is one-to-one and onto, so it can be inverted (Remark 1)"]
+  C --> D["C1 smoothness holds (Proposition 1)"]
+  A --> E["Shape functions sum to 1"]
+  E --> F["C3 completeness holds (Proposition 2)"]
+  A --> G["Neighbors share edge nodes"]
+  G --> H["C2 continuity holds (case by case)"]
+  D --> I["FE solution converges as mesh is refined"]
+  F --> I
+  H --> I
+```
+
+**Why this matters to you as a practitioner.** "Negative Jacobian", "element distortion", "Jacobian ratio", "inverted element", "failed patch test": these are the words commercial software uses when this section's guarantees break. After this page you will know what each one means, what geometry causes it, and how much to worry.
+
+## Reading the ebook's broken symbols
+
+Your ebook renders several of Hughes's symbols as boxes or wrong letters. Here is the translation key for the screenshots:
+
+| What the screenshot shows | What Hughes means | In words |
+|:---:|:---:|---|
+| □ (an empty box) | $\square$ (a bold square, the **parent domain**) | The standard square $-1\le\xi\le1,\;-1\le\eta\le1$ that every element is drawn from |
+| ñ$^e$ or n$^e$ | $\Omega^e$ (capital omega) | The **real element**: the region of your part that element $e$ occupies |
+| r$^e$ | $\Gamma^e$ (capital gamma) | The **boundary** (edges or faces) of element $e$ |
+| R$^2$, R$^{n_{sd}}$ | $\mathbb{R}^2$, $\mathbb{R}^{n_{sd}}$ | The flat plane, or space with $n_{sd}$ dimensions ($n_{sd}$ = **n**umber of **s**pace **d**imensions: 1, 2 or 3) |
+| "$\xi^{(1)}\ \xi^{(2)}$" in Definition 2 | $\xi^{(1)} \neq \xi^{(2)}$ | The "not equal" sign is missing |
+| Equation under Definition 1 | Should be (3.3.1), shown below | The ebook accidentally repeated (3.2.20) there |
+| Tiny "$\Sigma N_a = 1$" in Proposition 2 | $\displaystyle\sum_{a=1}^{n_{en}} N_a = 1$ | Shape functions sum to one |
+
+A few more symbols that appear throughout:
+
+- **Bold letters are vectors** (lists of numbers). $\boldsymbol{\xi} = (\xi,\eta)$ in 2D or $(\xi,\eta,\zeta)$ in 3D is a **point in the parent square**. $\boldsymbol{x}=(x,y)$ or $(x,y,z)$ is a **point in the real element**. $\xi$ is "xi", $\eta$ is "eta" ("AY-tuh"), $\zeta$ is "zeta".
+- $\boldsymbol{x}: \square \to \Omega^e$ reads "**$\boldsymbol{x}$ is a function that takes a point of the parent square and returns a point of the real element**." The arrow shows the direction: input set → output set.
+- $\in$ means "is a member of." $\boldsymbol{\xi}\in\square$ means "$\boldsymbol{\xi}$ is some point in the parent square."
+- $\subset$ means "is a subset of." $\Omega^e\subset\mathbb{R}^{2}$ means "the element is a region of the plane."
+- $n_{en}$ is the **n**umber of **e**lement **n**odes (4 for the bilinear quad, 3 for a triangle, 8 for a brick).
+- $\boldsymbol{x}^e_a$ is the **position of local node $a$** of element $e$. In 2D it is the pair $(x^e_a, y^e_a)$.
+
+## Refresher: the three convergence conditions from Section 3.1
+
+These are the "contract" a set of shape functions must satisfy for the FE solution to approach the exact one as elements get smaller (for problems like heat conduction and elasticity, whose weak forms contain **first** derivatives):
+
+| Condition | Math statement | Plain meaning | What goes wrong without it |
+|---|---|---|---|
+| **C1 smoothness** | Each $N_a$ is $C^1$ inside each element | Inside an element, the shape functions and their first derivatives exist and have no jumps | Strains or heat fluxes ($u_{,x}$, $u_{,y}$) cannot even be computed |
+| **C2 continuity** | Each $N_a$ is $C^0$ across element boundaries $\Gamma^e$ | No gaps or overlaps in $u^h$ where two elements meet | Cracks appear in the displacement field; temperature jumps at element edges |
+| **C3 completeness** | The element can reproduce any constant and linear field exactly | A uniform temperature, a rigid shift, and a uniform gradient (constant strain) are represented with **zero** error | Error does not shrink with mesh refinement; the model converges to the wrong answer (or not at all) |
+
+**Notation: $C^k$.** A function is "$C^k$" if it and its first $k$ derivatives exist and are continuous (no jumps). $C^0$ means the function itself has no jumps (but its slope may have kinks, like a hat function). $C^1$ means the slope has no jumps either.
+
+## Refresher: the bilinear quadrilateral from Section 3.2
+
+The parent domain $\square$ is the square with corners at $\xi,\eta = \pm1$. Its four nodes are numbered **counterclockwise** starting from the bottom left:
+
+| Local node $a$ | 1 | 2 | 3 | 4 |
+|:---:|:---:|:---:|:---:|:---:|
+| $\xi_a$ | $-1$ | $+1$ | $+1$ | $-1$ |
+| $\eta_a$ | $-1$ | $-1$ | $+1$ | $+1$ |
+
+The shape functions are (3.2.14):
+
+$$
+N_a(\xi,\eta) = \tfrac14\,(1+\xi_a\,\xi)\,(1+\eta_a\,\eta), \qquad a = 1,2,3,4
+$$
+
+where:
+
+- $\xi,\eta$ are the coordinates of the point where you evaluate the function (anywhere in the square).
+- $\xi_a,\eta_a$ are the **fixed** coordinates of node $a$ from the table, so each factor is either $(1-\xi)$ or $(1+\xi)$, either $(1-\eta)$ or $(1+\eta)$.
+
+Plugging in the table:
+
+$$
+N_1 = \tfrac14(1-\xi)(1-\eta),\quad N_2 = \tfrac14(1+\xi)(1-\eta),\quad N_3 = \tfrac14(1+\xi)(1+\eta),\quad N_4 = \tfrac14(1-\xi)(1+\eta)
+$$
+
+Each one is the product of two 1D hat functions from Chapter 1: one in $\xi$, one in $\eta$. That is why it is called **bi**linear: linear in $\xi$ when $\eta$ is held fixed, and linear in $\eta$ when $\xi$ is held fixed.
+
+**Deriving (3.2.20), the sum-to-one property.** The book writes all four terms and states the sum is 1. Here is the algebra. Group the two bottom-edge functions (they share the factor $\tfrac14(1-\eta)$):
+
+$$
+N_1 + N_2 = \tfrac14(1-\eta)\big[(1-\xi) + (1+\xi)\big] = \tfrac14(1-\eta)\big[2\big] = \tfrac12(1-\eta)
+$$
+
+Group the two top-edge functions (they share $\tfrac14(1+\eta)$):
+
+$$
+N_3 + N_4 = \tfrac14(1+\eta)\big[(1+\xi) + (1-\xi)\big] = \tfrac14(1+\eta)\big[2\big] = \tfrac12(1+\eta)
+$$
+
+Add the two pairs:
+
+$$
+\sum_{a=1}^{4} N_a = \tfrac12(1-\eta) + \tfrac12(1+\eta) = \tfrac12 + \tfrac12 = \boxed{1} \tag{3.2.20}
+$$
+
+This holds at **every** point $(\xi,\eta)$, not just at nodes. Keep $N_3+N_4=\tfrac12(1+\eta)$ in mind: it reappears on the last page of your screenshots (Section 3.4).
+
+Move the point around the parent square. The circle at each node grows with the value of that node's shape function, and the bars must always stack to exactly 1.
+
+```{=html}
+<div class="fe-widget">
+<div class="fe-ctrl"><label for="sa-x">ξ</label><input type="range" id="sa-x" min="-1" max="1" step="0.05" value="0.3"><output id="sa-x-v"></output><label for="sa-e">η</label><input type="range" id="sa-e" min="-1" max="1" step="0.05" value="-0.4"><output id="sa-e-v"></output></div>
+<div class="iso-row"><div id="sa-sq"></div><div id="sa-bars" class="iso-wide"></div></div>
+<p class="fe-out" id="sa-out"></p>
+</div>
+<script>
+FE.bind(['sa-x','sa-e'],function(){
+  const xi=FE.val('sa-x'),eta=FE.val('sa-e'),n=ISO.N(xi,eta),f=ISO.f;
+  const W=260,H=260,v=ISO.view(W,H,[-1.45,1.45,-1.45,1.45],10);
+  let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block;font-size:13px" role="img" aria-label="parent square with point">`;
+  for(let k=-1;k<=1;k+=0.5){s+=`<line x1="${v.sx(k)}" x2="${v.sx(k)}" y1="${v.sy(-1)}" y2="${v.sy(1)}" stroke="currentColor" stroke-opacity="0.12"/><line x1="${v.sx(-1)}" x2="${v.sx(1)}" y1="${v.sy(k)}" y2="${v.sy(k)}" stroke="currentColor" stroke-opacity="0.12"/>`;}
+  s+=`<polygon points="${ISO.poly([[-1,-1],[1,-1],[1,1],[-1,1]],v)}" fill="none" stroke="currentColor" stroke-width="2"/>`;
+  s+=`<line x1="${v.sx(xi)}" x2="${v.sx(xi)}" y1="${v.sy(-1)}" y2="${v.sy(1)}" stroke="currentColor" stroke-opacity="0.45" stroke-dasharray="4 3"/><line x1="${v.sx(-1)}" x2="${v.sx(1)}" y1="${v.sy(eta)}" y2="${v.sy(eta)}" stroke="currentColor" stroke-opacity="0.45" stroke-dasharray="4 3"/>`;
+  for(let a=0;a<4;a++){const px=v.sx(ISO.XI[a]),py=v.sy(ISO.ETA[a]);
+    s+=`<circle cx="${px}" cy="${py}" r="${4+22*n[a]}" fill="${ISO.NC[a]}" fill-opacity="0.35" stroke="${ISO.NC[a]}"/><text x="${px+(ISO.XI[a]<0?-14:14)}" y="${py+(ISO.ETA[a]<0?20:-12)}" text-anchor="middle" fill="currentColor">${a+1}</text>`;}
+  s+=`<circle cx="${v.sx(xi)}" cy="${v.sy(eta)}" r="5" fill="currentColor"/>`;
+  s+=`<text x="${v.sx(1.38)}" y="${v.sy(0)+4}" text-anchor="end" fill="currentColor" opacity="0.7">ξ</text><text x="${v.sx(0)}" y="${v.sy(1.33)}" text-anchor="middle" fill="currentColor" opacity="0.7">η</text></svg>`;
+  document.getElementById('sa-sq').innerHTML=s;
+  const BW=380,BH=260,base=220,top=30,hh=base-top;
+  let b=`<svg viewBox="0 0 ${BW} ${BH}" width="100%" style="max-width:${BW}px;display:block;font-size:13px" role="img" aria-label="shape function values">`;
+  b+=`<line x1="20" x2="${BW-10}" y1="${base}" y2="${base}" stroke="currentColor" stroke-opacity="0.5"/><line x1="20" x2="${BW-10}" y1="${top}" y2="${top}" stroke="currentColor" stroke-opacity="0.25" stroke-dasharray="4 3"/><text x="16" y="${top+4}" text-anchor="end" fill="currentColor">1</text><text x="16" y="${base+4}" text-anchor="end" fill="currentColor">0</text>`;
+  for(let a=0;a<4;a++){const x=36+a*62,h=hh*n[a];b+=`<rect x="${x}" y="${base-h}" width="40" height="${h}" fill="${ISO.NC[a]}" fill-opacity="0.8"/><text x="${x+20}" y="${base+17}" text-anchor="middle" fill="currentColor">N${a+1}</text><text x="${x+20}" y="${base-h-5}" text-anchor="middle" fill="currentColor">${f(n[a],3)}</text>`;}
+  let y=base;for(let a=0;a<4;a++){const h=hh*n[a];b+=`<rect x="${300}" y="${y-h}" width="44" height="${h}" fill="${ISO.NC[a]}" fill-opacity="0.8" stroke="#fff" stroke-width="0.5"/>`;y-=h;}
+  b+=`<text x="322" y="${base+17}" text-anchor="middle" fill="currentColor">sum</text></svg>`;
+  document.getElementById('sa-bars').innerHTML=b;
+  const sum=n.reduce((p,q)=>p+q,0);
+  document.getElementById('sa-out').innerHTML='At (ξ, η) = ('+f(xi)+', '+f(eta)+'):  N₁ = ¼(1 − '+f(xi)+')(1 − '+f(eta)+') = '+f(n[0],3)+',  N₂ = '+f(n[1],3)+',  N₃ = '+f(n[2],3)+',  N₄ = '+f(n[3],3)+
+    '<br>Bottom pair N₁ + N₂ = '+f(n[0]+n[1],3)+' = ½(1 − η) ✓   Top pair N₃ + N₄ = '+f(n[2]+n[3],3)+' = ½(1 + η) ✓   <b>Total = '+f(sum,3)+'</b>';
+});
+</script>
+```
+
+# Part 1. Definition 1: what "isoparametric" means
+
+**Goal of this part.** Pin down the one idea the whole section is named after.
+
+## Step 1.1: the geometry map (3.3.1)
+
+The ebook printed the wrong equation under Definition 1. The correct one is
+
+$$
+\boldsymbol{x}(\boldsymbol{\xi}) = \sum_{a=1}^{n_{en}} N_a(\boldsymbol{\xi})\;\boldsymbol{x}^e_a \tag{3.3.1}
+$$
+
+where:
+
+- $\boldsymbol{\xi}=(\xi,\eta)$ is a point in the parent square (the input).
+- $\boldsymbol{x}=(x,y)$ is where that point lands in the real element (the output).
+- $\boldsymbol{x}^e_a=(x^e_a,y^e_a)$ is the coordinate of node $a$ of element $e$, straight from your mesh file.
+- $N_a$ are the bilinear shape functions above, and $n_{en}=4$.
+
+Because $\boldsymbol{x}$ is a vector, (3.3.1) is really **two** scalar equations, one for each coordinate:
+
+$$
+x(\xi,\eta) = \sum_{a=1}^{4} N_a(\xi,\eta)\,x^e_a, \qquad y(\xi,\eta) = \sum_{a=1}^{4} N_a(\xi,\eta)\,y^e_a
+$$
+
+**Check at a node.** At node 1, $(\xi,\eta)=(-1,-1)$, we get $N_1=1$ and $N_2=N_3=N_4=0$, so $x = 1\cdot x^e_1 + 0 + 0 + 0 = x^e_1$. ✓ Each parent corner lands on its own mesh node.
+
+## Step 1.2: the field interpolation (3.3.2)
+
+$$
+u^h(\boldsymbol{\xi}) = \sum_{a=1}^{n_{en}} N_a(\boldsymbol{\xi})\;d^e_a \tag{3.3.2}
+$$
+
+where:
+
+- $u^h$ is the FE approximation inside the element: temperature, or one component of displacement.
+- $d^e_a$ is the **nodal unknown** at node $a$ (what the solver finds).
+
+**Definition 1 says:** if the *same* $N_a$ appear in both (3.3.1) and (3.3.2), the element is **isoparametric** ("iso" = same, "parametric" = describing). The geometry and the solution are built from the same recipe.
+
+You already met this in 1D (Step 2.5 of the previous guide): $x^e(\xi)=\sum N_a x^e_a$ and $u^h(\xi)=\sum N_a d_a$ used the same two hat functions.
+
+::: {.callout-tip}
+## Variants you will see in software manuals
+
+- **Isoparametric:** geometry and field use the same functions (the standard).
+- **Subparametric:** geometry uses *simpler* functions than the field (for example, straight-sided elements with quadratic temperature).
+- **Superparametric:** geometry uses *richer* functions than the field. Rare, and it can break completeness (Part 6 shows why).
+:::
+
+# Part 2. Definitions 2 and 3: a map you can run backwards
+
+**Goal of this part.** State, in plain language, what it means for the map from the parent square to be "safe," and see it fail in a 1D example you can play with.
+
+## Step 2.1: one-to-one (Definition 2)
+
+$$
+\boldsymbol{\xi}^{(1)} \neq \boldsymbol{\xi}^{(2)} \quad\Longrightarrow\quad \boldsymbol{x}\big(\boldsymbol{\xi}^{(1)}\big) \neq \boldsymbol{x}\big(\boldsymbol{\xi}^{(2)}\big)
+$$
+
+where:
+
+- $\boldsymbol{\xi}^{(1)}$ and $\boldsymbol{\xi}^{(2)}$ are any two points in the parent square. The superscripts in parentheses are just labels ("first point", "second point"), not powers.
+- $\Longrightarrow$ reads "implies."
+
+**In words:** two different parent points never land on the same physical point. Physically: **the element does not fold over onto itself.** If it did, one spot of your part would be counted twice in every integral (its stiffness or conductance added twice) and a spot elsewhere would be missing.
+
+## Step 2.2: onto (Definition 3)
+
+$$
+\Omega^e = \boldsymbol{x}(\square)
+$$
+
+where $\boldsymbol{x}(\square)$ means "the set of every point you get by feeding every point of the parent square through the map."
+
+**In words:** every point of the real element is hit by some parent point. Physically: **no holes.** The element covers its whole region.
+
+## Step 2.3: why both matter: the inverse map
+
+If a map is both one-to-one and onto, you can **run it backwards**: given any physical point $\boldsymbol{x}$, there is exactly one parent point $\boldsymbol{\xi}$ that maps to it. That backwards map is written $\boldsymbol{\xi}=\boldsymbol{x}^{-1}(\boldsymbol{x})$, or simply $\boldsymbol{\xi}(\boldsymbol{x})$.
+
+Here $\boldsymbol{x}^{-1}$ means **inverse function** ("undo $\boldsymbol{x}$"), not "one over $\boldsymbol{x}$."
+
+Why do we need to run it backwards? Because the weak form needs **physical** derivatives like $N_{a,x}=\partial N_a/\partial x$ (heat flux, strain), but $N_a$ is written in terms of $\xi$ and $\eta$. Converting one into the other uses the chain rule through $\boldsymbol{\xi}(\boldsymbol{x})$, and that only works if $\boldsymbol{\xi}(\boldsymbol{x})$ exists. Part 4 does this carefully.
+
+## Step 2.4: watch it fail in 1D
+
+The cleanest place to see a map stop being one-to-one is in 1D, where you can plot $x$ against $\xi$ directly. You already know the 1D Jacobian is just the slope $x_{,\xi}=dx/d\xi$ (previous guide, Step 2.6).
+
+Use a **3-node (quadratic) bar element**, a preview of elements you will meet later. Its nodes sit at $\xi=-1,0,+1$, with shape functions
+
+$$
+N_1 = \tfrac12\xi(\xi-1),\qquad N_2 = 1-\xi^2,\qquad N_3=\tfrac12\xi(\xi+1)
+$$
+
+(check: each is 1 at its own node and 0 at the other two). Put node 1 at $x=0$, node 3 at $x=1$, and the middle node at $x=m$. The isoparametric map (3.3.1) is
+
+$$
+x(\xi) = N_1\cdot 0 + N_2\, m + N_3\cdot 1 = (1-\xi^2)\,m + \tfrac12\xi(\xi+1)
+$$
+
+Differentiate term by term ($\tfrac{d}{d\xi}(1-\xi^2) = -2\xi$ and $\tfrac{d}{d\xi}\tfrac12(\xi^2+\xi) = \xi + \tfrac12$):
+
+$$
+x_{,\xi} = -2\xi\,m + \xi + \tfrac12 = \xi\,(1-2m) + \tfrac12
+$$
+
+This is a straight line in $\xi$, so its smallest value is at one of the ends:
+
+$$
+x_{,\xi}(-1) = -(1-2m)+\tfrac12 = 2m-\tfrac12, \qquad x_{,\xi}(+1) = (1-2m)+\tfrac12 = \tfrac32-2m
+$$
+
+Both are positive only when $2m>\tfrac12$ and $2m<\tfrac32$, that is,
+
+$$
+\boxed{\tfrac14 < m < \tfrac34}
+$$
+
+**The middle node must stay in the middle half of the element.** Drag it outside and watch the map fold:
+
+```{=html}
+<div class="fe-widget">
+<div class="fe-ctrl"><label for="q1-m">middle node m</label><input type="range" id="q1-m" min="0.05" max="0.95" step="0.01" value="0.5"><output id="q1-m-v"></output></div>
+<div class="iso-row"><div id="q1-x"></div><div id="q1-j"></div></div>
+<div id="q1-out"></div>
+</div>
+<script>
+FE.bind(['q1-m'],function(){
+  const m=FE.val('q1-m'),xf=x=>(1-x*x)*m+0.5*x*(x+1),jf=x=>x*(1-2*m)+0.5,pts=[],jp=[];
+  for(let i=0;i<=100;i++){const x=-1+i/50;pts.push([x,xf(x)]);jp.push([x,jf(x)]);}
+  const jl=jf(-1),jr=jf(1),bad=jl<-1e-9||jr<-1e-9,zero=!bad&&(Math.abs(jl)<1e-9||Math.abs(jr)<1e-9);
+  const col=bad?FE.C.red:FE.C.orange;
+  FE.plot('q1-x',{x:[-1,1],y:[-0.35,1.35],height:270,label:'x versus xi',xlabel:'ξ (parent)',ylabel:'x (real position)',
+    rects:[{x1:-1,x2:1,y1:0,y2:1,color:FE.C.teal,opacity:0.08}],hrules:[{y:0},{y:1}],
+    lines:[{pts:pts,color:col,width:2.6}],dots:[{x:-1,y:0,color:col},{x:0,y:m,color:col},{x:1,y:1,color:col}],
+    texts:[{x:-0.98,y:1.18,text:'real bar occupies 0 ≤ x ≤ 1',anchor:'start'}]});
+  FE.plot('q1-j',{x:[-1,1],y:[-1.4,1.9],height:270,label:'Jacobian versus xi',xlabel:'ξ (parent)',ylabel:'j = x,ξ',
+    rects:[{x1:-1,x2:1,y1:-1.4,y2:0,color:FE.C.red,opacity:0.08}],hrules:[{y:0}],
+    lines:[{pts:jp,color:FE.C.purple,width:2.6}],dots:[{x:-1,y:jl,color:FE.C.purple},{x:1,y:jr,color:FE.C.purple}]});
+  let cls,msg;
+  const base='x,ξ(−1) = 2('+m.toFixed(2)+') − ½ = <b>'+ISO.f(jl)+'</b>,   x,ξ(+1) = 3/2 − 2('+m.toFixed(2)+') = <b>'+ISO.f(jr)+'</b>.<br>';
+  if(bad){const xs=-0.5/(1-2*m),xe=xf(xs);cls='iso-bad';
+    msg='<b>Not one-to-one.</b> The curve turns around at ξ = '+ISO.f(xs)+', where x = '+ISO.f(xe)+(xe<0?' (outside the bar, to the left of node 1)':' (outside the bar, to the right of node 3)')+'. Draw a horizontal line near the turn: it crosses the curve twice, so two different ξ give the same x. Part of the element overlaps its neighbor. A solver checking the Jacobian would stop here.';}
+  else if(zero){cls='iso-warn';msg='<b>Quarter-point position.</b> The Jacobian is exactly zero at an end node, so ξ(x) has an infinite slope there and the strain behaves like 1/√r. This is used <i>on purpose</i> in fracture mechanics ("quarter-point elements") to capture the stress singularity at a crack tip. Anywhere else it is a mistake.';}
+  else{cls='iso-ok';msg='<b>Valid.</b> x(ξ) rises steadily from 0 to 1, so every x in the bar comes from exactly one ξ (one-to-one and onto), and j > 0 everywhere. Notice the map is not uniform: with m ≠ 0.5 the element is squeezed on one side and stretched on the other.';}
+  document.getElementById('q1-out').innerHTML='<div class="iso-status '+cls+'">'+base+msg+'</div>';
+});
+</script>
+```
+
+**What to take from the plot.** A map that is one-to-one in 1D is one that keeps climbing. "Keeps climbing" means the slope $x_{,\xi}$ never drops to zero or below. In 2D and 3D the same role is played by a single number, the **Jacobian determinant** $j$. That is Definition 4.
+
+# Part 3. Definition 4: the Jacobian determinant
+
+**Goal of this part.** Build up, from scratch, what $j=\det(\partial\boldsymbol{x}/\partial\boldsymbol{\xi})$ means: partial derivatives, a matrix of them, and the determinant of that matrix as an **area stretch factor**.
+
+## Step 3.1: partial derivatives (a quick reminder)
+
+When a function depends on two inputs, like $x(\xi,\eta)$, a **partial derivative** asks how it changes when you nudge **one** input and freeze the other:
+
+$$
+x_{,\xi} = \frac{\partial x}{\partial \xi}\;\;(\text{hold } \eta \text{ fixed}), \qquad x_{,\eta} = \frac{\partial x}{\partial \eta}\;\;(\text{hold } \xi \text{ fixed})
+$$
+
+where the curly $\partial$ means "partial derivative" and, as always in this book, the **comma** in a subscript means "derivative with respect to."
+
+**Example.** If $g(\xi,\eta) = 3\xi\eta + \eta^2$, then $g_{,\xi} = 3\eta$ (treat $\eta$ as a constant like the number 5) and $g_{,\eta} = 3\xi + 2\eta$.
+
+## Step 3.2: the derivative matrix $\partial\boldsymbol{x}/\partial\boldsymbol{\xi}$
+
+There are two outputs ($x$, $y$) and two inputs ($\xi$, $\eta$), so there are **four** partial derivatives. Arrange them in a $2\times2$ matrix (one row per output, one column per input):
+
+$$
+\frac{\partial \boldsymbol{x}}{\partial \boldsymbol{\xi}} =
+\begin{bmatrix}
+x_{,\xi} & x_{,\eta}\\
+y_{,\xi} & y_{,\eta}
+\end{bmatrix}
+$$
+
+where:
+
+- Row 1 is how $x$ changes; row 2 is how $y$ changes.
+- **Column 1**, $\begin{Bmatrix} x_{,\xi} \\ y_{,\xi}\end{Bmatrix}$, is the physical arrow you travel along when you step **in the $\xi$ direction** of the parent square. It tells you both which way that step points in the real element and how long it is.
+- **Column 2**, $\begin{Bmatrix} x_{,\eta} \\ y_{,\eta}\end{Bmatrix}$, is the physical arrow for a step **in the $\eta$ direction**.
+
+This matrix is called the **Jacobian matrix**. In 1D it shrank to a single number, $x_{,\xi}=h^e/2$.
+
+## Step 3.3: the determinant of a $2\times2$ matrix
+
+For any $2\times2$ matrix
+
+$$
+\det\begin{bmatrix} p & q \\ r & s\end{bmatrix} = p\,s - q\,r
+$$
+
+where "det" is short for **determinant**: multiply down the main diagonal, then subtract the product of the other diagonal.
+
+**What it means geometrically.** Treat the two columns as arrows $(p,r)$ and $(q,s)$ starting at the same point. Together they outline a parallelogram. The determinant is that parallelogram's **signed area**:
+
+- **Magnitude** = area. Example: columns $(2,0)$ and $(0,1)$ make a $2\times1$ rectangle; $\det = 2\cdot1 - 0\cdot0 = 2$. ✓
+- **Shearing does not change area.** Columns $(2,0)$ and $(1,1)$ make a slanted parallelogram with base 2 and height 1; $\det = 2\cdot 1 - 1\cdot 0 = 2$. ✓
+- **Sign** = orientation. If the second arrow is counterclockwise from the first, $\det>0$. Swap them and it becomes negative: columns $(0,1)$ and $(2,0)$ give $0\cdot0 - 2\cdot1 = -2$. The shape is "inside out" (mirror-imaged).
+- **Zero** means the two arrows point along the same line: the parallelogram is flattened to zero area.
+
+## Step 3.4: so what is $j$?
+
+Applying the formula to the Jacobian matrix gives (3.3.3):
+
+$$
+j = \det\begin{bmatrix} x_{,\xi} & x_{,\eta}\\ y_{,\xi} & y_{,\eta}\end{bmatrix} = x_{,\xi}\,y_{,\eta} - x_{,\eta}\,y_{,\xi} \tag{3.3.3}
+$$
+
+Put Steps 3.2 and 3.3 together: a tiny square in the parent domain with sides $d\xi$ and $d\eta$ is carried by the map to a tiny parallelogram with sides $\begin{Bmatrix} x_{,\xi} \\ y_{,\xi}\end{Bmatrix}d\xi$ and $\begin{Bmatrix} x_{,\eta} \\ y_{,\eta}\end{Bmatrix}d\eta$. Its area is therefore
+
+$$
+dA = j\;d\xi\,d\eta
+$$
+
+where $dA$ is a tiny patch of **real** area. So:
+
+> **$j$ is the local area stretch factor** from the parent square to the real element: how many square meters of your part each unit of parent area represents, at that spot. And its **sign** says whether the element is right-side-out ($j>0$) or flipped ($j<0$).
+
+This is the 2D version of the 1D rule $dx = x_{,\xi}\,d\xi$ you used for change of variables, and it is exactly how every element integral is computed:
+
+$$
+\int_{\Omega^e} (\cdots)\, dA = \int_{-1}^{1}\!\!\int_{-1}^{1} (\cdots)\; j(\xi,\eta)\; d\xi\, d\eta
+$$
+
+**3D version (3.3.4).** With three inputs and three outputs the matrix is $3\times3$ and $j$ is the signed **volume** stretch factor. The $3\times3$ determinant is found by "expanding along the first row": each entry of row 1 times the $2\times2$ determinant left when you cross out its row and column, with signs $+,-,+$:
+
+$$
+j = x_{,\xi}\big(y_{,\eta}z_{,\zeta}-y_{,\zeta}z_{,\eta}\big) - x_{,\eta}\big(y_{,\xi}z_{,\zeta}-y_{,\zeta}z_{,\xi}\big) + x_{,\zeta}\big(y_{,\xi}z_{,\eta}-y_{,\eta}z_{,\xi}\big)
+$$
+
+You will not compute these by hand; the meaning (signed volume ratio) is what matters.
+
+## Step 3.5: computing $j$ for the bilinear quad
+
+Differentiate (3.3.1). The nodal coordinates $x^e_a$ are just numbers, so only $N_a$ gets differentiated:
+
+$$
+x_{,\xi} = \sum_{a=1}^{4} N_{a,\xi}\,x^e_a, \qquad x_{,\eta} = \sum_{a=1}^{4} N_{a,\eta}\,x^e_a \qquad(\text{same for } y)
+$$
+
+The shape-function derivatives come from $N_a=\tfrac14(1+\xi_a\xi)(1+\eta_a\eta)$. For $N_{a,\xi}$, the factor $(1+\eta_a\eta)$ is a constant, and $\tfrac{d}{d\xi}(1+\xi_a\xi)=\xi_a$:
+
+$$
+N_{a,\xi} = \tfrac14\,\xi_a\,(1+\eta_a\eta), \qquad N_{a,\eta} = \tfrac14\,\eta_a\,(1+\xi_a\xi)
+$$
+
+**Worked example: a trapezoid.** Nodes at $\boldsymbol{x}_1=(0,0)$, $\boldsymbol{x}_2=(4,0)$, $\boldsymbol{x}_3=(3,2)$, $\boldsymbol{x}_4=(1,2)$: a bottom edge of length 4, a top edge of length 2, height 2. (This is the default shape in the explorer below.)
+
+*$x_{,\xi}$.* Write out the four terms using $\xi_a = -1,+1,+1,-1$ and $\eta_a=-1,-1,+1,+1$:
+
+$$
+x_{,\xi} = \tfrac14\Big[(-1)(1-\eta)(0) + (+1)(1-\eta)(4) + (+1)(1+\eta)(3) + (-1)(1+\eta)(1)\Big]
+$$
+
+$$
+= \tfrac14\Big[4 - 4\eta + 3 + 3\eta - 1 - \eta\Big] = \tfrac14\Big[6 - 2\eta\Big] = 1.5 - 0.5\,\eta
+$$
+
+*$x_{,\eta}$.* Same idea with $\eta_a$ out front and $(1+\xi_a\xi)$:
+
+$$
+x_{,\eta} = \tfrac14\Big[(-1)(1-\xi)(0) + (-1)(1+\xi)(4) + (+1)(1+\xi)(3) + (+1)(1-\xi)(1)\Big] = \tfrac14\Big[-4-4\xi+3+3\xi+1-\xi\Big] = -0.5\,\xi
+$$
+
+*$y_{,\xi}$ and $y_{,\eta}$.* The $y$-coordinates are $0,0,2,2$:
+
+$$
+y_{,\xi} = \tfrac14\Big[(+1)(1+\eta)(2) + (-1)(1+\eta)(2)\Big] = 0, \qquad
+y_{,\eta} = \tfrac14\Big[(+1)(1+\xi)(2) + (+1)(1-\xi)(2)\Big] = \tfrac14\big[4\big] = 1
+$$
+
+*The determinant.*
+
+$$
+j = x_{,\xi}\,y_{,\eta} - x_{,\eta}\,y_{,\xi} = (1.5-0.5\eta)(1) - (-0.5\xi)(0) = \boxed{1.5 - 0.5\,\eta}
+$$
+
+**Read it.** Along the bottom edge ($\eta=-1$), $j=2$; along the top ($\eta=+1$), $j=1$. The bottom of the trapezoid is twice as wide as the top, so it stretches the parent square twice as much. ✓
+
+**Check with the area.** Integrate $j$ over the parent square ($\int_{-1}^{1}d\xi = 2$ and $\int_{-1}^{1}\eta\,d\eta = 0$):
+
+$$
+\text{Area} = \int_{-1}^{1}\!\!\int_{-1}^{1}(1.5-0.5\eta)\,d\xi\,d\eta = 1.5\cdot 2\cdot 2 - 0.5\cdot 2\cdot 0 = 6
+$$
+
+Trapezoid formula: $\tfrac{4+2}{2}\cdot 2 = 6$. ✓
+
+## Step 3.6: two facts that make checking easy
+
+**Fact 1: for the bilinear quad, $j$ has no $\xi\eta$ term.** In general $x_{,\xi}$ depends only on $\eta$ and $x_{,\eta}$ only on $\xi$ (look at the formulas for $N_{a,\xi}$ and $N_{a,\eta}$). Write them as
+
+$$
+x_{,\xi} = A_x + B_x\,\eta,\qquad x_{,\eta} = C_x + B_x\,\xi \qquad(\text{and the same with } y)
+$$
+
+where $A$, $B$, $C$ are numbers built from the node coordinates. Multiply out $j$ and look for $\xi\eta$ terms:
+
+$$
+j = (A_x + B_x\eta)(C_y+B_y\xi) - (C_x+B_x\xi)(A_y+B_y\eta) \;\;\Rightarrow\;\; \xi\eta\text{ terms: } B_xB_y - B_xB_y = 0
+$$
+
+So $j = j_0 + j_1\xi + j_2\eta$ is **linear**, a tilted flat plane over the parent square. A flat plane's lowest point over a square is always at a **corner**. Therefore:
+
+> For a bilinear quad, **$j>0$ everywhere if and only if $j>0$ at all four nodes.**
+
+**Fact 2: $j$ at a node comes straight from the two edges that meet there.** At node 1, $(\xi,\eta)=(-1,-1)$. In $x_{,\xi}$ the factor $(1+\eta_a\eta)=(1-\eta_a)$ is 2 for nodes 1, 2 and 0 for nodes 3, 4, so
+
+$$
+x_{,\xi}\big|_{\text{node }1} = \tfrac14\big[(-1)(2)x_1 + (+1)(2)x_2\big] = \tfrac12\,(x_2 - x_1)
+$$
+
+The same steps give $x_{,\eta}\big|_{\text{node }1} = \tfrac12(x_4-x_1)$, and likewise for $y$. So the two Jacobian columns at node 1 are **half of edge 1→2 and half of edge 1→4**, and
+
+$$
+j\big|_{\text{node }1} = \tfrac14\Big[(x_2-x_1)(y_4-y_1) - (x_4-x_1)(y_2-y_1)\Big]
+$$
+
+which is a quarter of the parallelogram area spanned by those two edges. It is **negative exactly when the interior angle at node 1 is more than 180°** (the corner is pushed inward, making a "dart" or "arrowhead") or when the nodes run clockwise. The other three nodes work the same way.
+
+**Practitioner translation:** a bilinear quad is valid if and only if it is **convex** (every interior angle under 180°) and its nodes are numbered **counterclockwise**.
+
+## Step 3.7: explore it
+
+The left panel is the parent square; the right panel is the real element. **Drag the numbered nodes** on the right (or use the buttons). The thin lines on the right are the images of the parent grid lines $\xi=$ constant and $\eta=$ constant (compare with Figure 3.4.1 in your screenshot). Each little cell is shaded by the sign of $j$ at its center: **green = $j>0$**, **red = $j<0$**, darker = bigger $|j|$.
+
+The black dot is a probe point you move with the $\xi$ and $\eta$ sliders. At the probe, the orange arrow is column 1 of the Jacobian matrix (a unit step in $\xi$) and the purple arrow is column 2 (a unit step in $\eta$). The small square around the probe on the left maps to the small shaded parallelogram on the right, and the ratio of their areas is $j$.
+
+```{=html}
+<div class="fe-widget" id="mp-box">
+<div class="iso-btns" id="mp-btns"></div>
+<div class="fe-ctrl"><label for="mp-px">probe ξ</label><input type="range" id="mp-px" min="-1" max="1" step="0.05" value="0.3"><output id="mp-px-v"></output><label for="mp-pe">probe η</label><input type="range" id="mp-pe" min="-1" max="1" step="0.05" value="-0.4"><output id="mp-pe-v"></output></div>
+<div class="iso-row"><div id="mp-par"></div><div class="iso-wide">
+<svg id="mp-svg" viewBox="0 0 440 330" width="100%" style="max-width:440px;display:block;touch-action:none;font-size:13px" role="img" aria-label="real element with draggable nodes">
+<defs>
+<marker id="mp-ao" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#d4572a"/></marker>
+<marker id="mp-ap" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#6c5ce7"/></marker>
+</defs>
+<g id="mp-bg"></g><g id="mp-cells"></g><g id="mp-grid"></g><g id="mp-probe"></g><g id="mp-nodes"></g>
+</svg>
+<div style="font-size:.8em;opacity:.75">Drag nodes 1 to 4. They snap to a 0.1 grid.</div>
+</div></div>
+<div id="mp-out" class="fe-out"></div>
+</div>
+<script>
+(function(){
+  const W=440,H=330,box=[-1.2,5.2,-1.2,4.0],v=ISO.view(W,H,box,14),f=ISO.f,red='#d62828',green='#1d9e75';
+  const presets=[
+    ['Trapezoid',[[0,0],[4,0],[3,2],[1,2]]],
+    ['Square',[[0,0],[3,0],[3,3],[0,3]]],
+    ['Parallelogram',[[0,0],[3,0],[4,2.5],[1,2.5]]],
+    ['Long and thin',[[-0.5,1],[4.5,1],[4.5,1.6],[-0.5,1.6]]],
+    ['Mild dart',[[0,0],[3.5,0],[1.5,1.5],[0,3.5]]],
+    ['Strong dart',[[0,0],[4,0],[1.2,1],[0,3]]],
+    ['Nodes 3 and 4 swapped',[[0,0],[3,0],[0,3],[3,3]]],
+    ['Clockwise numbering',[[0,0],[0,3],[3,3],[3,0]]],
+    ['Collapsed: 3 = 4 (triangle)',[[0,0],[3,0],[1.5,3],[1.5,3]]]];
+  const bt=document.getElementById('mp-btns');
+  presets.forEach((p,i)=>{const b=document.createElement('button');b.type='button';b.textContent=p[0];b.onclick=()=>{[...bt.children].forEach(c=>c.classList.remove('on'));b.classList.add('on');ISO.setQuad(p[1]);};if(i===0)b.classList.add('on');bt.appendChild(b);});
+  // static background grid
+  let bg='';for(let x=Math.ceil(box[0]);x<=box[1];x++)bg+=`<line x1="${v.sx(x)}" x2="${v.sx(x)}" y1="${v.sy(box[2])}" y2="${v.sy(box[3])}" stroke="currentColor" stroke-opacity="${x===0?0.3:0.08}"/>`;
+  for(let y=Math.ceil(box[2]);y<=box[3];y++)bg+=`<line x1="${v.sx(box[0])}" x2="${v.sx(box[1])}" y1="${v.sy(y)}" y2="${v.sy(y)}" stroke="currentColor" stroke-opacity="${y===0?0.3:0.08}"/>`;
+  bg+=`<text x="${v.sx(box[1])-4}" y="${v.sy(0)-5}" text-anchor="end" fill="currentColor" opacity="0.6">x</text><text x="${v.sx(0)+6}" y="${v.sy(box[3])+12}" fill="currentColor" opacity="0.6">y</text>`;
+  document.getElementById('mp-bg').innerHTML=bg;
+  // persistent node handles
+  const gN=document.getElementById('mp-nodes');
+  gN.innerHTML=[0,1,2,3].map(a=>`<g data-a="${a}" style="cursor:grab"><circle r="13" fill="${ISO.NC[a]}" fill-opacity="0.9" stroke="#fff" stroke-width="1.5"/><text text-anchor="middle" dy="4.5" fill="#fff" font-weight="700" style="pointer-events:none">${a+1}</text></g>`).join('');
+  const handles=[...gN.children];
+  const svg=document.getElementById('mp-svg');let drag=-1;
+  function toWorld(ev){const pt=svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;const q=pt.matrixTransform(svg.getScreenCTM().inverse());
+    let x=Math.round(v.ix(q.x)*10)/10,y=Math.round(v.iy(q.y)*10)/10;x=Math.min(box[1]-0.2,Math.max(box[0]+0.2,x));y=Math.min(box[3]-0.2,Math.max(box[2]+0.2,y));return [x,y];}
+  handles.forEach(h=>h.addEventListener('pointerdown',ev=>{drag=+h.dataset.a;svg.setPointerCapture(ev.pointerId);ev.preventDefault();}));
+  svg.addEventListener('pointermove',ev=>{if(drag<0)return;const w=toWorld(ev),P=ISO.quad.P.map(p=>p.slice());
+    if(P[drag][0]!==w[0]||P[drag][1]!==w[1]){P[drag]=w;[...bt.children].forEach(c=>c.classList.remove('on'));ISO.setQuad(P);}});
+  const end=()=>{drag=-1;};svg.addEventListener('pointerup',end);svg.addEventListener('pointercancel',end);
+
+  function render(){
+    const P=ISO.quad.P,xi=FE.val('mp-px'),eta=FE.val('mp-pe'),n=8;
+    let jmax=1e-9;const cj=[];
+    for(let i=0;i<n;i++)for(let k=0;k<n;k++){const c=ISO.jac(P,-1+(2*i+1)/n,-1+(2*k+1)/n).j;cj.push(c);jmax=Math.max(jmax,Math.abs(c));}
+    let cells='';
+    for(let i=0;i<n;i++)for(let k=0;k<n;k++){const a=-1+2*i/n,b=-1+2*k/n,d=2/n,c=cj[i*n+k];
+      const pts=[ISO.map(P,a,b),ISO.map(P,a+d,b),ISO.map(P,a+d,b+d),ISO.map(P,a,b+d)];
+      const col=c>1e-9?green:(c<-1e-9?red:'#8a8a8a');cells+=`<polygon points="${ISO.poly(pts,v)}" fill="${col}" fill-opacity="${(0.12+0.38*Math.abs(c)/jmax).toFixed(2)}"/>`;}
+    document.getElementById('mp-cells').innerHTML=cells;
+    let gr='';for(let i=0;i<=n;i++){const t=-1+2*i/n,l1=[],l2=[];for(let k=0;k<=20;k++){const s=-1+k/10;l1.push(ISO.map(P,t,s));l2.push(ISO.map(P,s,t));}
+      const edge=(i===0||i===n);gr+=`<polyline points="${ISO.poly(l1,v)}" fill="none" stroke="currentColor" stroke-opacity="${edge?0.95:0.3}" stroke-width="${edge?2.2:1}"/><polyline points="${ISO.poly(l2,v)}" fill="none" stroke="currentColor" stroke-opacity="${edge?0.95:0.3}" stroke-width="${edge?2.2:1}"/>`;}
+    document.getElementById('mp-grid').innerHTML=gr;
+    const J=ISO.jac(P,xi,eta),p0=ISO.map(P,xi,eta),h=0.1;
+    const cell=[ISO.map(P,xi-h,eta-h),ISO.map(P,xi+h,eta-h),ISO.map(P,xi+h,eta+h),ISO.map(P,xi-h,eta+h)];
+    let pr=`<polygon points="${ISO.poly(cell,v)}" fill="currentColor" fill-opacity="0.35" stroke="currentColor"/>`;
+    const arr=(dx,dy,mk,col)=>`<line x1="${v.sx(p0[0])}" y1="${v.sy(p0[1])}" x2="${v.sx(p0[0]+dx)}" y2="${v.sy(p0[1]+dy)}" stroke="${col}" stroke-width="2.6" marker-end="url(#${mk})"/>`;
+    if(Math.hypot(J.xx,J.yx)>1e-6)pr+=arr(J.xx,J.yx,'mp-ao','#d4572a');
+    if(Math.hypot(J.xe,J.ye)>1e-6)pr+=arr(J.xe,J.ye,'mp-ap','#6c5ce7');
+    pr+=`<circle cx="${v.sx(p0[0])}" cy="${v.sy(p0[1])}" r="4.5" fill="currentColor"/>`;
+    document.getElementById('mp-probe').innerHTML=pr;
+    handles.forEach((g,a)=>g.setAttribute('transform',`translate(${v.sx(P[a][0])},${v.sy(P[a][1])})`));
+    // parent panel
+    const PW=240,PH=240,pv=ISO.view(PW,PH,[-1.35,1.35,-1.35,1.35],10);
+    let s=`<svg viewBox="0 0 ${PW} ${PH}" width="100%" style="max-width:${PW}px;display:block;font-size:13px" role="img" aria-label="parent square">`;
+    for(let i=0;i<=n;i++){const t=-1+2*i/n,edge=(i===0||i===n);s+=`<line x1="${pv.sx(t)}" x2="${pv.sx(t)}" y1="${pv.sy(-1)}" y2="${pv.sy(1)}" stroke="currentColor" stroke-opacity="${edge?0.95:0.3}" stroke-width="${edge?2.2:1}"/><line x1="${pv.sx(-1)}" x2="${pv.sx(1)}" y1="${pv.sy(t)}" y2="${pv.sy(t)}" stroke="currentColor" stroke-opacity="${edge?0.95:0.3}" stroke-width="${edge?2.2:1}"/>`;}
+    s+=`<rect x="${pv.sx(xi-h)}" y="${pv.sy(eta+h)}" width="${pv.sx(xi+h)-pv.sx(xi-h)}" height="${pv.sy(eta-h)-pv.sy(eta+h)}" fill="currentColor" fill-opacity="0.35" stroke="currentColor"/>`;
+    s+=`<line x1="${pv.sx(xi)}" y1="${pv.sy(eta)}" x2="${pv.sx(xi+0.6)}" y2="${pv.sy(eta)}" stroke="#d4572a" stroke-width="2.6"/><line x1="${pv.sx(xi)}" y1="${pv.sy(eta)}" x2="${pv.sx(xi)}" y2="${pv.sy(eta+0.6)}" stroke="#6c5ce7" stroke-width="2.6"/><circle cx="${pv.sx(xi)}" cy="${pv.sy(eta)}" r="4.5" fill="currentColor"/>`;
+    for(let a=0;a<4;a++)s+=`<circle cx="${pv.sx(ISO.XI[a])}" cy="${pv.sy(ISO.ETA[a])}" r="10" fill="${ISO.NC[a]}"/><text x="${pv.sx(ISO.XI[a])}" y="${pv.sy(ISO.ETA[a])+4.5}" text-anchor="middle" fill="#fff" font-weight="700">${a+1}</text>`;
+    s+=`<text x="${pv.sx(0)}" y="${PH-4}" text-anchor="middle" fill="currentColor" opacity="0.7">parent square (ξ right, η up)</text></svg>`;
+    document.getElementById('mp-par').innerHTML=s;
+    // numbers
+    const g=1/Math.sqrt(3),cj4=[0,1,2,3].map(a=>ISO.jac(P,ISO.XI[a],ISO.ETA[a]).j),gj4=[0,1,2,3].map(a=>ISO.jac(P,ISO.XI[a]*g,ISO.ETA[a]*g).j);
+    const mn=Math.min(...cj4),mx=Math.max(...cj4),gmn=Math.min(...gj4),j0=ISO.jac(P,0,0).j;
+    const td=x=>`<td class="${x<-1e-9?'iso-neg':''}">${f(x,3)}</td>`;
+    let o='<p style="margin:.2rem 0">At the probe (ξ, η) = ('+f(xi)+', '+f(eta)+'):&nbsp; ∂<b>x</b>/∂<b>ξ</b> = <'+'table class="iso-mat"><tr><td style="color:#d4572a">'+f(J.xx,3)+'</td><td style="color:#6c5ce7">'+f(J.xe,3)+'</td></tr><tr><td style="color:#d4572a">'+f(J.yx,3)+'</td><td style="color:#6c5ce7">'+f(J.ye,3)+'</td></tr></table>';
+    o+='&nbsp; j = ('+f(J.xx,3)+')('+f(J.ye,3)+') − ('+f(J.xe,3)+')('+f(J.yx,3)+') = <b class="'+(J.j<-1e-9?'iso-neg':'')+'">'+f(J.j,3)+'</b></p>';
+    o+='<p style="margin:.2rem 0">The probe square on the left has area 0.2 × 0.2 = 0.04. Its image has area ≈ j × 0.04 = '+f(J.j*0.04,4)+'. Element area = ∫∫ j dξ dη = 4·j(0,0) = <b>'+f(4*j0,3)+'</b>.</p>';
+    o+='<'+'table class="fe-table"><tr><th style="text-align:left">where</th><th>node 1</th><th>node 2</th><th>node 3</th><th>node 4</th></tr><tr><th style="text-align:left">j at the nodes</th>'+cj4.map(td).join('')+'</tr><tr><th style="text-align:left">j at the 2×2 Gauss points</th>'+gj4.map(td).join('')+'</tr></table>';
+    const negN=cj4.map((x,i)=>x<-1e-9?i+1:0).filter(x=>x),zerN=cj4.map((x,i)=>Math.abs(x)<=1e-9?i+1:0).filter(x=>x);
+    let cls,msg;
+    if(mn>1e-9){const r=mn/mx;cls=r<0.2?'iso-warn':'iso-ok';
+      msg='<b>Valid element: j > 0 everywhere.</b> (j is linear, so its minimum is at a node.) Jacobian ratio = min/max = '+f(mn,3)+' / '+f(mx,3)+' = <b>'+f(r,2)+'</b>. '+(r<0.2?'That is a heavily distorted element: it is legal, but its stiffness and gradients will be less accurate. Many meshers flag ratios below roughly 0.1 to 0.3.':(r>0.999?'A ratio of 1 means j is the same everywhere (square, rectangle or parallelogram): the map is not distorted at all. It does <i>not</i> measure aspect ratio, though. "Long and thin" also scores 1, so meshers check aspect ratio and skew separately.':'Moderate distortion; usually fine.'));}
+    else if(mn>=-1e-9){cls='iso-warn';msg='<b>Degenerate element: j = 0 at node '+zerN.join(' and ')+'.</b> This is the "degeneration" of Remark 2. Two nodes have been made to coincide, so the edges meeting there collapse and the parallelogram at that corner has zero area. j is still positive everywhere else, and the 2×2 Gauss points (where j is actually used) are inside the element, so a code can still run it. You have built a triangle out of a quad: Section 3.4.';}
+    else if(gmn>1e-9){cls='iso-bad';msg='<b>j < 0 at node '+negN.join(' and ')+', but j > 0 at all four Gauss points.</b> The element folds over itself near that corner (look for red cells and overlapping grid lines). A code that only checks j at the Gauss points (Remark 3) would <i>not</i> catch this, and would quietly integrate a folded element. This is why good pre-processors check element quality at the nodes before solving.';}
+    else{cls='iso-bad';msg='<b>Negative Jacobian at a Gauss point.</b> The map is not one-to-one: the element is '+(mx< -1e-9?'turned completely inside out (every j is negative: the nodes run clockwise)':'folded over on itself')+'. Per Remark 3 the program stops here. In ANSYS/Abaqus this is the "negative Jacobian" or "element is inverted" error. The fix is in the mesh or the connectivity, not the solver settings.';}
+    o+='<div class="iso-status '+cls+'">'+msg+'</div>';
+    document.getElementById('mp-out').innerHTML=o;
+  }
+  ISO.quad.subs.push(render);
+  FE.bind(['mp-px','mp-pe'],render);
+})();
+</script>
+```
+
+Things to try:
+
+- **Square → Parallelogram.** In both, $j$ is the same at every point inside the element (Jacobian ratio = 1), because the map is a uniform stretch-and-shear with no taper.
+- **Long and thin.** Also a Jacobian ratio of 1, even though such elements are poor for accuracy. The ratio measures taper and folding, not aspect ratio.
+- **Trapezoid.** $j$ changes linearly from the long side to the short side, exactly as in Step 3.5.
+- **Drag node 3 slowly inward** toward the center until the corner at node 3 passes 180°. The moment it does, $j$ at node 3 crosses zero and red cells appear.
+- **Mild dart.** Node 3 is pushed just past the diagonal, so the corner at node 3 is re-entrant. $j$ is negative at node 3, yet **all four Gauss-point values are still positive**. A program checking only at the Gauss points would quietly run this folded element.
+- **Strong dart.** Push node 3 further in and the negative region reaches a Gauss point. Now the program stops.
+- **Nodes 3 and 4 swapped** (a "bowtie"): this is what a connectivity typo in an input file looks like. $j$ changes sign inside the element.
+- **Clockwise numbering:** a perfectly good square, but $j<0$ everywhere. The geometry is fine; the **node order** is wrong.
+- **Collapsed:** nodes 3 and 4 on top of each other. $j=0$ only at that node. Keep this one in mind for Part 5.
+
+# Part 4. Remark 1 and Proposition 1: why $j>0$ guarantees C1
+
+**Goal of this part.** Connect "$j>0$" to the smoothness condition C1 through two tools: the inverse function theorem, and the 2D chain rule. The second one is also exactly how software computes strains and heat fluxes, so it is worth seeing in full.
+
+## Step 4.1: Remark 1 (the inverse function theorem), in plain words
+
+The book lists four conditions on the map $\boldsymbol{x}$:
+
+| | Condition | Plain meaning |
+|---|---|---|
+| (i) | one-to-one | no folding (Definition 2) |
+| (ii) | onto | no holes (Definition 3) |
+| (iii) | $C^k$, $k\ge1$ | the map is smooth: it has at least $k$ continuous derivatives (the bilinear map is a polynomial, so it has all of them) |
+| (iv) | $j(\boldsymbol{\xi})>0$ for all $\boldsymbol{\xi}\in\square$ | positive stretch factor at every point of the parent square |
+
+**Conclusion:** then the inverse map $\boldsymbol{\xi}=\boldsymbol{x}^{-1}(\boldsymbol{x})$, going from the real element back to the parent square, **exists and is just as smooth** ($C^k$).
+
+The **inverse function theorem** is a standard calculus result. The 1D version is easy to picture: if $x(\xi)$ is smooth and always climbing (slope $>0$), you can flip the graph across the diagonal to get $\xi(x)$, and the flipped graph is smooth too, with slope $\xi_{,x}=1/x_{,\xi}$ (you saw this as (1.12.9) in Chapter 1). The flip fails exactly where the slope is zero, because $1/0$ is undefined. In 2D, "slope" becomes the Jacobian matrix and "$1/\text{slope}$" becomes the **inverse matrix**, which requires dividing by $j$.
+
+## Step 4.2: the 2D chain rule: how a code gets $N_{a,x}$ and $N_{a,y}$
+
+The stiffness (or conductance) integrals need the **physical** gradients $N_{a,x}$ and $N_{a,y}$, but $N_a$ is a formula in $\xi$ and $\eta$. We know $N_{a,\xi}$ and $N_{a,\eta}$ easily (Step 3.5). Go the other direction first: ask how $N_a$ changes when you step in $\xi$. That step moves you by $x_{,\xi}$ in $x$ and by $y_{,\xi}$ in $y$, so (2D chain rule: add up each route)
+
+$$
+N_{a,\xi} = N_{a,x}\,x_{,\xi} + N_{a,y}\,y_{,\xi}
+$$
+
+$$
+N_{a,\eta} = N_{a,x}\,x_{,\eta} + N_{a,y}\,y_{,\eta}
+$$
+
+where $N_{a,x}$, $N_{a,y}$ are the two unknowns we want.
+
+Two equations, two unknowns. Write them as a matrix equation (matrix times vector means: each row of the matrix dotted with the vector):
+
+$$
+\begin{Bmatrix} N_{a,\xi} \\ N_{a,\eta}\end{Bmatrix}
+=
+\underbrace{\begin{bmatrix} x_{,\xi} & y_{,\xi} \\ x_{,\eta} & y_{,\eta}\end{bmatrix}}_{\boldsymbol{M}}
+\begin{Bmatrix} N_{a,x} \\ N_{a,y}\end{Bmatrix}
+$$
+
+where $\boldsymbol{M}$ is the Jacobian matrix with rows and columns swapped (its **transpose**). Swapping rows and columns does not change a $2\times2$ determinant: $\det\boldsymbol{M} = x_{,\xi}y_{,\eta} - y_{,\xi}x_{,\eta} = j$.
+
+**Inverse of a $2\times2$ matrix.** For $\boldsymbol{M}=\begin{bmatrix}p&q\\r&s\end{bmatrix}$,
+
+$$
+\boldsymbol{M}^{-1} = \frac{1}{ps-qr}\begin{bmatrix}s&-q\\-r&p\end{bmatrix}
+$$
+
+(swap the diagonal, negate the off-diagonal, divide by the determinant). Check by multiplying: $\begin{bmatrix}p&q\\r&s\end{bmatrix}\begin{bmatrix}s&-q\\-r&p\end{bmatrix} = \begin{bmatrix}ps-qr & -pq+qp\\ rs-sr & -rq+sp\end{bmatrix} = (ps-qr)\begin{bmatrix}1&0\\0&1\end{bmatrix}$ ✓
+
+Apply it with $p=x_{,\xi}$, $q=y_{,\xi}$, $r=x_{,\eta}$, $s=y_{,\eta}$:
+
+$$
+\boxed{
+N_{a,x} = \frac{y_{,\eta}\,N_{a,\xi} - y_{,\xi}\,N_{a,\eta}}{j},
+\qquad
+N_{a,y} = \frac{-x_{,\eta}\,N_{a,\xi} + x_{,\xi}\,N_{a,\eta}}{j}
+}
+$$
+
+**Check with the trapezoid at its center** $(\xi,\eta)=(0,0)$: $x_{,\xi}=1.5$, $x_{,\eta}=0$, $y_{,\xi}=0$, $y_{,\eta}=1$, $j=1.5$. Then $N_{a,x} = N_{a,\xi}/1.5$ and $N_{a,y}=N_{a,\eta}/1$. That makes sense: at the center the element is 3 units wide (1.5 per unit of $\xi$) and 2 units tall (1 per unit of $\eta$), so slopes in $x$ are diluted by 1.5.
+
+**This is where $j$ becomes critical.** Every physical gradient, and therefore every strain, stress and heat flux the program reports, is **divided by $j$**. And every integral is **multiplied by $j$** (Step 3.4). So:
+
+- $j=0$ at an integration point: division by zero. The program cannot continue.
+- $j<0$: the numbers come out, but the element's stiffness has the wrong sign (it pushes when it should pull). The global $\boldsymbol{K}$ is no longer positive definite and the answer is garbage.
+- $j>0$ but tiny somewhere: huge gradients, poor accuracy.
+
+## Step 4.3: Proposition 1 and its proof, line by line
+
+**Proposition 1.** If the map (3.3.1) satisfies (i) to (iv), then C1 holds: each $N_a$, viewed as a function of the **physical** coordinates $\boldsymbol{x}$, is $C^1$ inside the element.
+
+**Proof, expanded:**
+
+1. $N_a(\boldsymbol{\xi})$ is a polynomial in $\xi$ and $\eta$, so it is smooth ($C^1$ and much more) **as a function of $\boldsymbol{\xi}$**.
+2. By Remark 1, the inverse map $\boldsymbol{\xi}(\boldsymbol{x})$ exists and is $C^1$ **as a function of $\boldsymbol{x}$**.
+3. The shape function in physical space is a **composition**, one function fed into another: $N_a(\boldsymbol{x}) = N_a\big(\boldsymbol{\xi}(\boldsymbol{x})\big)$. You feed in a physical point, get a parent point, then evaluate the polynomial.
+4. The chain rule says a smooth function of a smooth function is smooth, and gives the derivative explicitly. That is exactly the boxed formula of Step 4.2, whose ingredients ($N_{a,\xi}$, the Jacobian entries, and $1/j$) are all continuous as long as $j\neq0$. $\blacksquare$
+
+**In one sentence:** isoparametric shape functions are always smooth in $\boldsymbol{\xi}$; a positive Jacobian lets that smoothness carry over to $\boldsymbol{x}$.
+
+# Part 5. Remarks 2 and 3: degeneration, and checking $j$ in a program
+
+**Goal of this part.** Learn the one deliberate exception to "$j>0$ everywhere," and how real codes police the Jacobian.
+
+## Step 5.1: Remark 2: degenerated elements
+
+Sometimes you **want** two nodes of a quad to sit on top of each other. Making node 3 and node 4 the same point turns the quadrilateral into a **triangle** (Section 3.4 does exactly this; preview at the end of this page). Mesh generators do this all the time to fill awkward corners.
+
+Use the corner formula from Step 3.6, written at node 4: the two edges meeting at node 4 go to node 1 and to node 3. If $\boldsymbol{x}_3=\boldsymbol{x}_4$, the edge from node 4 to node 3 has **zero length**, so one of the two Jacobian columns at node 4 is the zero vector and
+
+$$
+j\big|_{\text{node }4} = 0 \quad(\text{and likewise at node }3)
+$$
+
+Away from those nodes, $j$ is still positive (try the "Collapsed" button above). So conditions (i) to (iv) fail **only at a single point**.
+
+**Why it does not matter there.** The book says "for reasons that will be apparent later, it is not usually required to calculate derivatives at these points." The reason: element integrals are done by **Gaussian quadrature**, and the Gauss points (for example $\xi,\eta=\pm 1/\sqrt3$) are always **strictly inside** the element, never at a node. The program never evaluates $1/j$ at the bad point.
+
+**Practitioner note.** A collapsed quad behaves like a triangle but is not identical to a purpose-built triangle element, and some codes warn about them. Commercial meshers usually report the percentage of "degenerate" or "collapsed" elements; a few in awkward corners are normal, but large regions of them deserve a look.
+
+## Step 5.2: Remark 3: monitoring the sign of $j$
+
+In actual computations the program computes $j$ at "special points" (the **quadrature points**, because it needs $j$ there anyway for Step 3.4 and Step 4.2). If any value is **zero or negative, it stops.** Hughes notes this is usually caused by
+
+- **an input-data error**: nodes listed in the wrong order (clockwise, or crossed like the bowtie), a mistyped coordinate, or the wrong node number in the connectivity; or
+- **an overly distorted element**: a re-entrant (dart-shaped) quad, or in large-deformation analysis an element squashed by the solution itself.
+
+**What the explorer showed you that the book does not say outright:** checking only at Gauss points can miss a fold near a corner (the "Mild dart" preset). That is why pre-processors check mesh quality metrics such as the **Jacobian ratio** (min $j$ / max $j$ over the element, sampled at the nodes) *before* solving.
+
+# Part 6. Proposition 2: why sum-to-one gives completeness (C3)
+
+**Goal of this part.** Show that an isoparametric element can reproduce any linear field **exactly**, no matter how distorted it is (as long as it is valid). This is the property the famous **patch test** checks.
+
+## Step 6.1: what we want to prove
+
+Take any linear field in 3D:
+
+$$
+u(\boldsymbol{x}) = c_0 + c_1 x + c_2 y + c_3 z
+$$
+
+where $c_0$ is a constant level (uniform temperature, or a rigid shift) and $c_1, c_2, c_3$ are the three components of a uniform gradient (uniform heat flux, or uniform strain).
+
+**Claim:** if the nodal values are set to this field's values at the nodes, then the element's interpolation $u^h$ reproduces $u$ **exactly at every point inside**, not just at the nodes.
+
+## Step 6.2: the proof, line by line
+
+**Line 1.** Start from the isoparametric field interpolation (3.3.2):
+
+$$
+u^h = \sum_{a=1}^{n_{en}} N_a\,d^e_a
+$$
+
+**Line 2.** Set each nodal value to the linear field evaluated at that node, $d^e_a = c_0 + c_1x^e_a + c_2y^e_a + c_3z^e_a$:
+
+$$
+u^h = \sum_{a=1}^{n_{en}} N_a\big(c_0 + c_1x^e_a + c_2y^e_a + c_3z^e_a\big)
+$$
+
+**Line 3.** Multiply $N_a$ into the parentheses and split the sum into four sums. The $c$'s do not depend on $a$, so they come out in front (just like $\sum 3a_i = 3\sum a_i$):
+
+$$
+u^h = c_0\Big(\sum_a N_a\Big) + c_1\Big(\sum_a N_a x^e_a\Big) + c_2\Big(\sum_a N_a y^e_a\Big) + c_3\Big(\sum_a N_a z^e_a\Big)
+$$
+
+**Line 4: the isoparametric step.** Look at the last three sums. By the **geometry map** (3.3.1), $\sum_a N_a x^e_a$ is *exactly* the physical coordinate $x$ of the point, and likewise for $y$ and $z$. This works **only because the same $N_a$ define the geometry**:
+
+$$
+u^h = c_0\Big(\sum_a N_a\Big) + c_1\,x + c_2\,y + c_3\,z
+$$
+
+**Line 5.** If the shape functions sum to one, $\sum_a N_a = 1$ (shown for the bilinear quad in (3.2.20)):
+
+$$
+u^h = c_0 + c_1x + c_2y + c_3z = u \qquad \blacksquare
+$$
+
+## Step 6.3: what each ingredient buys you
+
+Read Line 4 backwards to see what breaks if an ingredient is missing:
+
+- **If $\sum N_a \neq 1$**, the constant part is wrong: $u^h - u = c_0\big(\sum N_a - 1\big)$. A uniform temperature of 100° would show up as something else, and a rigid-body shift of the part would produce fake strain.
+- **If the element is not isoparametric** (geometry built from different functions than the field), Line 4 fails: $\sum N_a x^e_a$ is no longer $x$, so even a uniform gradient is reproduced with error. This is why superparametric elements are avoided.
+
+**Why completeness is needed for convergence.** Zoom in far enough on any smooth temperature or displacement field and it looks like a constant plus a linear tilt (that is what a first-order Taylor expansion says). As elements shrink, each one only has to capture that local constant-plus-tilt. If an element cannot represent even that exactly, its error does not go to zero no matter how fine the mesh is.
+
+**Practitioner link: the patch test.** Engineers verify completeness numerically with the **patch test**: build a small patch of deliberately distorted elements, apply boundary values from a linear field, and confirm the computed stresses or fluxes are uniform to machine precision. Element formulations in commercial codes are expected to pass it; your class code should too.
+
+## Step 6.4: try it
+
+This uses whatever element shape you left in the explorer above (go back and change it, then return). The slider "ΣNₐ" lets you deliberately break the sum-to-one property by scaling every shape function. Each cell is shaded by the size of the error $|u^h - u|$.
+
+```{=html}
+<div class="fe-widget">
+<div class="iso-btns" id="ct-btns"></div>
+<div class="fe-ctrl"><label for="ct-c0">c₀ (level)</label><input type="range" id="ct-c0" min="-3" max="3" step="0.1" value="2"><output id="ct-c0-v"></output><label for="ct-c1">c₁ (x-gradient)</label><input type="range" id="ct-c1" min="-2" max="2" step="0.1" value="0.5"><output id="ct-c1-v"></output><label for="ct-c2">c₂ (y-gradient)</label><input type="range" id="ct-c2" min="-2" max="2" step="0.1" value="-1"><output id="ct-c2-v"></output><label for="ct-s">ΣNₐ (should be 1)</label><input type="range" id="ct-s" min="0.8" max="1.2" step="0.01" value="1"><output id="ct-s-v"></output></div>
+<div class="iso-row"><div id="ct-plot" class="iso-wide"></div></div>
+<div id="ct-out"></div>
+</div>
+<script>
+(function(){
+  let field='lin';
+  const fields=[['lin','Linear: c₀ + c₁x + c₂y'],['x2','Quadratic: x²'],['xy','Bilinear: x·y']];
+  const bt=document.getElementById('ct-btns');
+  fields.forEach((p,i)=>{const b=document.createElement('button');b.type='button';b.textContent=p[1];b.onclick=()=>{[...bt.children].forEach(c=>c.classList.remove('on'));b.classList.add('on');field=p[0];render();};if(i===0)b.classList.add('on');bt.appendChild(b);});
+  function render(){
+    const P=ISO.quad.P,c0=FE.val('ct-c0'),c1=FE.val('ct-c1'),c2=FE.val('ct-c2'),s=FE.val('ct-s'),f=ISO.f;
+    ['ct-c0','ct-c1','ct-c2'].forEach(id=>document.getElementById(id).disabled=(field!=='lin'));
+    const u=(x,y)=>field==='lin'?c0+c1*x+c2*y:(field==='x2'?x*x:x*y);
+    const d=P.map(p=>u(p[0],p[1])),n=12,errs=[];let emax=0;
+    for(let i=0;i<n;i++)for(let k=0;k<n;k++){const xi=-1+(2*i+1)/n,eta=-1+(2*k+1)/n,N=ISO.N(xi,eta),X=ISO.map(P,xi,eta,s);
+      let uh=0;for(let a=0;a<4;a++)uh+=s*N[a]*d[a];const e=Math.abs(uh-u(X[0],X[1]));errs.push(e);emax=Math.max(emax,e);}
+    const W=440,H=300,v=ISO.view(W,H,[-1.2,5.2,-1.2,4.0],14);
+    let g=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block;font-size:13px" role="img" aria-label="interpolation error over the element">`;
+    for(let i=0;i<n;i++)for(let k=0;k<n;k++){const a=-1+2*i/n,b=-1+2*k/n,dd=2/n,e=errs[i*n+k];
+      const pts=[ISO.map(P,a,b,s),ISO.map(P,a+dd,b,s),ISO.map(P,a+dd,b+dd,s),ISO.map(P,a,b+dd,s)];
+      g+=`<polygon points="${ISO.poly(pts,v)}" fill="#d4572a" fill-opacity="${emax>1e-9?(0.05+0.85*e/emax).toFixed(2):0.03}" stroke="currentColor" stroke-opacity="0.12"/>`;}
+    const bnd=[];for(let k=0;k<=40;k++){const t=-1+k/20;bnd.push(ISO.map(P,t,-1,s));}for(let k=0;k<=40;k++){const t=-1+k/20;bnd.push(ISO.map(P,1,t,s));}
+    for(let k=0;k<=40;k++){const t=1-k/20;bnd.push(ISO.map(P,t,1,s));}for(let k=0;k<=40;k++){const t=1-k/20;bnd.push(ISO.map(P,-1,t,s));}
+    g+=`<polyline points="${ISO.poly(bnd,v)}" fill="none" stroke="currentColor" stroke-width="2"/>`;
+    P.forEach((p,a)=>{g+=`<circle cx="${v.sx(p[0])}" cy="${v.sy(p[1])}" r="9" fill="${ISO.NC[a]}"/><text x="${v.sx(p[0])}" y="${v.sy(p[1])+4}" text-anchor="middle" fill="#fff" font-weight="700" font-size="11">${a+1}</text>`;});
+    g+='</svg>';document.getElementById('ct-plot').innerHTML=g;
+    let cls,msg;const tiny=emax<1e-9;
+    if(field==='lin'){
+      msg='Nodal values dₐ = u(xₐ) = '+d.map(x=>f(x,2)).join(', ')+'.<br>Proposition 2 predicts uʰ − u = c₀(ΣNₐ − 1) = '+f(c0,1)+' × ('+f(s,2)+' − 1) = <b>'+f(c0*(s-1),3)+'</b> everywhere. Measured max |uʰ − u| = <b>'+f(emax,4)+'</b>.<br>';
+      if(tiny){cls='iso-ok';msg+='<b>Exact.</b> A linear field is reproduced perfectly inside the element, whatever its shape (try every preset). That is completeness, C3.';}
+      else if(Math.abs(s-1)>1e-9){cls='iso-bad';msg+='<b>Completeness is broken.</b> With ΣNₐ ≠ 1 even the constant part c₀ is wrong, by the same amount everywhere (the shading is uniform). Set c₀ = 0 and the error vanishes: the gradient terms are still fine, because they rode on the isoparametric step (Line 4). A uniform temperature or rigid shift would be misrepresented, so refinement could never fix it.';}
+      else{cls='iso-warn';msg+='The error is not zero, which means this element shape is not a valid map (check the explorer status). Completeness assumes conditions (i) to (iv).';}
+    }else{
+      msg='Measured max |uʰ − u| = <b>'+f(emax,4)+'</b>.<br>';
+      if(tiny){cls='iso-ok';msg+='<b>Exact here,</b> but only by luck of the shape: x·y happens to be one of the functions a bilinear element can represent when its edges line up with the x and y axes (try Square). Switch to Trapezoid or Parallelogram and it is no longer exact.';}
+      else{cls='iso-warn';msg+='<b>Not exact, and that is fine.</b> C3 only promises constant and linear fields. Higher-order parts of the solution are only approximated, and that error is what shrinks as you refine the mesh. Elements with more nodes (quadratic elements) push exactness to higher order.';}
+    }
+    document.getElementById('ct-out').innerHTML='<div class="iso-status '+cls+'">'+msg+'</div>';
+  }
+  ISO.quad.subs.push(render);
+  FE.bind(['ct-c0','ct-c1','ct-c2','ct-s'],render);
+})();
+</script>
+```
+
+# Part 7. The remaining condition, C2 (continuity across edges)
+
+**Goal of this part.** See why two neighboring bilinear quads never open a gap between them.
+
+The book says C2 is "verified case by case," and that doing things "the obvious way" works. Here is the obvious way for the bilinear quad. Look at the bottom edge of an element, where $\eta=-1$:
+
+$$
+N_3 = \tfrac14(1+\xi)\big(1+(-1)\big) = 0, \qquad N_4 = \tfrac14(1-\xi)\big(1+(-1)\big) = 0
+$$
+
+$$
+N_1 = \tfrac14(1-\xi)\big(1-(-1)\big) = \tfrac12(1-\xi), \qquad N_2 = \tfrac14(1+\xi)\big(1-(-1)\big) = \tfrac12(1+\xi)
+$$
+
+So along that edge,
+
+$$
+u^h = \tfrac12(1-\xi)\,d_1 + \tfrac12(1+\xi)\,d_2
+$$
+
+which is **exactly the 1D linear element from Chapter 1**, and it depends **only on the two nodes on that edge**. The geometry along the edge, by the same argument, is the straight line between $\boldsymbol{x}_1$ and $\boldsymbol{x}_2$.
+
+The neighboring element that shares this edge shares those two nodes and their two values. Along the shared edge it also produces a straight-line interpolation between the same two values. Same line, same values: **no gap**. The same holds on every edge.
+
+**Practitioner translation:** C2 breaks when neighbors do **not** share the same nodes along a common edge: a "hanging node" in the middle of a neighbor's edge, a linear element next to a quadratic one, or two separately meshed parts that touch without being merged. Software handles those cases with tie constraints or multi-point constraints; if you forget them, temperature or displacement can jump at the interface.
+
+# Part 8. Summary, and a first look at Section 3.4
+
+## Step 8.1: the book's summary, unpacked
+
+| Convergence condition | Delivered by | Requires |
+|---|---|---|
+| C1 smoothness | Proposition 1 | $j>0$ at every point (valid map) |
+| C2 continuity | Shared edge nodes (Part 7) | Neighbors share nodes on common edges |
+| C3 completeness | Proposition 2 | Isoparametric + $\sum N_a = 1$ |
+
+So for isoparametric elements, the only thing you as the analyst must police is **element shape and node ordering** (that keeps $j>0$) and **mesh conformity** (that keeps C2). The rest is built into the formulation. On top of that, isoparametric elements can take **curved boundaries** (with higher-order shape functions, the edges themselves bend) and are easy to program: one routine, looped over every element, exactly like the 1D loop you saw in Chapter 1.
+
+## Step 8.2: preview of Section 3.4: a triangle from a collapsed quad
+
+The bottom of your last screenshot starts Section 3.4. It takes the bilinear quad and puts nodes 3 and 4 at the same point, $\boldsymbol{x}^e_3 = \boldsymbol{x}^e_4$. Substitute that into (3.3.1):
+
+$$
+\boldsymbol{x} = N_1\boldsymbol{x}^e_1 + N_2\boldsymbol{x}^e_2 + N_3\boldsymbol{x}^e_3 + N_4\boldsymbol{x}^e_3 = N_1\boldsymbol{x}^e_1 + N_2\boldsymbol{x}^e_2 + (N_3+N_4)\,\boldsymbol{x}^e_3
+$$
+
+That is a three-node element with shape functions $N'_1=N_1$, $N'_2=N_2$, and $N'_3 = N_3+N_4$. You already derived the last one in the refresher:
+
+$$
+N'_3 = N_3 + N_4 = \tfrac12(1+\eta)
+$$
+
+(The book writes $N'_1$ and $N'_2$ together as $\tfrac14\big[1+(-1)^a\xi\big](1-\eta)$; with $a=1$ that is $\tfrac14(1-\xi)(1-\eta)$ and with $a=2$ it is $\tfrac14(1+\xi)(1-\eta)$, the same $N_1$ and $N_2$ as before.) The whole top edge of the parent square ($\eta=1$) is squeezed into the single point $\boldsymbol{x}_3$, which is why $j=0$ there (Remark 2). Click the "Collapsed" button in the explorer to see the grid fan out from that point, like Figure 3.4.1. Section 3.4 will show this degenerate quad gives the classic **constant strain triangle**. Post the next pages when you are ready.
+
+# Practitioner checklist from this section
+
+| What to check in any 2D/3D model | Why it follows from this section |
+|---|---|
+| No "negative Jacobian" / "inverted element" errors, and treat them as **mesh or connectivity** problems | $j\le0$ means the map folds or flips (Definitions 2 to 4, Remark 3) |
+| Quads are convex and nodes run counterclockwise (for 2D) | $j$ at a corner is negative when that interior angle passes 180° or the order is clockwise (Step 3.6) |
+| Review the mesher's **Jacobian ratio** / distortion report, not just "no errors" | Gauss-point checks can miss folds near corners; small $j$ means large gradient errors (Steps 4.2, 5.2) |
+| Know where degenerate (collapsed) elements are and keep them few | $j=0$ at the collapsed node (Remark 2) |
+| Element formulation passes the **patch test** | Completeness, C3 (Proposition 2) |
+| Parts and regions are merged so neighbors share edge nodes, or are properly tied | Continuity, C2 (Part 7) |
+| Trust reported stresses and fluxes less in distorted elements | Gradients are divided by $j$ (Step 4.2) |
+
+# Check yourself
+
+1. A rectangle element has nodes $\boldsymbol{x}_1=(0,0)$, $\boldsymbol{x}_2=(2,0)$, $\boldsymbol{x}_3=(2,1)$, $\boldsymbol{x}_4=(0,1)$. Find $j$, and check it against the area.
+
+::: {.callout-note collapse="true"}
+## Answer
+
+Every column of the Jacobian is half an edge: $x_{,\xi} = \tfrac12(2-0) = 1$, $y_{,\eta}=\tfrac12(1-0)=\tfrac12$, and $x_{,\eta}=y_{,\xi}=0$ (the edges are aligned with the axes). So $j = (1)(\tfrac12) - (0)(0) = \tfrac12$, the same everywhere. Area $= \int\!\!\int j\,d\xi\,d\eta = \tfrac12\cdot 4 = 2$, which matches $2\times 1$. ✓
+:::
+
+2. The same rectangle is entered as $\boldsymbol{x}_1=(0,0)$, $\boldsymbol{x}_2=(0,1)$, $\boldsymbol{x}_3=(2,1)$, $\boldsymbol{x}_4=(2,0)$. What happens when you run the model, and what is the fix?
+
+::: {.callout-note collapse="true"}
+## Answer
+
+The nodes now run clockwise. At node 1 the Jacobian columns are half of edge 1→2, $(0,\tfrac12)$, and half of edge 1→4, $(1,0)$, so $j = (0)(0) - (1)(\tfrac12) = -\tfrac12$, and it is $-\tfrac12$ everywhere. The program stops with a negative-Jacobian error at the first Gauss point. The geometry is fine; the fix is to reorder the connectivity to counterclockwise.
+:::
+
+3. Why can't a program compute the heat flux $q_x = -\kappa\,u^h_{,x}$ at a point where $j=0$?
+
+::: {.callout-note collapse="true"}
+## Answer
+
+$u^h_{,x} = \sum_a N_{a,x}\,d_a$, and every $N_{a,x} = (y_{,\eta}N_{a,\xi} - y_{,\xi}N_{a,\eta})/j$ has $j$ in the denominator. At $j=0$ that is division by zero: the inverse map does not exist there, so the physical gradient is undefined.
+:::
+
+4. A buggy element routine produces shape functions that sum to 0.98 everywhere. You apply a uniform temperature of 100 °C as the nodal values. What does the element report inside, and which convergence condition fails?
+
+::: {.callout-note collapse="true"}
+## Answer
+
+$u^h = c_0\sum N_a = 100 \times 0.98 = 98$ °C everywhere inside, even though every node says 100. Completeness (C3) fails, because a constant field is not reproduced. Refining the mesh does not help: every element keeps the same 2% error.
+:::
