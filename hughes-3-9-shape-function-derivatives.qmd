@@ -1,0 +1,751 @@
+---
+title: "Shape function subroutines: from parent derivatives to physical gradients"
+subtitle: "Hughes, Section 3.9: the chain rule, the inverse Jacobian, routines QDCSHL and QDCSHG, and the 3D cofactor formulas"
+format:
+  html:
+    theme:
+      light: cosmo
+      dark: darkly
+    respect-user-color-scheme: true
+    toc: true
+    toc-depth: 2
+    toc-location: left
+    embed-resources: true
+    html-math-method: mathjax
+    fontsize: 1.05em
+    callout-appearance: simple
+execute:
+  echo: false
+---
+
+::: {.callout-note appearance="minimal"}
+**How to use this page.** Each part opens with its goal, and every equation is followed by a short *where* list defining its symbols. The gray boxes are live: click the buttons, drag the element's nodes, or type numbers into the 3D calculator. The interactive pieces work offline; the equations need an internet connection to typeset. Builds on the [Section 3.3 guide](hughes-3-3-isoparametric.html).
+:::
+
+```{=html}
+<style>
+.fe-widget{border:1px solid rgba(128,128,128,.35);border-radius:8px;padding:12px 14px;margin:1.2rem 0}
+.fe-ctrl{display:grid;grid-template-columns:minmax(110px,max-content) minmax(0,1fr) 3.5em;gap:6px 12px;align-items:center;margin-bottom:8px}
+.fe-ctrl output{text-align:right;font-variant-numeric:tabular-nums}
+.fe-legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.85em;margin:4px 0}
+.fe-legend i{display:inline-block;width:18px;height:0;border-top:3px solid;vertical-align:middle;margin-right:6px}
+.fe-out{margin:.5rem 0 0;font-variant-numeric:tabular-nums}
+.fe-table{border-collapse:collapse;font-variant-numeric:tabular-nums;margin-top:.5rem}
+.fe-table td,.fe-table th{padding:2px 10px;text-align:right}
+.iso-row{display:flex;flex-wrap:wrap;gap:12px;align-items:flex-start}
+.iso-row>div{flex:1 1 240px;min-width:0}
+.iso-row>.iso-wide{flex:2 1 320px}
+.iso-btns{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.iso-btns button{font:inherit;font-size:.85em;padding:3px 10px;border-radius:14px;border:1px solid rgba(128,128,128,.5);background:transparent;color:inherit;cursor:pointer}
+.iso-btns button:hover{border-color:#d4572a}
+.iso-btns button.on{background:#d4572a;border-color:#d4572a;color:#fff}
+.iso-mat{display:inline-table;border-left:2px solid currentColor;border-right:2px solid currentColor;border-radius:4px;vertical-align:middle;margin:0 4px}
+.iso-mat td{padding:1px 8px;text-align:right;font-variant-numeric:tabular-nums}
+.iso-status{margin-top:.6rem;padding:8px 12px;border-radius:6px;border-left:4px solid}
+.iso-ok{border-color:#1d9e75;background:rgba(29,158,117,.10)}
+.iso-warn{border-color:#e0a100;background:rgba(224,161,0,.12)}
+.iso-bad{border-color:#d62828;background:rgba(214,40,40,.10)}
+.iso-neg{color:#d62828;font-weight:600}
+main table.table{display:block;max-width:100%;overflow-x:auto}
+</style>
+<script>
+window.FE=(function(){
+  const C={orange:'#d4572a',purple:'#6c5ce7',teal:'#1d9e75',gray:'#8a8a8a',pink:'#c2185b',blue:'#2e86c1',red:'#d62828'};
+  function niceStep(raw){const p=Math.pow(10,Math.floor(Math.log10(raw)));const r=raw/p;return (r<1.5?1:r<3?2:r<7?5:10)*p;}
+  function ticks(a,b,n){const st=niceStep((b-a)/n);const out=[];for(let v=Math.ceil(a/st-1e-9)*st;v<=b+1e-9;v+=st)out.push(Math.abs(v)<st*1e-6?0:v);return out;}
+  function fmt(v){return Math.abs(v)<1e-9?'0':String(+v.toPrecision(3));}
+  function plot(id,o){
+    const W=640,H=o.height||280,m={l:o.noY?16:58,r:20,t:22,b:o.xlabel?46:28};
+    const x0=o.x[0],x1=o.x[1],y0=o.y[0],y1=o.y[1];
+    const sx=v=>m.l+(v-x0)/(x1-x0)*(W-m.l-m.r), sy=v=>H-m.b-(v-y0)/(y1-y0)*(H-m.t-m.b);
+    let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block;font-size:13px" role="img" aria-label="${o.label||'plot'}">`;
+    const grid='stroke="currentColor" stroke-opacity="0.12"';
+    if(!o.noX) ticks(x0,x1,o.xt||6).forEach(t=>{s+=`<line x1="${sx(t)}" x2="${sx(t)}" y1="${m.t}" y2="${H-m.b}" ${grid}/><text x="${sx(t)}" y="${H-m.b+16}" text-anchor="middle" fill="currentColor">${fmt(t)}</text>`;});
+    if(!o.noY) ticks(y0,y1,o.yt||5).forEach(t=>{s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(t)}" y2="${sy(t)}" ${grid}/><text x="${m.l-8}" y="${sy(t)+4}" text-anchor="end" fill="currentColor">${fmt(t)}</text>`;});
+    s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${H-m.b}" y2="${H-m.b}" stroke="currentColor" stroke-opacity="0.5"/>`;
+    if(o.xlabel) s+=`<text x="${(m.l+W-m.r)/2}" y="${H-6}" text-anchor="middle" fill="currentColor" opacity="0.8">${o.xlabel}</text>`;
+    if(o.ylabel) s+=`<text x="${m.l}" y="${m.t-8}" text-anchor="start" fill="currentColor" opacity="0.8">${o.ylabel}</text>`;
+    (o.rects||[]).forEach(r=>{s+=`<rect x="${sx(r.x1)}" y="${sy(r.y2)}" width="${sx(r.x2)-sx(r.x1)}" height="${sy(r.y1)-sy(r.y2)}" fill="${r.color}" fill-opacity="${r.opacity||0.14}"/>`;});
+    (o.hrules||[]).forEach(r=>{s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(r.y)}" y2="${sy(r.y)}" stroke="${r.color||'currentColor'}" stroke-opacity="0.7" stroke-dasharray="4 3"/>`;});
+    (o.vrules||[]).forEach(r=>{s+=`<line x1="${sx(r.x)}" x2="${sx(r.x)}" y1="${m.t}" y2="${H-m.b}" stroke="currentColor" stroke-opacity="0.6" stroke-dasharray="4 3"/>`;});
+    (o.lines||[]).forEach(l=>{s+=`<polyline fill="none" stroke="${l.color}" stroke-width="${l.width||2}" stroke-opacity="${l.opacity||1}" ${l.dash?'stroke-dasharray="6 4"':''} stroke-linejoin="round" points="${l.pts.map(q=>sx(q[0]).toFixed(1)+','+sy(q[1]).toFixed(1)).join(' ')}"/>`;});
+    (o.dots||[]).forEach(d=>{s+=`<circle cx="${sx(d.x)}" cy="${sy(d.y)}" r="${d.r||5}" fill="${d.color}"/>`;});
+    (o.texts||[]).forEach(t=>{s+=`<text x="${sx(t.x)+(t.dx||0)}" y="${sy(t.y)+(t.dy||0)}" text-anchor="${t.anchor||'middle'}" fill="${t.color||'currentColor'}">${t.text}</text>`;});
+    s+='</svg>';
+    if(o.legend) s+='<div class="fe-legend">'+o.legend.map(l=>`<span><i style="border-color:${l.color};${l.dash?'border-top-style:dashed;':''}"></i>${l.label}</span>`).join('')+'</div>';
+    document.getElementById(id).innerHTML=s;
+  }
+  function val(id){return +document.getElementById(id).value;}
+  function bind(ids,fn){
+    const show=id=>{const e=document.getElementById(id),st=String(e.step||'1');const d=st.includes('.')?st.split('.')[1].length:0;const o=document.getElementById(id+'-v');if(o)o.textContent=(+e.value).toFixed(d);};
+    ids.forEach(id=>{document.getElementById(id).addEventListener('input',()=>{show(id);fn();});show(id);});
+    fn();
+  }
+  return {C,plot,val,bind,fmt};
+})();
+
+/* 2D helpers for the bilinear quadrilateral */
+window.ISO=(function(){
+  const XI=[-1,1,1,-1], ETA=[-1,-1,1,1];
+  const NC=['#6c5ce7','#1d9e75','#d4572a','#2e86c1'];
+  function N(xi,eta){return [0,1,2,3].map(a=>0.25*(1+XI[a]*xi)*(1+ETA[a]*eta));}
+  function dNxi(xi,eta){return [0,1,2,3].map(a=>0.25*XI[a]*(1+ETA[a]*eta));}
+  function dNeta(xi,eta){return [0,1,2,3].map(a=>0.25*ETA[a]*(1+XI[a]*xi));}
+  function map(P,xi,eta,s){s=(s==null)?1:s;const n=N(xi,eta);let x=0,y=0;for(let a=0;a<4;a++){x+=s*n[a]*P[a][0];y+=s*n[a]*P[a][1];}return [x,y];}
+  function jac(P,xi,eta){const a=dNxi(xi,eta),b=dNeta(xi,eta);let xx=0,xe=0,yx=0,ye=0;
+    for(let k=0;k<4;k++){xx+=a[k]*P[k][0];yx+=a[k]*P[k][1];xe+=b[k]*P[k][0];ye+=b[k]*P[k][1];}
+    return {xx:xx,xe:xe,yx:yx,ye:ye,j:xx*ye-xe*yx};}
+  function f(v,d){d=(d==null)?2:d;const r=+v.toFixed(d);return (Math.abs(r)<0.5*Math.pow(10,-d)?0:r).toFixed(d);}
+  function view(W,H,box,pad){pad=pad||16;const sc=Math.min((W-2*pad)/(box[1]-box[0]),(H-2*pad)/(box[3]-box[2]));
+    const ox=pad+((W-2*pad)-sc*(box[1]-box[0]))/2, oy=pad+((H-2*pad)-sc*(box[3]-box[2]))/2;
+    return {sx:x=>ox+(x-box[0])*sc, sy:y=>H-oy-(y-box[2])*sc, ix:px=>box[0]+(px-ox)/sc, iy:py=>box[2]+(H-oy-py)/sc, sc:sc};}
+  function poly(pts,v){return pts.map(p=>v.sx(p[0]).toFixed(1)+','+v.sy(p[1]).toFixed(1)).join(' ');}
+  const quad={P:[[0,0],[4,0],[3,2],[1,2]],subs:[]};
+  function setQuad(P){quad.P=P.map(p=>p.slice());quad.subs.forEach(fn=>fn());}
+  return {XI,ETA,NC,N,dNxi,dNeta,map,jac,f,view,poly,quad,setQuad};
+})();
+</script>
+```
+
+```{=html}
+<style>
+.iso-pick{display:flex;flex-wrap:wrap;align-items:center;gap:6px;margin:0 0 8px}
+.iso-pick span{font-size:.85em;opacity:.8;margin-right:2px}
+.iso-pick button{font:inherit;font-size:.85em;padding:2px 10px;border-radius:14px;border:1px solid rgba(128,128,128,.5);background:transparent;color:inherit;cursor:pointer}
+.iso-pick button.on{background:#6c5ce7;border-color:#6c5ce7;color:#fff}
+.sub-box{border:1px dashed rgba(128,128,128,.55);border-radius:6px;padding:8px 12px;margin:.6rem 0}
+.sub-box h4{margin:.1rem 0 .4rem;font-size:1rem}
+.sub-box .fe-table{font-size:.9em}
+.c3-grid{display:grid;grid-template-columns:1.5em repeat(3,minmax(0,5.5em));justify-content:start;gap:4px 6px;align-items:center;margin:.4rem 0}
+.c3-grid input{width:100%;font:inherit;font-variant-numeric:tabular-nums;padding:1px 4px;border:1px solid rgba(128,128,128,.5);border-radius:4px;background:transparent;color:inherit;text-align:right}
+.c3-grid .h{font-size:.85em;opacity:.75;text-align:center}
+.scroll-x{overflow-x:auto;max-width:100%}
+</style>
+<script>
+window.TB=function(head,rows,cls){let s='<'+'table class="'+(cls||'fe-table')+'">';if(head)s+='<tr>'+head.map(h=>'<th>'+h+'</th>').join('')+'</tr>';rows.forEach(r=>{s+='<tr>'+r.map((c,i)=>(i===0?'<th style="text-align:left">':'<td>')+c+(i===0?'</th>':'</td>')).join('')+'</tr>';});return s+'</table>';};
+window.MAT=function(rows,cols){return '<'+'table class="iso-mat">'+rows.map(r=>'<tr>'+r.map((c,i)=>'<td'+(cols&&cols[i]?' style="color:'+cols[i]+'"':'')+'>'+c+'</td>').join('')+'</tr>').join('')+'</table>';};
+</script>
+```
+
+# The big picture: what is the goal of this section?
+
+Every element stiffness (or conductance) matrix you will build for heat conduction or elasticity is an integral of **products of shape-function gradients**. For 2D heat conduction, for example, it looks like
+
+$$
+k^e_{ab} = \int_{\Omega^e} \kappa\,\big(N_{a,x}N_{b,x} + N_{a,y}N_{b,y}\big)\,d\Omega
+\;\approx\; \sum_{l=1}^{n_{int}} \kappa\,\big(N_{a,x}N_{b,x} + N_{a,y}N_{b,y}\big)\Big|_{(\tilde\xi_l,\tilde\eta_l)}\; j(\tilde\xi_l,\tilde\eta_l)\; W_l
+$$
+
+where:
+
+- $k^e_{ab}$ is one entry of the element matrix (node $a$ talking to node $b$).
+- $\kappa$ is thermal conductivity (for elasticity, the material matrix $\boldsymbol{D}$ plays this role in Section 3.10).
+- $N_{a,x}$, $N_{a,y}$ are the **physical gradients** of the shape functions: how fast $N_a$ changes per meter in $x$ and in $y$.
+- The right side is **Gaussian quadrature** (Section 3.8): evaluate the integrand at $n_{int}$ special points $(\tilde\xi_l,\tilde\eta_l)$, multiply by the area stretch $j$ and the weight $W_l$, and add.
+
+So, at each quadrature point of each element, a program must produce exactly three things: **$N_a$, $N_{a,x}$, $N_{a,y}$ for every node, and $j$**. Section 3.9 shows how, and how to organize the code so it is fast. The routine that does it is called a **shape function subroutine**, and every FE code has one.
+
+The difficulty: $N_a$ is written in terms of the parent coordinates $(\xi,\eta)$, but we need derivatives with respect to the physical coordinates $(x,y)$. The map runs the wrong way for us. The fix is the **inverse of the Jacobian matrix**, which you already met in the Section 3.3 guide (Step 4.2). This section turns that idea into an algorithm.
+
+```{mermaid}
+%%| fig-cap: "Where the shape function subroutines sit inside a finite element program."
+flowchart TD
+  A["Element group setup (once): QDCSHL"] --> B["Gauss points, weights, N_a, N_a,ξ, N_a,η"]
+  B --> C["For each element e"]
+  C --> D["QDCSHG: Jacobian matrix, j, N_a,x and N_a,y at each Gauss point"]
+  D --> E["j ≤ 0? Stop: input error or distorted element"]
+  D --> F["Element stiffness k^e (Section 3.10)"]
+  F --> G["Assemble into K using LM"]
+  G --> C
+```
+
+**Why this matters to you as a practitioner.** Every stress, strain, heat flux and fluid velocity gradient a commercial code reports was computed by the formulas on this page, at the quadrature points. Knowing that explains why results are most accurate at integration points, why distorted elements give poor gradients, and exactly where the "negative Jacobian" error is raised.
+
+## Notation used in these pages
+
+| Symbol | Read as | Meaning |
+|:---:|---|---|
+| $n_{sd}$ | "n s d" | **n**umber of **s**pace **d**imensions: 2 for planar problems, 3 for solids |
+| $n_{en}$ | "n e n" | **n**umber of **e**lement **n**odes: 4 for the bilinear quad, 3 for a triangle, 8 for a brick |
+| $n_{int}$ | "n int" | number of **int**egration (quadrature) points per element: 4 for 2×2 Gauss |
+| $l$ (or $L$ in code) | "ell" | **which** quadrature point, $l = 1,\dots,n_{int}$ |
+| $\tilde\xi_l,\tilde\eta_l$ | "xi tilde, eta tilde sub l" | parent coordinates of quadrature point $l$. The **tilde** (squiggle) marks "a quadrature point," not a general point |
+| $W_l$ | "W sub l" | quadrature **weight** of point $l$ |
+| $N_{a,\xi}$ | "N a comma xi" | $\partial N_a/\partial\xi$: the **local** derivative (with respect to parent coordinates) |
+| $N_{a,x}$ | "N a comma x" | $\partial N_a/\partial x$: the **global** derivative (with respect to physical coordinates) |
+| $\xi_{,x}$ | "xi comma x" | $\partial\xi/\partial x$: how fast the parent coordinate changes as you move in physical $x$ |
+| $\langle\;\;\rangle$ | angle brackets | Hughes's notation for a **row** vector, e.g. $\langle N_{a,x}\;\;N_{a,y}\rangle$ is a $1\times2$ row |
+| $\boldsymbol{x}_{,\boldsymbol{\xi}}$ | "x comma xi," bold | the whole **Jacobian matrix** $\partial\boldsymbol{x}/\partial\boldsymbol{\xi}$ |
+| $(\cdot)^{-1}$ | "inverse" | matrix inverse: the matrix that undoes this one |
+| $(\cdot)^{T}$ | "transpose" | swap rows and columns |
+
+Hughes uses the words **local** for parent-coordinate quantities ($\xi$, $\eta$) and **global** for physical-coordinate quantities ($x$, $y$). That is why the two routines end in **L** and **G**: QDCS**HL** computes **sh**ape functions with **l**ocal derivatives, QDCS**HG** with **g**lobal derivatives. ("QDC" is "quadrilateral"; DLEARN is the teaching FE program in Chapter 11 of the book.)
+
+# Part 1. The chain rule (3.9.1 to 3.9.3)
+
+**Goal of this part.** Write the physical derivative we want in terms of the parent derivative we have.
+
+## Step 1.1: what the chain rule says
+
+Think of $N_a$ as depending on $x$ through two routes: changing $x$ changes $\xi$, and changing $x$ also changes $\eta$. Each route contributes "(how fast $N_a$ changes with that parent coordinate) times (how fast that parent coordinate changes with $x$)." Add the routes:
+
+$$
+N_{a,x} = N_{a,\xi}\,\xi_{,x} + N_{a,\eta}\,\eta_{,x} \tag{3.9.1}
+$$
+
+$$
+N_{a,y} = N_{a,\xi}\,\xi_{,y} + N_{a,\eta}\,\eta_{,y} \tag{3.9.2}
+$$
+
+where:
+
+- $N_{a,\xi}$ and $N_{a,\eta}$ are easy: differentiate the formula $N_a = \tfrac14(1+\xi_a\xi)(1+\eta_a\eta)$.
+- $\xi_{,x}$, $\eta_{,x}$, $\xi_{,y}$, $\eta_{,y}$ describe the **inverse map** (physical → parent). These are the hard part.
+
+**1D analogy.** In Chapter 1 this was $N_{a,x} = N_{a,\xi}\,\xi_{,x}$ with $\xi_{,x}=2/h^e$. There was one route, so one term.
+
+**Same thing, other direction.** In the Section 3.3 guide (Step 4.2) we wrote the chain rule the opposite way, $N_{a,\xi} = N_{a,x}x_{,\xi} + N_{a,y}y_{,\xi}$, and solved for $N_{a,x}$. Both routes lead to the same final formula (Step 3.3 below checks this).
+
+## Step 1.2: matrix form (3.9.3)
+
+Stack (3.9.1) and (3.9.2) side by side. A row vector times a matrix means: the row dotted with column 1 gives the first answer, the row dotted with column 2 gives the second:
+
+$$
+\boxed{\;\langle N_{a,x}\;\;N_{a,y}\rangle = \langle N_{a,\xi}\;\;N_{a,\eta}\rangle
+\begin{bmatrix}\xi_{,x} & \xi_{,y}\\ \eta_{,x} & \eta_{,y}\end{bmatrix}\;} \tag{3.9.3}
+$$
+
+**Check it.** Row times column 1: $N_{a,\xi}\,\xi_{,x} + N_{a,\eta}\,\eta_{,x}$, which is (3.9.1) ✓. Row times column 2: $N_{a,\xi}\,\xi_{,y} + N_{a,\eta}\,\eta_{,y}$, which is (3.9.2) ✓.
+
+The $2\times2$ matrix here is $\partial\boldsymbol{\xi}/\partial\boldsymbol{x}$: rows are parent coordinates, columns are physical coordinates.
+
+## Step 1.3: the problem
+
+We cannot compute $\xi_{,x}$ directly, because we **never have a formula for $\xi(x,y)$**. The map in Section 3.3 goes the other way: $x(\xi,\eta)=\sum N_a x^e_a$. For a general quadrilateral, solving that for $\xi$ and $\eta$ means solving a pair of coupled quadratic equations at every point. Nobody does that. The next part shows we do not have to.
+
+# Part 2. The forward Jacobian (3.9.4 to 3.9.8)
+
+**Goal of this part.** Compute the derivatives we *can* compute: those of the forward map $x(\xi,\eta)$, $y(\xi,\eta)$.
+
+The isoparametric map, written out as two scalar equations:
+
+$$
+x(\xi,\eta) = \sum_{a=1}^{n_{en}} N_a(\xi,\eta)\,x^e_a \tag{3.9.4}
+$$
+
+$$
+y(\xi,\eta) = \sum_{a=1}^{n_{en}} N_a(\xi,\eta)\,y^e_a \tag{3.9.5}
+$$
+
+where $x^e_a$, $y^e_a$ are the coordinates of node $a$ of element $e$ (numbers from your mesh).
+
+The **Jacobian matrix** collects their four partial derivatives (rows = physical coordinate, columns = parent coordinate):
+
+$$
+\boldsymbol{x}_{,\boldsymbol{\xi}} = \begin{bmatrix} x_{,\xi} & x_{,\eta}\\ y_{,\xi} & y_{,\eta}\end{bmatrix} \tag{3.9.6}
+$$
+
+Differentiating (3.9.4) and (3.9.5): the node coordinates are constants, so only $N_a$ gets differentiated:
+
+$$
+x_{,\xi} = \sum_{a=1}^{n_{en}} N_{a,\xi}\,x^e_a, \qquad x_{,\eta} = \sum_{a=1}^{n_{en}} N_{a,\eta}\,x^e_a \tag{3.9.7}
+$$
+
+$$
+y_{,\xi} = \sum_{a=1}^{n_{en}} N_{a,\xi}\,y^e_a, \qquad y_{,\eta} = \sum_{a=1}^{n_{en}} N_{a,\eta}\,y^e_a \tag{3.9.8}
+$$
+
+Each is just "the local derivatives of the shape functions, weighted by the node coordinates." These are cheap: four multiply-adds each for a quad.
+
+# Part 3. Turning the forward Jacobian into the one we need (3.9.9, 3.9.10)
+
+**Goal of this part.** Show that $\partial\boldsymbol{\xi}/\partial\boldsymbol{x}$ is simply the **inverse** of $\partial\boldsymbol{x}/\partial\boldsymbol{\xi}$, and invert it.
+
+## Step 3.1: why they are inverses
+
+Going from physical to parent and back again must return you to where you started: $x\big(\xi(x,y),\,\eta(x,y)\big) = x$. Differentiate both sides with respect to $x$, using the chain rule on the left:
+
+$$
+x_{,\xi}\,\xi_{,x} + x_{,\eta}\,\eta_{,x} = \frac{\partial x}{\partial x} = 1
+$$
+
+Do the same with respect to $y$ (the right side is $\partial x/\partial y = 0$, because $x$ and $y$ are independent):
+
+$$
+x_{,\xi}\,\xi_{,y} + x_{,\eta}\,\eta_{,y} = 0
+$$
+
+Repeat for $y\big(\xi(x,y),\eta(x,y)\big)=y$:
+
+$$
+y_{,\xi}\,\xi_{,x} + y_{,\eta}\,\eta_{,x} = 0, \qquad y_{,\xi}\,\xi_{,y} + y_{,\eta}\,\eta_{,y} = 1
+$$
+
+Those four equations are exactly one matrix product:
+
+$$
+\begin{bmatrix} x_{,\xi} & x_{,\eta}\\ y_{,\xi} & y_{,\eta}\end{bmatrix}
+\begin{bmatrix} \xi_{,x} & \xi_{,y}\\ \eta_{,x} & \eta_{,y}\end{bmatrix}
+=
+\begin{bmatrix} 1 & 0\\ 0 & 1\end{bmatrix}
+$$
+
+where the matrix of 1's and 0's is the **identity matrix** $\boldsymbol{I}$ (the matrix version of the number 1). Two matrices whose product is $\boldsymbol{I}$ are **inverses** of each other. In 1D this is the familiar $\xi_{,x} = 1/x_{,\xi}$.
+
+## Step 3.2: invert the $2\times2$ matrix
+
+Recall from the Section 3.3 guide: for $\begin{bmatrix}p&q\\r&s\end{bmatrix}$ the inverse is $\dfrac{1}{ps-qr}\begin{bmatrix}s&-q\\-r&p\end{bmatrix}$ (swap the diagonal, negate the off-diagonal, divide by the determinant). With $p=x_{,\xi}$, $q=x_{,\eta}$, $r=y_{,\xi}$, $s=y_{,\eta}$:
+
+$$
+\boxed{\;\begin{bmatrix}\xi_{,x} & \xi_{,y}\\ \eta_{,x} & \eta_{,y}\end{bmatrix} = \big(\boldsymbol{x}_{,\boldsymbol{\xi}}\big)^{-1} = \frac{1}{j}\begin{bmatrix} y_{,\eta} & -x_{,\eta}\\ -y_{,\xi} & x_{,\xi}\end{bmatrix}\;} \tag{3.9.9}
+$$
+
+$$
+\boxed{\;j = \det\big(\boldsymbol{x}_{,\boldsymbol{\xi}}\big) = x_{,\xi}\,y_{,\eta} - x_{,\eta}\,y_{,\xi}\;} \tag{3.9.10}
+$$
+
+where $j$ is the **Jacobian determinant** from Section 3.3: the local area stretch factor from parent to physical element. Everything in the inverse is divided by $j$, which is why $j \le 0$ must stop the program.
+
+## Step 3.3: combine (3.9.3) and (3.9.9) into the formulas a code uses
+
+Substitute the four entries of (3.9.9) into (3.9.1) and (3.9.2):
+
+$$
+N_{a,x} = N_{a,\xi}\,\underbrace{\frac{y_{,\eta}}{j}}_{\xi_{,x}} + N_{a,\eta}\,\underbrace{\frac{-y_{,\xi}}{j}}_{\eta_{,x}}
+\qquad\Longrightarrow\qquad
+\boxed{N_{a,x} = \frac{N_{a,\xi}\,y_{,\eta} - N_{a,\eta}\,y_{,\xi}}{j}}
+$$
+
+$$
+N_{a,y} = N_{a,\xi}\,\underbrace{\frac{-x_{,\eta}}{j}}_{\xi_{,y}} + N_{a,\eta}\,\underbrace{\frac{x_{,\xi}}{j}}_{\eta_{,y}}
+\qquad\Longrightarrow\qquad
+\boxed{N_{a,y} = \frac{-\big[N_{a,\xi}\,x_{,\eta} - N_{a,\eta}\,x_{,\xi}\big]}{j}}
+$$
+
+These are the last two lines of the QDCSHG box in your screenshot, evaluated at each quadrature point $(\tilde\xi_l,\tilde\eta_l)$. They match Step 4.2 of the Section 3.3 guide exactly, which derived them from the opposite direction of the chain rule. ✓
+
+**Worked check: a 2 m × 1 m rectangle.** Nodes $(0,0)$, $(2,0)$, $(2,1)$, $(0,1)$. From Section 3.3, $x_{,\xi} = 1$, $y_{,\eta} = \tfrac12$, $x_{,\eta}=y_{,\xi}=0$, so $j = (1)(\tfrac12) - 0 = \tfrac12$. Then
+
+$$
+N_{a,x} = \frac{N_{a,\xi}\cdot\tfrac12 - 0}{\tfrac12} = N_{a,\xi}, \qquad N_{a,y} = \frac{-[0 - N_{a,\eta}\cdot 1]}{\tfrac12} = 2\,N_{a,\eta}
+$$
+
+Interpretation: one unit of $\xi$ covers 1 m of $x$, so slopes per $\xi$ equal slopes per meter. One unit of $\eta$ covers only 0.5 m of $y$, so slopes per meter are twice the slopes per $\eta$. ✓
+
+# Part 4. Shape function subroutines: what to compute once, and what per element
+
+**Goal of this part.** Understand the two-routine structure, which is a pure efficiency idea and appears in some form in every FE code.
+
+## Step 4.1: the split
+
+An **element group** is a set of elements of the same type using the same quadrature rule (for example, every 4-node quad with 2×2 Gauss integration in your mesh). Within a group, the **parent element is identical for every element**. So anything that depends only on parent coordinates is the same for all of them and can be computed **once**:
+
+| Computed once per group (QDCSHL) | Depends on | Computed per element (QDCSHG) | Depends on |
+|---|---|---|---|
+| Quadrature points $\tilde\xi_l,\tilde\eta_l$ and weights $W_l$ | the rule only | Jacobian entries $x_{,\xi}, x_{,\eta}, y_{,\xi}, y_{,\eta}$ | node coordinates |
+| $N_a(\tilde\xi_l,\tilde\eta_l)$ | parent element only | $j(\tilde\xi_l,\tilde\eta_l)$ | node coordinates |
+| $N_{a,\xi}$, $N_{a,\eta}$ at each point | parent element only | $N_{a,x}$, $N_{a,y}$ at each point | node coordinates |
+
+For a mesh of a million quads, the left column is computed once instead of a million times. Notice that $N_a$ itself (no derivative) is in the left column: **the value of a shape function at a quadrature point does not depend on the element's shape**, only its derivatives in $x,y$ do.
+
+## Step 4.2: QDCSHL, the local routine (left box in the screenshot)
+
+```text
+For l = 1, ..., n_int                       (each quadrature point)
+    Determine: W_l, ξ̃_l, η̃_l               (from the Gauss rule, Section 3.8)
+    For a = 1, ..., n_en                     (each node)
+        Calculate: N_a, N_a,ξ, N_a,η  at (ξ̃_l, η̃_l)
+```
+
+For the bilinear quad with $\xi_a,\eta_a = \pm1$:
+
+$$
+N_a = \tfrac14(1+\xi_a\tilde\xi_l)(1+\eta_a\tilde\eta_l),\quad
+N_{a,\xi} = \tfrac14\,\xi_a(1+\eta_a\tilde\eta_l),\quad
+N_{a,\eta} = \tfrac14\,\eta_a(1+\xi_a\tilde\xi_l)
+$$
+
+**Why the table lists RA(I) = $\xi_a/2$ and SA(I) = $\eta_a/2$.** Factor the $\tfrac14$ as $\tfrac12\cdot\tfrac12$ and push one half into each factor:
+
+$$
+N_a = \Big(\tfrac12 + \tfrac{\xi_a}{2}\,\xi\Big)\Big(\tfrac12 + \tfrac{\eta_a}{2}\,\eta\Big) = (0.5 + \text{RA}\cdot\xi)(0.5 + \text{SA}\cdot\eta)
+$$
+
+Differentiating the first factor with respect to $\xi$ leaves just RA, so $N_{a,\xi} = \text{RA}\,(0.5+\text{SA}\,\eta)$ and $N_{a,\eta} = (0.5+\text{RA}\,\xi)\,\text{SA}$. Storing the halves saves a multiplication everywhere. That is 1970s-era FORTRAN thinking, but the structure is unchanged in modern codes.
+
+## Step 4.3: QDCSHG, the global routine (right box in the screenshot)
+
+```text
+For l = 1, ..., n_int
+    x,ξ = Σ_a N_a,ξ x_a     x,η = Σ_a N_a,η x_a        (3.9.7)
+    y,ξ = Σ_a N_a,ξ y_a     y,η = Σ_a N_a,η y_a        (3.9.8)
+    j   = x,ξ y,η − x,η y,ξ                            (3.9.10)
+    if j ≤ 0: stop  ("non-positive Jacobian")          (Remark 3, Section 3.3)
+    For a = 1, ..., n_en
+        N_a,x = ( N_a,ξ y,η − N_a,η y,ξ ) / j
+        N_a,y = −( N_a,ξ x,η − N_a,η x,ξ ) / j
+```
+
+The $j\le0$ check is not written in the book's box, but it is in DLEARN's routine and in every production code. **This line is the source of every "negative Jacobian" error you will ever see.**
+
+## Step 4.4: Table 3.9.1, the FORTRAN names
+
+| Book notation | FORTRAN | Size | What it holds |
+|:---:|:---:|:---:|---|
+| $n_{int},\;n_{sd},\;n_{en}$ | NINT (=4), NSD (=2), NEN (=4) | scalars | counts |
+| $W_l$ | W(L) | NINT | quadrature weights |
+| $\tilde\xi_l$, $\tilde\eta_l$ | R, S | scalars | current quadrature point (FORTRAN-era codes called parent coordinates $r, s$) |
+| $N_{a,\xi},\;N_{a,\eta},\;N_a$ | SHL(1,I,L), SHL(2,I,L), SHL(3,I,L) | 3 × NEN × NINT | **local** shape function array |
+| $x^e_a$, $y^e_a$ | XL(1,I), XL(2,I) | NSD × NEN | this element's **l**ocal node coordinates |
+| $N_{a,x},\;N_{a,y},\;N_a$ | SHG(1,I,L), SHG(2,I,L), SHG(3,I,L) | 3 × NEN × NINT | **global** shape function array |
+| $\xi_a/2$, $\eta_a/2$ | RA(I), SA(I) | NEN | half the parent node coordinates |
+| $\boldsymbol{x}_{,\boldsymbol\xi}$ | XS(I,J) | NSD × NSD | Jacobian matrix |
+| $j(\tilde\xi_l,\tilde\eta_l)$ | DET(L) | NINT | Jacobian determinant at each point |
+
+How to read the 3-index arrays: **SHL(k, I, L)** = "row $k$ of the information about node I at quadrature point L," where row 1 = $\partial/\partial\xi$, row 2 = $\partial/\partial\eta$, row 3 = the value itself. NROWSH = 3 is that number of rows. SHG has the same layout with $\partial/\partial x$ and $\partial/\partial y$ in rows 1 and 2. Row 3 is identical in both, because $N_a$ at a quadrature point does not depend on the element (Step 4.1).
+
+**Triangles through degeneration.** QDCSHG also serves the 3-node triangle. When the logical flag QUAD = .FALSE., the routine treats the element as a quad whose nodes 3 and 4 coincide (Section 3.4), and adds node 4's shape function and derivatives into node 3's (the $N'_3 = N_3 + N_4$ idea from the last page), leaving node 4 empty. One routine, two element types.
+
+## Step 4.5: the same routines in Python
+
+For reference, here is the logic of both routines written in Python, keeping the FORTRAN names so you can line it up with Table 3.9.1. (Array indices start at 0 in Python.)
+
+```python
+import numpy as np
+
+RA = np.array([-0.5,  0.5, 0.5, -0.5])   # xi_a / 2
+SA = np.array([-0.5, -0.5, 0.5,  0.5])   # eta_a / 2
+
+def qdcshl(nint=4):
+    """Once per element group: weights and local shape functions."""
+    g = 2/np.sqrt(3) if nint == 4 else 0.0          # g*RA = ±1/sqrt(3)
+    W = np.ones(nint) if nint == 4 else np.array([4.0])
+    SHL = np.zeros((3, 4, nint))
+    for L in range(nint):
+        R, S = g*RA[L], g*SA[L]                      # Gauss point L
+        for I in range(4):
+            tr, ts = 0.5 + RA[I]*R, 0.5 + SA[I]*S
+            SHL[0, I, L] = RA[I]*ts                  # N_a,xi
+            SHL[1, I, L] = tr*SA[I]                  # N_a,eta
+            SHL[2, I, L] = tr*ts                     # N_a
+    return W, SHL
+
+def qdcshg(XL, SHL, quad=True):
+    """Per element: Jacobian, determinant, global derivatives."""
+    nint = SHL.shape[2]
+    SHL = SHL.copy()
+    if not quad:                                     # triangle by degeneration
+        SHL[:, 2, :] += SHL[:, 3, :]
+        SHL[:, 3, :] = 0.0
+    SHG, DET = np.zeros_like(SHL), np.zeros(nint)
+    for L in range(nint):
+        XS = XL @ SHL[0:2, :, L].T                   # [[x,xi x,eta],[y,xi y,eta]]
+        DET[L] = XS[0,0]*XS[1,1] - XS[0,1]*XS[1,0]
+        if DET[L] <= 0:
+            raise ValueError(f"non-positive Jacobian at integration point {L+1}")
+        for I in range(4):
+            Nxi, Neta = SHL[0, I, L], SHL[1, I, L]
+            SHG[0, I, L] =  (Nxi*XS[1,1] - Neta*XS[1,0]) / DET[L]   # N_a,x
+            SHG[1, I, L] = -(Nxi*XS[0,1] - Neta*XS[0,0]) / DET[L]   # N_a,y
+            SHG[2, I, L] = SHL[2, I, L]                              # N_a
+    return SHG, DET
+```
+
+The line `XS = XL @ SHL[0:2,:,L].T` is (3.9.7) and (3.9.8) all at once: a $2\times4$ matrix of node coordinates times a $4\times2$ matrix of local derivatives gives the $2\times2$ Jacobian. The interactive runner below does exactly these steps.
+
+# Part 5. Run the subroutines yourself
+
+**How to use it.** Drag the nodes (or pick a preset). Choose a quadrature point $L$ and a node $a$. The element is shaded by the value of $N_a$ (darker = closer to 1), and an arrow at each of the four Gauss points shows the physical gradient $\nabla N_a = (N_{a,x},\,N_{a,y})$. The boxes below show what QDCSHL and QDCSHG store at the chosen point, with the arithmetic written out.
+
+```{=html}
+<div class="fe-widget" id="sr-box">
+<div class="iso-btns" id="sr-btns"></div>
+<div class="iso-pick" id="sr-L"><span>Gauss point L:</span></div>
+<div class="iso-pick" id="sr-a"><span>Node a:</span></div>
+<div class="iso-row"><div id="sr-par"></div><div class="iso-wide">
+<svg id="sr-svg" viewBox="0 0 440 330" width="100%" style="max-width:440px;display:block;touch-action:none;font-size:13px" role="img" aria-label="element with Gauss points and gradient arrows">
+<defs><marker id="sr-ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0,0 L10,5 L0,10 z" fill="#d4572a"/></marker></defs>
+<g id="sr-bg"></g><g id="sr-cells"></g><g id="sr-edge"></g><g id="sr-gp"></g><g id="sr-nodes"></g>
+</svg>
+<div style="font-size:.8em;opacity:.75">Drag nodes 1 to 4 (snap 0.1). Orange arrows: ∇Nₐ at the four Gauss points.</div>
+</div></div>
+<div id="sr-out"></div>
+</div>
+<script>
+(function(){
+  const W=440,H=330,box=[-1.2,5.2,-1.2,4.0],v=ISO.view(W,H,box,14),f=ISO.f,g=1/Math.sqrt(3);
+  const GP=[0,1,2,3].map(l=>[ISO.XI[l]*g,ISO.ETA[l]*g]);
+  let P=[[0,0],[4,0],[3,2],[1,2]],L=0,A=2,quad=true;
+  const presets=[['Rectangle 2 × 1',[[0,0],[2,0],[2,1],[0,1]],true],['Trapezoid',[[0,0],[4,0],[3,2],[1,2]],true],['Parallelogram',[[0,0],[3,0],[4,2.5],[1,2.5]],true],['General quad',[[0.2,0.3],[4.2,0.8],[3.4,3.2],[0.6,2.4]],true],['Mild dart',[[0,0],[3.5,0],[1.5,1.5],[0,3.5]],true],['Triangle (QUAD = .FALSE.)',[[0,0],[4,0],[1.5,3],[1.5,3]],false],['Clockwise numbering',[[0,0],[0,3],[3,3],[3,0]],true]];
+  const bt=document.getElementById('sr-btns');
+  presets.forEach((p,i)=>{const b=document.createElement('button');b.type='button';b.textContent=p[0];b.onclick=()=>{[...bt.children].forEach(c=>c.classList.remove('on'));b.classList.add('on');P=p[1].map(q=>q.slice());quad=p[2];render();};if(i===1)b.classList.add('on');bt.appendChild(b);});
+  function pick(id,n,get,set){const box=document.getElementById(id);for(let i=0;i<n;i++){const b=document.createElement('button');b.type='button';b.textContent=String(i+1);b.onclick=()=>{set(i);[...box.querySelectorAll('button')].forEach((c,k)=>c.classList.toggle('on',k===i));render();};if(i===get())b.classList.add('on');box.appendChild(b);}}
+  pick('sr-L',4,()=>L,i=>{L=i;});pick('sr-a',4,()=>A,i=>{A=i;});
+  let bg='';for(let x=Math.ceil(box[0]);x<=box[1];x++)bg+=`<line x1="${v.sx(x)}" x2="${v.sx(x)}" y1="${v.sy(box[2])}" y2="${v.sy(box[3])}" stroke="currentColor" stroke-opacity="${x===0?0.3:0.08}"/>`;
+  for(let y=Math.ceil(box[2]);y<=box[3];y++)bg+=`<line x1="${v.sx(box[0])}" x2="${v.sx(box[1])}" y1="${v.sy(y)}" y2="${v.sy(y)}" stroke="currentColor" stroke-opacity="${y===0?0.3:0.08}"/>`;
+  document.getElementById('sr-bg').innerHTML=bg;
+  const gN=document.getElementById('sr-nodes');
+  gN.innerHTML=[0,1,2,3].map(a=>`<g data-a="${a}" style="cursor:grab"><circle r="12" fill="${ISO.NC[a]}" stroke="#fff" stroke-width="1.5"/><text text-anchor="middle" dy="4.5" fill="#fff" font-weight="700" style="pointer-events:none">${a+1}</text></g>`).join('');
+  const handles=[...gN.children],svg=document.getElementById('sr-svg');let drag=-1;
+  handles.forEach(h=>h.addEventListener('pointerdown',ev=>{drag=+h.dataset.a;svg.setPointerCapture(ev.pointerId);ev.preventDefault();}));
+  svg.addEventListener('pointermove',ev=>{if(drag<0)return;const pt=svg.createSVGPoint();pt.x=ev.clientX;pt.y=ev.clientY;const q=pt.matrixTransform(svg.getScreenCTM().inverse());
+    let x=Math.round(v.ix(q.x)*10)/10,y=Math.round(v.iy(q.y)*10)/10;x=Math.min(box[1]-0.2,Math.max(box[0]+0.2,x));y=Math.min(box[3]-0.2,Math.max(box[2]+0.2,y));
+    if(P[drag][0]!==x||P[drag][1]!==y){P[drag]=[x,y];if(!quad){if(drag===2)P[3]=[x,y];if(drag===3)P[2]=[x,y];}[...bt.children].forEach(c=>c.classList.remove('on'));render();}});
+  const end=()=>{drag=-1;};svg.addEventListener('pointerup',end);svg.addEventListener('pointercancel',end);
+
+  // QDCSHL: local arrays at a parent point, with triangle combination
+  function shl(xi,eta){const N=ISO.N(xi,eta),Nx=ISO.dNxi(xi,eta),Ne=ISO.dNeta(xi,eta);
+    if(!quad){N[2]+=N[3];Nx[2]+=Nx[3];Ne[2]+=Ne[3];N[3]=0;Nx[3]=0;Ne[3]=0;}return {N:N,Nx:Nx,Ne:Ne};}
+  // QDCSHG at one point
+  function shg(xi,eta){const s=shl(xi,eta);let xx=0,xe=0,yx=0,ye=0;
+    for(let a=0;a<4;a++){xx+=s.Nx[a]*P[a][0];xe+=s.Ne[a]*P[a][0];yx+=s.Nx[a]*P[a][1];ye+=s.Ne[a]*P[a][1];}
+    const j=xx*ye-xe*yx,Ngx=[],Ngy=[];for(let a=0;a<4;a++){Ngx.push((s.Nx[a]*ye-s.Ne[a]*yx)/j);Ngy.push(-(s.Nx[a]*xe-s.Ne[a]*xx)/j);}
+    return {s:s,xx:xx,xe:xe,yx:yx,ye:ye,j:j,Ngx:Ngx,Ngy:Ngy};}
+
+  function render(){
+    const nodesUsed=quad?4:3;
+    // physical panel: shade by N_A
+    const n=12;let cells='';
+    for(let i=0;i<n;i++)for(let k=0;k<n;k++){const a=-1+2*i/n,b=-1+2*k/n,d=2/n,val=shl(a+d/2,b+d/2).N[A];
+      const pts=[ISO.map(P,a,b),ISO.map(P,a+d,b),ISO.map(P,a+d,b+d),ISO.map(P,a,b+d)];
+      cells+=`<polygon points="${ISO.poly(pts,v)}" fill="${ISO.NC[A]}" fill-opacity="${(0.04+0.6*Math.max(0,val)).toFixed(2)}" stroke="${ISO.NC[A]}" stroke-opacity="0.1"/>`;}
+    document.getElementById('sr-cells').innerHTML=cells;
+    const bnd=[];[[0,1],[1,2],[2,3],[3,0]].forEach(e=>{for(let k=0;k<=20;k++){const t=k/20;bnd.push([P[e[0]][0]*(1-t)+P[e[1]][0]*t,P[e[0]][1]*(1-t)+P[e[1]][1]*t]);}});
+    document.getElementById('sr-edge').innerHTML=`<polyline points="${ISO.poly(bnd,v)}" fill="none" stroke="currentColor" stroke-width="2"/>`;
+    const G=GP.map(p=>shg(p[0],p[1])),ok=G.every(q=>q.j>1e-9);
+    let gmax=1e-9;if(ok)G.forEach(q=>{gmax=Math.max(gmax,Math.hypot(q.Ngx[A],q.Ngy[A]));});
+    const ar=Math.abs(G.reduce((t,r)=>t+r.j,0)),sc=Math.min(1.3,0.5*Math.sqrt(ar||1))/gmax;let gp='';
+    G.forEach((q,l)=>{const X=ISO.map(P,GP[l][0],GP[l][1]),px=v.sx(X[0]),py=v.sy(X[1]);
+      if(ok&&Math.hypot(q.Ngx[A],q.Ngy[A])>1e-9)gp+=`<line x1="${px}" y1="${py}" x2="${v.sx(X[0]+sc*q.Ngx[A])}" y2="${v.sy(X[1]+sc*q.Ngy[A])}" stroke="#d4572a" stroke-width="2.6" marker-end="url(#sr-ar)"/>`;
+      gp+=`<rect x="${px-(l===L?7:5)}" y="${py-(l===L?7:5)}" width="${l===L?14:10}" height="${l===L?14:10}" fill="${l===L?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5" transform="rotate(45 ${px} ${py})"/><text x="${px+10}" y="${py-8}" fill="currentColor" font-size="11">L${l+1}</text>`;});
+    document.getElementById('sr-gp').innerHTML=gp;
+    handles.forEach((h,a)=>{h.setAttribute('transform',`translate(${v.sx(P[a][0])+(!quad&&a===3?16:0)},${v.sy(P[a][1])})`);h.style.opacity=(!quad&&a===3)?0.45:1;});
+    // parent panel
+    const PW=240,PH=240,pv=ISO.view(PW,PH,[-1.35,1.35,-1.35,1.35],10);
+    let s=`<svg viewBox="0 0 ${PW} ${PH}" width="100%" style="max-width:${PW}px;display:block;font-size:12px" role="img" aria-label="parent square with Gauss points">`;
+    s+=`<polygon points="${ISO.poly([[-1,-1],[1,-1],[1,1],[-1,1]],pv)}" fill="none" stroke="currentColor" stroke-width="2"/>`;
+    for(let a=0;a<4;a++)s+=`<circle cx="${pv.sx(ISO.XI[a])}" cy="${pv.sy(ISO.ETA[a])}" r="10" fill="${ISO.NC[a]}"/><text x="${pv.sx(ISO.XI[a])}" y="${pv.sy(ISO.ETA[a])+4.5}" text-anchor="middle" fill="#fff" font-weight="700">${a+1}</text>`;
+    GP.forEach((p,l)=>{const px=pv.sx(p[0]),py=pv.sy(p[1]);s+=`<rect x="${px-(l===L?7:5)}" y="${py-(l===L?7:5)}" width="${l===L?14:10}" height="${l===L?14:10}" fill="${l===L?'currentColor':'none'}" stroke="currentColor" stroke-width="1.5" transform="rotate(45 ${px} ${py})"/><text x="${px+9}" y="${py-7}" fill="currentColor" font-size="11">L${l+1}</text>`;});
+    s+=`<text x="${pv.sx(0)}" y="${PH-4}" text-anchor="middle" fill="currentColor" opacity="0.7">parent square, Gauss points at ±1/√3</text></svg>`;
+    document.getElementById('sr-par').innerHTML=s;
+    // QDCSHL box
+    const q=G[L],xi=GP[L][0],eta=GP[L][1],nm=k=>'N'+(k+1);
+    let o='<div class="sub-box"><h4>QDCSHL (once per element group): point L = '+(L+1)+'</h4>';
+    o+='<p style="margin:.2rem 0">ξ̃ = '+f(xi,4)+', η̃ = '+f(eta,4)+', W = 1 (2×2 Gauss rule). These numbers are the same for <i>every</i> element in the group.'+(quad?'':' QUAD = .FALSE.: node 4 has been folded into node 3.')+'</p>';
+    o+='<div class="scroll-x">'+TB(['node a','SHL(3,a,L) = Nₐ','SHL(1,a,L) = Nₐ,ξ','SHL(2,a,L) = Nₐ,η'],[0,1,2,3].map(a=>[(a+1)+(a===A?' ◀':''),f(q.s.N[a],4),f(q.s.Nx[a],4),f(q.s.Ne[a],4)]))+'</div></div>';
+    // QDCSHG box
+    o+='<div class="sub-box"><h4>QDCSHG (repeated for each element): point L = '+(L+1)+'</h4>';
+    const xs=a=>f(P[a][0],1),ys=a=>f(P[a][1],1),terms=(D,C)=>[0,1,2,3].filter(a=>a<nodesUsed).map(a=>'('+f(q.s[D][a],3)+')('+f(P[a][C],1)+')').join(' + ');
+    o+='<p style="margin:.2rem 0">x,ξ = Σ Nₐ,ξ xₐ = '+terms('Nx',0)+' = <b>'+f(q.xx,4)+'</b><br>x,η = Σ Nₐ,η xₐ = '+terms('Ne',0)+' = <b>'+f(q.xe,4)+'</b><br>y,ξ = Σ Nₐ,ξ yₐ = <b>'+f(q.yx,4)+'</b>,&nbsp;&nbsp; y,η = Σ Nₐ,η yₐ = <b>'+f(q.ye,4)+'</b></p>';
+    o+='<p style="margin:.4rem 0">XS = '+MAT([[f(q.xx,3),f(q.xe,3)],[f(q.yx,3),f(q.ye,3)]])+' &nbsp; DET(L) = j = ('+f(q.xx,3)+')('+f(q.ye,3)+') − ('+f(q.xe,3)+')('+f(q.yx,3)+') = <b class="'+(q.j<=1e-9?'iso-neg':'')+'">'+f(q.j,4)+'</b></p>';
+    if(!ok){const bad=G.map((r,l)=>r.j<=1e-9?l+1:0).filter(x=>x);
+      o+='<div class="iso-status iso-bad"><b>STOP: non-positive Jacobian determinant at integration point '+bad.join(', ')+'.</b> This is where DLEARN (and ANSYS, Abaqus, …) halts. Dividing by j ≤ 0 would give meaningless or infinite N<sub>a,x</sub> and N<sub>a,y</sub>, so no stiffness is computed for this element. Fix the node order or the element shape.</div></div>';
+      document.getElementById('sr-out').innerHTML=o;return;}
+    const inv=[[q.ye/q.j,-q.xe/q.j],[-q.yx/q.j,q.xx/q.j]],pr=[[q.xx*inv[0][0]+q.xe*inv[1][0],q.xx*inv[0][1]+q.xe*inv[1][1]],[q.yx*inv[0][0]+q.ye*inv[1][0],q.yx*inv[0][1]+q.ye*inv[1][1]]];
+    o+='<p style="margin:.4rem 0">(3.9.9): '+MAT([['ξ,x','ξ,y'],['η,x','η,y']])+' = (1/j)'+MAT([[f(q.ye,3),f(-q.xe,3)],[f(-q.yx,3),f(q.xx,3)]])+' = '+MAT([[f(inv[0][0],4),f(inv[0][1],4)],[f(inv[1][0],4),f(inv[1][1],4)]])+'&nbsp; Check: XS × inverse = '+MAT([[f(pr[0][0],3),f(pr[0][1],3)],[f(pr[1][0],3),f(pr[1][1],3)]])+'</p>';
+    const a=A,Nx=q.s.Nx[a],Ne=q.s.Ne[a];
+    o+='<p style="margin:.4rem 0"><b>Node a = '+(a+1)+':</b><br>Nₐ,x = (Nₐ,ξ y,η − Nₐ,η y,ξ)/j = (('+f(Nx,4)+')('+f(q.ye,3)+') − ('+f(Ne,4)+')('+f(q.yx,3)+')) / '+f(q.j,4)+' = <b>'+f(q.Ngx[a],4)+'</b><br>Nₐ,y = −(Nₐ,ξ x,η − Nₐ,η x,ξ)/j = −(('+f(Nx,4)+')('+f(q.xe,3)+') − ('+f(Ne,4)+')('+f(q.xx,3)+')) / '+f(q.j,4)+' = <b>'+f(q.Ngy[a],4)+'</b></p>';
+    o+='<div class="scroll-x">'+TB(['node a','SHG(1,a,L) = Nₐ,x','SHG(2,a,L) = Nₐ,y','SHG(3,a,L) = Nₐ'],[0,1,2,3].map(k=>[(k+1)+(k===A?' ◀':''),f(q.Ngx[k],4),f(q.Ngy[k],4),f(q.s.N[k],4)]))+'</div></div>';
+    // checks
+    let sx=0,sy=0,xx=0,yy=0,xy=0,area=0;for(let k=0;k<4;k++){sx+=q.Ngx[k];sy+=q.Ngy[k];xx+=q.Ngx[k]*P[k][0];yy+=q.Ngy[k]*P[k][1];xy+=q.Ngx[k]*P[k][1];}
+    G.forEach(r=>area+=r.j*1);
+    o+='<div class="sub-box"><h4>Sanity checks a programmer would run</h4>';
+    o+=TB(null,[['Σₐ Nₐ,x  (should be 0)',f(sx,6)],['Σₐ Nₐ,y  (should be 0)',f(sy,6)],['Σₐ Nₐ,x xₐ = ∂x/∂x  (should be 1)',f(xx,6)],['Σₐ Nₐ,y yₐ = ∂y/∂y  (should be 1)',f(yy,6)],['Σₐ Nₐ,x yₐ = ∂y/∂x  (should be 0)',f(xy,6)],['Σ_L W_L j_L = element area',f(area,4)]]);
+    const jmin=Math.min(...G.map(r=>r.j)),jmax=Math.max(...G.map(r=>r.j));
+    o+='<p style="margin:.3rem 0 0;font-size:.9em">DET at the four points: '+G.map(r=>f(r.j,3)).join(', ')+'. '+(jmax/jmin>1+1e-6?(quad?'j varies from point to point, so the gradients of the same Nₐ change from point to point too: this is a distorted (non-parallelogram) element.':'j varies from point to point, but for the collapsed triangle the gradients do not (step through L): it is the constant strain triangle.'):'j is the same at all four points: a parallelogram, the "ideal" mapped shape.')+'</p></div>';
+    document.getElementById('sr-out').innerHTML=o;
+  }
+  render();
+})();
+</script>
+```
+
+Things to try:
+
+- **Rectangle 2 × 1.** Compare SHL and SHG: $N_{a,x} = N_{a,\xi}$ and $N_{a,y} = 2N_{a,\eta}$, exactly the worked check in Step 3.3. $j=0.5$ at every point and the area sum gives $4\times0.5 = 2$.
+- **Switch elements, keep $L$ and $a$.** The QDCSHL table never changes. Only the QDCSHG box does. That is the whole point of the split.
+- **Watch the arrows.** $\nabla N_a$ always points "uphill" toward node $a$, across the shaded hump. In a distorted element the arrows at different Gauss points differ in length and direction, which is how the element "feels" its distortion.
+- **The checks.** $\sum_a N_{a,x} = 0$ because $\sum_a N_a = 1$ everywhere (Section 3.3), and the derivative of a constant is zero. $\sum_a N_{a,x}\,x_a = 1$ because the element must reproduce the field $u = x$ exactly (completeness, C3). If either fails in your class code, you have a bug.
+- **Triangle (QUAD = .FALSE.).** Node 4 sits on node 3 and its row in SHG becomes all zeros. Step through $L = 1$ to $4$: $j$ is different at each Gauss point, yet $N_{a,x}$ and $N_{a,y}$ come out **identical** at all four. The collapsed quad has constant gradients, so it really is the constant strain triangle Section 3.4 promised. (The varying $j$ only reflects how unevenly the collapsed parent square is spread over the triangle.)
+- **Clockwise numbering.** QDCSHG stops before computing any $N_{a,x}$.
+
+# Part 6. Three dimensions: cofactors (3.9.11 to 3.9.23)
+
+**Goal of this part.** Show that the 3D formulas are the same recipe with a $3\times3$ Jacobian, and explain the word "cofactor."
+
+## Step 6.1: the 3D Jacobian matrix
+
+With parent coordinates $(\xi,\eta,\zeta)$ and physical coordinates $(x,y,z)$:
+
+$$
+\boldsymbol{x}_{,\boldsymbol\xi} = \begin{bmatrix} x_{,\xi} & x_{,\eta} & x_{,\zeta}\\ y_{,\xi} & y_{,\eta} & y_{,\zeta}\\ z_{,\xi} & z_{,\eta} & z_{,\zeta}\end{bmatrix}
+$$
+
+where each entry is computed just like (3.9.7): for example $z_{,\eta} = \sum_a N_{a,\eta}\,z^e_a$. Row $i$ is a physical coordinate, column $j$ is a parent coordinate.
+
+## Step 6.2: what a cofactor is
+
+The **cofactor** $\text{cof}_{ij}$ of entry $(i,j)$ is found in two moves:
+
+1. **Cross out row $i$ and column $j$.** Four entries are left, forming a $2\times2$ matrix. Its determinant is called the **minor**.
+2. **Attach a sign** from the checkerboard $\begin{bmatrix}+&-&+\\-&+&-\\+&-&+\end{bmatrix}$, that is, multiply by $(-1)^{i+j}$.
+
+**Example: $\text{cof}_{11}$.** Cross out row 1 and column 1, leaving $\begin{bmatrix} y_{,\eta} & y_{,\zeta}\\ z_{,\eta} & z_{,\zeta}\end{bmatrix}$. Its determinant is $y_{,\eta}z_{,\zeta} - y_{,\zeta}z_{,\eta}$, and the sign is $+$:
+
+$$
+\text{cof}_{11} = y_{,\eta}\,z_{,\zeta} - y_{,\zeta}\,z_{,\eta} \tag{3.9.11}
+$$
+
+**Example: $\text{cof}_{12}$.** Cross out row 1 and column 2, leaving $\begin{bmatrix} y_{,\xi} & y_{,\zeta}\\ z_{,\xi} & z_{,\zeta}\end{bmatrix}$, determinant $y_{,\xi}z_{,\zeta} - y_{,\zeta}z_{,\xi}$. The sign is $-$, which flips the order:
+
+$$
+\text{cof}_{12} = -\big(y_{,\xi}z_{,\zeta} - y_{,\zeta}z_{,\xi}\big) = y_{,\zeta}\,z_{,\xi} - y_{,\xi}\,z_{,\zeta} \tag{3.9.12}
+$$
+
+The book's (3.9.13) to (3.9.19) are the other seven, built the same way. Hughes always writes them with the sign already absorbed into the order of the two products, which is why you never see a minus sign in front.
+
+## Step 6.3: determinant and inverse from cofactors
+
+**Determinant (3.9.20).** Expand along row 1: each entry of row 1 times its cofactor, added up:
+
+$$
+j = x_{,\xi}\,\text{cof}_{11} + x_{,\eta}\,\text{cof}_{12} + x_{,\zeta}\,\text{cof}_{13} \tag{3.9.20}
+$$
+
+This is the same formula as in the Section 3.3 guide (Step 3.4), just with the $2\times2$ pieces given names.
+
+**Inverse.** The general rule (the book quotes it after (3.9.23)) is
+
+$$
+\big(\boldsymbol{x}_{,\boldsymbol\xi}\big)^{-1} = \frac{(\textbf{cof})^{T}}{j}
+$$
+
+where $\textbf{cof}$ is the $3\times3$ matrix of all nine cofactors and $T$ flips it across the diagonal. So the entries of the inverse, which are the $\xi_{,x}$-type derivatives we need, are
+
+$$
+\begin{bmatrix}\xi_{,x}&\xi_{,y}&\xi_{,z}\\ \eta_{,x}&\eta_{,y}&\eta_{,z}\\ \zeta_{,x}&\zeta_{,y}&\zeta_{,z}\end{bmatrix}
+= \frac{1}{j}\begin{bmatrix}\text{cof}_{11}&\text{cof}_{21}&\text{cof}_{31}\\ \text{cof}_{12}&\text{cof}_{22}&\text{cof}_{32}\\ \text{cof}_{13}&\text{cof}_{23}&\text{cof}_{33}\end{bmatrix}
+$$
+
+Read column 1: $\xi_{,x} = \text{cof}_{11}/j$, $\eta_{,x} = \text{cof}_{12}/j$, $\zeta_{,x} = \text{cof}_{13}/j$.
+
+## Step 6.4: the 3D shape-function derivatives
+
+The 3D chain rule has three routes:
+
+$$
+N_{a,x} = N_{a,\xi}\,\xi_{,x} + N_{a,\eta}\,\eta_{,x} + N_{a,\zeta}\,\zeta_{,x}
+$$
+
+Substitute the column we just read off:
+
+$$
+N_{a,x} = \frac{N_{a,\xi}\,\text{cof}_{11} + N_{a,\eta}\,\text{cof}_{12} + N_{a,\zeta}\,\text{cof}_{13}}{j} \tag{3.9.21}
+$$
+
+and likewise with columns 2 and 3 of the inverse for (3.9.22) and (3.9.23).
+
+**Consistency check with 2D.** The cofactors of the $2\times2$ matrix $\begin{bmatrix}x_{,\xi}&x_{,\eta}\\y_{,\xi}&y_{,\eta}\end{bmatrix}$ are single entries with checkerboard signs: $\text{cof}_{11} = y_{,\eta}$, $\text{cof}_{12} = -y_{,\xi}$, $\text{cof}_{21} = -x_{,\eta}$, $\text{cof}_{22} = x_{,\xi}$. Then $N_{a,x} = (N_{a,\xi}\,y_{,\eta} - N_{a,\eta}\,y_{,\xi})/j$, exactly the 2D formula of Step 3.3. ✓ One recipe covers both dimensions.
+
+## Step 6.5: try it
+
+Enter any $3\times3$ Jacobian matrix, or pick a preset. The calculator forms all nine cofactors, $j$ by first-row expansion, the inverse $\textbf{cof}^T/j$, and checks that the product is the identity. It also computes the physical gradient of the trilinear brick's node 7 (the corner at $\xi=\eta=\zeta=+1$) at the element center, where $N_{7,\xi}=N_{7,\eta}=N_{7,\zeta}=\tfrac18$.
+
+```{=html}
+<div class="fe-widget">
+<div class="iso-btns" id="c3-btns"></div>
+<div class="c3-grid" id="c3-grid"></div>
+<div id="c3-out"></div>
+</div>
+<script>
+(function(){
+  const f=ISO.f,lab=[['x,ξ','x,η','x,ζ'],['y,ξ','y,η','y,ζ'],['z,ξ','z,η','z,ζ']];
+  const presets=[['Cube 1 × 1 × 1',[[0.5,0,0],[0,0.5,0],[0,0,0.5]]],['Stretched brick 4 × 2 × 1',[[2,0,0],[0,1,0],[0,0,0.5]]],['Sheared brick',[[1,0.5,0],[0,1,0.3],[0,0,1]]],['General',[[1.2,0.3,-0.2],[0.1,0.9,0.4],[-0.3,0.2,1.1]]],['Flattened (j = 0)',[[1,0,1],[0,1,1],[0,0,0]]],['Mirror image (inside out)',[[1,0,0],[0,1,0],[0,0,-1]]]];
+  const grid=document.getElementById('c3-grid');
+  let h='<div></div><div class="h">∂/∂ξ</div><div class="h">∂/∂η</div><div class="h">∂/∂ζ</div>';
+  ['x','y','z'].forEach((r,i)=>{h+='<div class="h" style="text-align:right">'+r+'</div>';for(let k=0;k<3;k++)h+='<input type="number" step="0.1" id="c3-'+i+k+'" aria-label="'+lab[i][k]+'">';});
+  grid.innerHTML=h;
+  const bt=document.getElementById('c3-btns');
+  function setM(M){for(let i=0;i<3;i++)for(let k=0;k<3;k++)document.getElementById('c3-'+i+k).value=M[i][k];render();}
+  presets.forEach((p,i)=>{const b=document.createElement('button');b.type='button';b.textContent=p[0];b.onclick=()=>{[...bt.children].forEach(c=>c.classList.remove('on'));b.classList.add('on');setM(p[1]);};if(i===3)b.classList.add('on');bt.appendChild(b);});
+  for(let i=0;i<3;i++)for(let k=0;k<3;k++)document.getElementById('c3-'+i+k).addEventListener('input',()=>{[...bt.children].forEach(c=>c.classList.remove('on'));render();});
+  function render(){
+    const M=[0,1,2].map(i=>[0,1,2].map(k=>+document.getElementById('c3-'+i+k).value||0));
+    const minor=(i,k)=>{const r=[0,1,2].filter(t=>t!==i),c=[0,1,2].filter(t=>t!==k);return M[r[0]][c[0]]*M[r[1]][c[1]]-M[r[0]][c[1]]*M[r[1]][c[0]];};
+    const cof=[0,1,2].map(i=>[0,1,2].map(k=>((i+k)%2?-1:1)*minor(i,k)));
+    const j=M[0][0]*cof[0][0]+M[0][1]*cof[0][1]+M[0][2]*cof[0][2];
+    let o='<p style="margin:.3rem 0">Cofactors (cof<sub>ij</sub> = sign × determinant left after crossing out row i, column j):&nbsp;'+MAT(cof.map(r=>r.map(x=>f(x,3))))+'</p>';
+    o+='<p style="margin:.3rem 0">cof<sub>11</sub> = y,η z,ζ − y,ζ z,η = ('+f(M[1][1],2)+')('+f(M[2][2],2)+') − ('+f(M[1][2],2)+')('+f(M[2][1],2)+') = '+f(cof[0][0],3)+'</p>';
+    o+='<p style="margin:.3rem 0">(3.9.20): j = x,ξ cof<sub>11</sub> + x,η cof<sub>12</sub> + x,ζ cof<sub>13</sub> = ('+f(M[0][0],2)+')('+f(cof[0][0],3)+') + ('+f(M[0][1],2)+')('+f(cof[0][1],3)+') + ('+f(M[0][2],2)+')('+f(cof[0][2],3)+') = <b class="'+(j<=1e-9?'iso-neg':'')+'">'+f(j,4)+'</b></p>';
+    if(Math.abs(j)<1e-9){o+='<div class="iso-status iso-bad"><b>j = 0: the matrix has no inverse.</b> The three Jacobian columns lie in one plane, so the parent cube has been flattened to zero volume at this point. Every N<sub>a,x</sub> would require dividing by zero; a code stops here.</div>';document.getElementById('c3-out').innerHTML=o;return;}
+    const inv=[0,1,2].map(i=>[0,1,2].map(k=>cof[k][i]/j));
+    const pr=[0,1,2].map(i=>[0,1,2].map(k=>M[i][0]*inv[0][k]+M[i][1]*inv[1][k]+M[i][2]*inv[2][k]));
+    o+='<p style="margin:.3rem 0">Inverse = cof<sup>T</sup>/j = '+MAT(inv.map(r=>r.map(x=>f(x,4))))+' &nbsp; Check: Jacobian × inverse = '+MAT(pr.map(r=>r.map(x=>f(x,3))))+'</p>';
+    const g=[0,1,2].map(c=>(cof[c][0]+cof[c][1]+cof[c][2])/8/j);
+    o+='<p style="margin:.3rem 0"><b>Brick node 7 at the element center</b> (N₇,ξ = N₇,η = N₇,ζ = 1/8):<br>N₇,x = (⅛ cof<sub>11</sub> + ⅛ cof<sub>12</sub> + ⅛ cof<sub>13</sub>)/j = <b>'+f(g[0],4)+'</b>,&nbsp; N₇,y = <b>'+f(g[1],4)+'</b>,&nbsp; N₇,z = <b>'+f(g[2],4)+'</b></p>';
+    const cls=j>0?'iso-ok':'iso-bad';
+    o+='<div class="iso-status '+cls+'">'+(j>0?'<b>j > 0:</b> the map is right-side-out here; the volume of a tiny parent cube is multiplied by '+f(j,4)+' in the real element.':'<b>j < 0: inside-out (mirror-imaged) element.</b> The inverse exists, but the element integrals would come out with the wrong sign. A code stops on j ≤ 0. In 3D this is usually a brick whose top and bottom faces were listed in the wrong order.')+'</div>';
+    document.getElementById('c3-out').innerHTML=o;
+  }
+  setM(presets[3][1]);
+})();
+</script>
+```
+
+Try **Cube 1 × 1 × 1**: the parent cube is 2 units on a side, so every Jacobian column is $(\tfrac12)$ along its own axis, and $j = \tfrac18$ (a $2^3=8$ volume shrunk to 1). The node-7 gradient comes out $(\tfrac14,\tfrac14,\tfrac14)$. Check by hand: in this cube $N_7 = xyz$, whose gradient $(yz,\,xz,\,xy)$ at the center $(\tfrac12,\tfrac12,\tfrac12)$ is $\tfrac14$ in every component. ✓ Try **Stretched brick 4 × 2 × 1**: the gradient components shrink in the long directions, because the same rise is spread over more distance.
+
+# Part 7. The exercises: what they are asking
+
+These are likely assigned, so here is what each asks and how to approach it, not the answers.
+
+- **Top of your first screenshot (end of the Section 3.8 exercises).** A 4-point rule with points $(0,\pm a)$ and $(\pm a,0)$, all weights 1. "Determine $a$" means: choose $a$ so the rule integrates the required polynomials over the parent square exactly. Approach: list monomials $1, \xi, \eta, \xi^2, \xi\eta, \eta^2, \dots$; compute each exact integral over $[-1,1]^2$; compute the rule's sum $\sum_l W_l\,(\cdot)(\tilde\xi_l,\tilde\eta_l)$; set them equal. Symmetry makes every odd monomial vanish on both sides, so only a few conditions remain. Check the book's definition of the order of accuracy in Section 3.8 to see which degree you must reach.
+- **Exercise 1: shape function subroutine for the 8-node trilinear brick.** $N_a = \tfrac18(1+\xi_a\xi)(1+\eta_a\eta)(1+\zeta_a\zeta)$. Generalize Table 3.9.1 first: add T (for $\zeta$), TA $=\zeta_a/2$, NSD = 3, NEN = 8, NINT = 8 (2×2×2 Gauss), SHL dimensioned $4\times8\times8$ (three derivative rows plus the value), and a $3\times3$ XS. The local routine is the 2D one with a third factor; the global routine replaces the $2\times2$ inverse with the cofactor formulas of Part 6. The Python above is a good template.
+- **Exercise 2: the 4- through 9-node quadrilateral (Fig. 3.7.4).** One routine must handle an element whose mid-side and center nodes may or may not be present. The IEN array (global node numbers of the element's nodes) has a 0 where a node is absent. The book's note is the key: whatever corrections you apply to the shape functions when a node is missing, you must apply identically to their derivatives.
+- **Exercise 3: degenerate the brick into a wedge.** The 3D version of QUAD = .FALSE.: coalesce nodes (for example 3 with 4 and 7 with 8) when BRICK = .FALSE., and add the absorbed nodes' shape functions and derivatives into the survivors, just as Part 5 did for the triangle.
+
+**Section 3.10 (Element stiffness formulation)** starts at the bottom of your last screenshot. It is the consumer of everything on this page: the arrays SHG, DET and W go straight into the $\boldsymbol{B}^T\boldsymbol{D}\boldsymbol{B}$ integrals. Send it when you are ready.
+
+# Practitioner checklist from this section
+
+| What to check | Why it follows from this section |
+|---|---|
+| "Negative Jacobian" errors point to node order or element shape, never solver settings | The $j\le0$ check sits in the shape-function routine, before any stiffness is formed (Step 4.3) |
+| Stresses, strains and fluxes are most trustworthy at integration points | That is where $N_{a,x}$, $N_{a,y}$ are actually computed; nodal values are extrapolated or averaged afterward |
+| Gradients in distorted elements deserve less trust | Every gradient is divided by $j$, which varies across a distorted element (Part 5) |
+| Your own code: $\sum_a N_{a,x} = 0$ and $\sum_a N_{a,x}x_a = 1$ at every point | Partition of unity and completeness; the fastest unit test for a shape-function routine (Part 5) |
+| $\sum_l W_l\,j_l$ equals the element area or volume | Quick check on quadrature and Jacobian code (Part 5) |
+| Degenerated elements (collapsed quads, wedges from bricks) | One routine serves them via QUAD/BRICK flags, but $j$ is no longer uniform (Part 5) |
+
+# Check yourself
+
+1. Why can QDCSHL be called once for a whole mesh of bilinear quads, but QDCSHG must be called for each element?
+
+::: {.callout-note collapse="true"}
+## Answer
+
+QDCSHL only uses the parent element and the quadrature rule, which are identical for every element in the group. QDCSHG uses the element's node coordinates (through the Jacobian), which differ from element to element.
+:::
+
+2. A 4 m × 2 m rectangle has nodes $(0,0), (4,0), (4,2), (0,2)$. What are $j$, $\xi_{,x}$ and $\eta_{,y}$? Express $N_{a,x}$ and $N_{a,y}$ in terms of $N_{a,\xi}$ and $N_{a,\eta}$.
+
+::: {.callout-note collapse="true"}
+## Answer
+
+$x_{,\xi} = 4/2 = 2$, $y_{,\eta} = 2/2 = 1$, and the off-diagonal terms are 0, so $j = 2$. Then $\xi_{,x} = y_{,\eta}/j = \tfrac12$ and $\eta_{,y} = x_{,\xi}/j = 1$. So $N_{a,x} = \tfrac12 N_{a,\xi}$ and $N_{a,y} = N_{a,\eta}$. Check: the area is $\sum_l W_l\,j = 4\times 2 = 8 = 4\times 2$ m². ✓
+:::
+
+3. In Table 3.9.1, what are SHL(3,2,1) and SHG(3,2,1), and why are they equal?
+
+::: {.callout-note collapse="true"}
+## Answer
+
+Both are $N_2$ evaluated at quadrature point 1 (row 3 holds the value of the shape function). They are equal because the value of a shape function at a parent point does not depend on the element's shape; only its $x$ and $y$ derivatives do.
+:::
+
+4. Your class code reports $\sum_a N_{a,x} = 0.03$ at a Gauss point. What is wrong, and what consequence would it have in an elasticity model?
+
+::: {.callout-note collapse="true"}
+## Answer
+
+Since $\sum_a N_a = 1$ everywhere, the sum of its derivatives must be exactly 0. A nonzero sum means a bug in the derivatives (wrong sign, wrong Jacobian entry, wrong division by $j$). In elasticity it would mean a rigid-body translation (all $d_a$ equal) produces nonzero strain, so the element generates stress from motion that should be stress-free, and it would fail the patch test.
+:::
