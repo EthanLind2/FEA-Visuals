@@ -1,0 +1,1112 @@
+---
+title: "The bookkeeping arrays: ID, IEN and LM"
+subtitle: "Hughes, Sections 2.4 (Galerkin form and the ID array), 2.6 (IEN and LM, Examples 1 and 2), and 1.14 (the 1D version), plus the layout of a finite element program"
+format:
+  html:
+    theme:
+      light: cosmo
+      dark: darkly
+    respect-user-color-scheme: true
+    toc: true
+    toc-depth: 2
+    toc-location: left
+    embed-resources: true
+    html-math-method: mathjax
+    fontsize: 1.05em
+    callout-appearance: simple
+execute:
+  echo: false
+---
+
+::: {.callout-note appearance="minimal"}
+**How to use this page.** Each part opens with its goal, and every equation is followed by a short *where* list that defines its symbols. The gray boxes are live: click nodes and elements in the mesh, type numbers into the LM boxes, and drag the sliders. The interactive pieces work offline; the equations need an internet connection to typeset. Related pages: [Section 3.3](hughes-3-3-isoparametric.html) and [Section 3.9](hughes-3-9-shape-function-derivatives.html).
+:::
+
+```{=html}
+<style>
+.fe-widget{border:1px solid rgba(128,128,128,.35);border-radius:8px;padding:12px 14px;margin:1.2rem 0}
+.fe-ctrl{display:grid;grid-template-columns:minmax(110px,max-content) minmax(0,1fr) 3.5em;gap:6px 12px;align-items:center;margin-bottom:8px}
+.fe-ctrl output{text-align:right;font-variant-numeric:tabular-nums}
+.fe-legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.85em;margin:4px 0}
+.fe-legend i{display:inline-block;width:18px;height:0;border-top:3px solid;vertical-align:middle;margin-right:6px}
+.fe-out{margin:.5rem 0 0;font-variant-numeric:tabular-nums}
+.fe-table{border-collapse:collapse;font-variant-numeric:tabular-nums;margin:.3rem 0 .6rem}
+.fe-table td,.fe-table th{padding:2px 9px;text-align:center;border:1px solid rgba(128,128,128,.25)}
+.fe-table th{font-weight:600;background:rgba(128,128,128,.10)}
+.fe-table td.hl,.fe-table th.hl{background:rgba(212,87,42,.22)}
+.fe-table td.new{background:rgba(29,158,117,.28);font-weight:600}
+.fe-table td.zero{color:#d62828;font-weight:600}
+.fe-btns{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.fe-btns button{font:inherit;font-size:.85em;padding:3px 10px;border-radius:14px;border:1px solid rgba(128,128,128,.5);background:transparent;color:inherit;cursor:pointer}
+.fe-btns button:hover{border-color:#d4572a}
+.fe-btns button.on{background:#d4572a;border-color:#d4572a;color:#fff}
+.fe-row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+.fe-row>div{flex:1 1 260px;min-width:0}
+.scroll-x{overflow-x:auto;max-width:100%}
+.fe-cap{font-size:.85em;opacity:.8;margin:.2rem 0 .1rem}
+.fe-status{margin-top:.6rem;padding:8px 12px;border-radius:6px;border-left:4px solid}
+.fe-ok{border-color:#1d9e75;background:rgba(29,158,117,.10)}
+.fe-bad{border-color:#d62828;background:rgba(214,40,40,.10)}
+.lm-in{display:grid;grid-template-columns:repeat(4,minmax(0,6.5em));gap:6px 10px;justify-content:start;margin:.3rem 0 .8rem}
+.lm-in label{font-size:.85em;opacity:.85;display:block}
+.lm-in input{width:100%;font:inherit;font-variant-numeric:tabular-nums;padding:2px 6px;border:1px solid rgba(128,128,128,.5);border-radius:4px;background:transparent;color:inherit;text-align:right}
+.kgrid{border-collapse:separate;border-spacing:6px}
+.kgrid td{width:4.6em;height:3.4em;text-align:center;vertical-align:middle;font-size:.85em;line-height:1.15;font-variant-numeric:tabular-nums}
+.kgrid td.sq{border:2px solid #d4572a}
+.kgrid td.ci{border:2px solid #2e86c1;border-radius:50%}
+.kgrid td.dr{opacity:.4;border:1px dotted rgba(128,128,128,.6)}
+.kgrid td.sym{border-style:dashed}
+.kgrid td.fv{border:none;width:auto;white-space:nowrap}
+.kgrid small{display:block;opacity:.85}
+.stmts{font-family:var(--bs-font-monospace,monospace);font-size:.88em;line-height:1.55;margin:.3rem 0}
+main table.table{display:block;max-width:100%;overflow-x:auto}
+.math.display,mjx-container[display="true"]{display:block;max-width:100%;overflow-x:auto;overflow-y:hidden}
+</style>
+<script>
+window.FE=(function(){
+  const C={orange:'#d4572a',purple:'#6c5ce7',teal:'#1d9e75',gray:'#8a8a8a',pink:'#c2185b',blue:'#2e86c1',red:'#d62828'};
+  function niceStep(raw){const p=Math.pow(10,Math.floor(Math.log10(raw)));const r=raw/p;return (r<1.5?1:r<3?2:r<7?5:10)*p;}
+  function ticks(a,b,n){const st=niceStep((b-a)/n);const out=[];for(let v=Math.ceil(a/st-1e-9)*st;v<=b+1e-9;v+=st)out.push(Math.abs(v)<st*1e-6?0:v);return out;}
+  function fmt(v){return Math.abs(v)<1e-9?'0':String(+v.toPrecision(3));}
+  function plot(id,o){
+    const W=640,H=o.height||280,m={l:58,r:20,t:22,b:o.xlabel?46:28};
+    const x0=o.x[0],x1=o.x[1],y0=o.y[0],y1=o.y[1];
+    const sx=v=>m.l+(v-x0)/(x1-x0)*(W-m.l-m.r), sy=v=>H-m.b-(v-y0)/(y1-y0)*(H-m.t-m.b);
+    let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block;font-size:13px" role="img" aria-label="${o.label||'plot'}">`;
+    const grid='stroke="currentColor" stroke-opacity="0.12"';
+    ticks(x0,x1,o.xt||6).forEach(t=>{s+=`<line x1="${sx(t)}" x2="${sx(t)}" y1="${m.t}" y2="${H-m.b}" ${grid}/><text x="${sx(t)}" y="${H-m.b+16}" text-anchor="middle" fill="currentColor">${fmt(t)}</text>`;});
+    ticks(y0,y1,o.yt||5).forEach(t=>{s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(t)}" y2="${sy(t)}" ${grid}/><text x="${m.l-8}" y="${sy(t)+4}" text-anchor="end" fill="currentColor">${fmt(t)}</text>`;});
+    s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${H-m.b}" y2="${H-m.b}" stroke="currentColor" stroke-opacity="0.5"/>`;
+    if(o.xlabel) s+=`<text x="${(m.l+W-m.r)/2}" y="${H-6}" text-anchor="middle" fill="currentColor" opacity="0.8">${o.xlabel}</text>`;
+    if(o.ylabel) s+=`<text x="${m.l}" y="${m.t-8}" text-anchor="start" fill="currentColor" opacity="0.8">${o.ylabel}</text>`;
+    (o.lines||[]).forEach(l=>{s+=`<polyline fill="none" stroke="${l.color}" stroke-width="${l.width||2}" ${l.dash?'stroke-dasharray="6 4"':''} stroke-linejoin="round" points="${l.pts.map(q=>sx(q[0]).toFixed(1)+','+sy(q[1]).toFixed(1)).join(' ')}"/>`;});
+    (o.vsegs||[]).forEach(g=>{s+=`<line x1="${sx(g.x)}" x2="${sx(g.x)}" y1="${sy(g.y1)}" y2="${sy(g.y2)}" stroke="${g.color}" stroke-width="2"/>`;});
+    (o.dots||[]).forEach(d=>{s+=`<circle cx="${sx(d.x)}" cy="${sy(d.y)}" r="${d.r||5}" fill="${d.color}"/>`;});
+    s+='</svg>';
+    if(o.legend) s+='<div class="fe-legend">'+o.legend.map(l=>`<span><i style="border-color:${l.color};${l.dash?'border-top-style:dashed;':''}"></i>${l.label}</span>`).join('')+'</div>';
+    document.getElementById(id).innerHTML=s;
+  }
+  function val(id){return +document.getElementById(id).value;}
+  function show(id){const e=document.getElementById(id),st=String(e.step||'1');const d=st.includes('.')?st.split('.')[1].length:0;const o=document.getElementById(id+'-v');if(o)o.textContent=(+e.value).toFixed(d);}
+  function bind(ids,fn){ids.forEach(id=>{document.getElementById(id).addEventListener('input',()=>{show(id);fn();});show(id);});fn();}
+  function span(vals,pad){let a=Math.min(...vals),b=Math.max(...vals);if(b-a<1e-6){a-=1;b+=1;}const p=(b-a)*(pad||0.12);return [a-p,b+p];}
+  /* table builder; the '<'+'table' split keeps Quarto from treating it as a markdown table */
+  function TB(head,rows,opt){opt=opt||{};let s='<'+'table class="fe-table">';
+    if(head)s+='<tr>'+head.map((h,i)=>'<th'+(opt.hlCol!=null&&i===opt.hlCol?' class="hl"':'')+'>'+h+'</th>').join('')+'</tr>';
+    rows.forEach(r=>{s+='<tr>'+r.map((c,i)=>{if(i===0)return '<th>'+c+'</th>';
+      let cls=[];if(opt.hlCol!=null&&i===opt.hlCol)cls.push('hl');if(opt.zeroRed&&String(c)==='0')cls.push('zero');
+      if(typeof c==='object'&&c){if(c.cls)cls.push(c.cls);c=c.v;}
+      return '<td'+(cls.length?' class="'+cls.join(' ')+'"':'')+'>'+c+'</td>';}).join('')+'</tr>';});
+    return s+'</table>';}
+  function solve(K,F){const n=F.length;const M=K.map((r,i)=>r.concat([F[i]]));
+    for(let i=0;i<n;i++){let p=i;for(let r=i+1;r<n;r++)if(Math.abs(M[r][i])>Math.abs(M[p][i]))p=r;[M[i],M[p]]=[M[p],M[i]];
+      for(let r=i+1;r<n;r++){const m=M[r][i]/M[i][i];for(let c=i;c<=n;c++)M[r][c]-=m*M[i][c];}}
+    const d=new Array(n).fill(0);for(let i=n-1;i>=0;i--){let s=M[i][n];for(let c=i+1;c<n;c++)s-=M[i][c]*d[c];d[i]=s/M[i][i];}return d;}
+  return {C,plot,val,bind,show,span,TB,solve};
+})();
+</script>
+```
+
+# The big picture: what is the goal of these sections?
+
+Up to now, the finite element method has been mostly **math**: pick shape functions, plug them into the weak form, and get a matrix equation $\boldsymbol{K}\boldsymbol{d}=\boldsymbol{F}$. These sections answer a very practical question:
+
+> **When a program adds element $e$'s little matrix into the big matrix $\boldsymbol{K}$, how does it know which rows and columns to put each number in?**
+
+The answer is three lookup tables. Each one translates between two of the **three numbering systems** that every finite element program juggles:
+
+| Numbering system | Symbol | Example | Who uses it |
+|---|:---:|---|---|
+| **Local** node number: which corner of *this* element | $a$, $b$ | "node 3 of element 2" | the element routine that computes $\boldsymbol{k}^e$ and $\boldsymbol{f}^e$ |
+| **Global** node number: which node of the whole mesh | $A$, $B$ | "node 6" | the mesh, the input file, the plots |
+| **Global equation** number: which row of $\boldsymbol{K}$ | $P$, $Q$ | "row 4" | the equation solver |
+
+```{mermaid}
+%%| fig-cap: "The three numbering systems and the three tables that connect them. LM is just IEN followed by ID, stored once so the program does not have to do two lookups every time."
+flowchart LR
+  L["Local node a of element e<br>(a = 1, ..., n_en)"] -- "IEN(a, e)" --> G["Global node A<br>(A = 1, ..., n_np)"]
+  G -- "ID(A)" --> P["Equation number P<br>(P = 1, ..., n_eq, or 0 if prescribed)"]
+  L -. "LM(a, e) = ID(IEN(a, e))" .-> P
+```
+
+Why are there three systems instead of one?
+
+- **Elements are all alike.** The routine that computes an element stiffness matrix should not care where the element sits in the mesh. So it numbers the element's corners $1,2,3,4$ every time.
+- **Nodes are numbered once for the whole mesh.** That is what your mesh generator or input file does.
+- **Not every node gets an equation.** At a node where the temperature (or displacement) is *prescribed*, the value is already known, so there is nothing to solve for. Those nodes are skipped when equations are numbered, which is why node numbers and equation numbers stop lining up as soon as you have boundary conditions anywhere other than the last node.
+
+**Why this matters to you as a practitioner.** Every commercial code (ANSYS, Abaqus, COMSOL) builds exactly these tables behind the scenes. When a model has a missing support, a duplicated node, an element with its corners listed in the wrong order, or a load that seems to vanish, the bug lives in these tables. Knowing them is also what lets you read a solver's "DOF numbering," "connectivity," and "reaction force" output and understand it. And your class code is about to be rebuilt around them.
+
+## Notation used on this page
+
+| Symbol | Read as | Meaning |
+|:---:|---|---|
+| $n_{np}$ | "n n p" | **n**umber of **n**odal **p**oints (all nodes in the mesh) |
+| $n_{el}$ | "n e l" | **n**umber of **el**ements |
+| $n_{en}$ | "n e n" | **n**umber of **e**lement **n**odes (4 for the four-node rectangle, 2 for a 1D linear element) |
+| $n_{eq}$ | "n e q" | **n**umber of **eq**uations = number of unknowns = size of $\boldsymbol{K}$ |
+| $\eta$ | "eta" | the **set** of all global node numbers, $\{1,2,\dots,n_{np}\}$ |
+| $\eta_g$ | "eta sub g" | the set of **g-nodes**: nodes where the value is prescribed |
+| $\eta-\eta_g$ | "eta minus eta g" | the nodes left over after removing the g-nodes: the **unknown** nodes |
+| $\mathrm{ID}(A)$ | "I D of A" | equation number of node $A$ (0 if $A$ is a g-node) |
+| $\mathrm{IEN}(a,e)$ | "I E N of a, e" | global node number of local node $a$ of element $e$ |
+| $\mathrm{LM}(a,e)$ | "L M of a, e" | equation number of local node $a$ of element $e$ (0 if prescribed) |
+| $\boldsymbol{k}^e,\ \boldsymbol{f}^e$ | "k e, f e" | element stiffness matrix ($n_{en}\times n_{en}$) and element force vector ($n_{en}\times 1$) |
+| $\leftarrow$ | "is replaced by" | the update in code: `K[P,Q] += ...` |
+
+**Set notation, quickly.** Curly brackets list the members of a set: $\eta_g=\{1,4,7,10\}$. The symbol $\in$ means "is a member of," so $A\in\eta_g$ reads "node $A$ is a g-node." $\eta_g\subset\eta$ means "$\eta_g$ is part of $\eta$." Subtracting sets removes members: $\{1,2,3,4\}-\{1,4\}=\{2,3\}$.
+
+::: {.callout-warning}
+## Script letters in your ebook
+
+The ebook does not render Hughes's script letters well. On this page:
+
+- $g$ is the **prescribed temperature** (the book's script *g*). In your screenshots it often shows as a tiny squiggle, as in "$u=$ ⸱ on $\Gamma_g$".
+- $h$ is the **prescribed heat flux** and $\ell$ is the **heat source** (both script letters in the book).
+- $\mathcal{S}^h$ and $\mathcal{V}^h$ are the collections of trial and weighting functions. They may show up as a small *s* and *v*.
+:::
+
+# Part 1. Section 2.4: the Galerkin equations in 2D and 3D, and the ID array
+
+**Goal of this part.** Redo the 1D recipe from Sections 1.5 and 1.6 for a heat-conduction problem in 2D or 3D, arrive at one equation per unknown node (2.4.6), and then see why a translation table from nodes to equations (the ID array) is needed.
+
+## Step 1.1: the problem being solved
+
+In 2D or 3D, the domain is a region $\Omega$ (Greek capital omega), for example a plate or a heat-sink cross section. Its boundary $\Gamma$ (capital gamma) is split in two:
+
+- $\Gamma_g$: where the **temperature is prescribed**, $u=g$. This is an **essential** boundary condition.
+- $\Gamma_h$: where the **heat flux is prescribed**, $h$. This is a **natural** boundary condition.
+
+The weak form uses three integrals. The first is (2.3.17):
+
+$$
+a(w,u)=\int_\Omega (\nabla w)^T\,\boldsymbol{\kappa}\,(\nabla u)\,d\Omega \tag{2.3.17}
+$$
+
+where:
+
+- $u(\boldsymbol{x})$ is the **temperature** at a point $\boldsymbol{x}=(x,y)$, and $w(\boldsymbol{x})$ is a **weighting function** (the mathematical probe from Section 1.4).
+- $\nabla w$ ("grad $w$") is the **gradient**: the column of slopes $\begin{Bmatrix}w_{,x}\\ w_{,y}\end{Bmatrix}$. It points uphill, toward increasing $w$.
+- $\boldsymbol{\kappa}$ (kappa) is the **conductivity matrix**. For an ordinary isotropic material it is just $\kappa\boldsymbol{I}$ (the same conductivity in every direction). It becomes a full matrix for materials like composites or wood that conduct better along the grain.
+- The superscript $T$ is the **transpose**: it turns a column into a row so the product is a single number.
+- $d\Omega$ is a tiny piece of area (or volume in 3D).
+
+For an isotropic material, multiply it out:
+
+$$
+(\nabla w)^T\,\kappa\boldsymbol{I}\,(\nabla u)
+=\kappa\begin{bmatrix}w_{,x} & w_{,y}\end{bmatrix}\begin{Bmatrix}u_{,x}\\ u_{,y}\end{Bmatrix}
+=\kappa\,(w_{,x}u_{,x}+w_{,y}u_{,y})
+$$
+
+This is the 2D version of the 1D integrand $w_{,x}u_{,x}$. The other two integrals are
+
+$$
+(w,\ell)=\int_\Omega w\,\ell\,d\Omega,\qquad (w,h)_\Gamma=\int_{\Gamma_h} w\,h\,d\Gamma
+$$
+
+where $\ell$ is the heat generated per unit volume and $d\Gamma$ is a tiny piece of boundary length (or area in 3D).
+
+## Step 1.2: split the approximate solution into "unknown" and "known" parts (2.4.1, 2.4.2)
+
+Exactly as in Section 1.5:
+
+$$
+u^h=v^h+g^h \tag{2.4.1}
+$$
+
+where:
+
+- $u^h$ is the finite element temperature field. The superscript $h$ means "built on a mesh," not a power.
+- $v^h$ is the part we solve for. It belongs to $\mathcal{V}^h$, so it is zero (or nearly zero) on $\Gamma_g$.
+- $g^h$ is a known function that carries the prescribed temperature on $\Gamma_g$.
+
+The Galerkin problem (G) is: given $\ell$, $g$ and $h$, find $u^h=v^h+g^h$ such that **for every** $w^h$ in $\mathcal{V}^h$,
+
+$$
+a(w^h,v^h)=(w^h,\ell)+(w^h,h)_\Gamma-a(w^h,g^h) \tag{2.4.2}
+$$
+
+The last term, $-a(w^h,g^h)$, moved to the right side because $g^h$ is known. You saw the same move in 1D.
+
+## Step 1.3: nodes, g-nodes and equations
+
+Now the domain is chopped into elements $\Omega^e$, $e=1,\dots,n_{el}$ (Fig. 2.4.1). The book defines:
+
+- $\eta=\{1,2,\dots,n_{np}\}$: every node number.
+- $\eta_g$: the **g-nodes**, where $u^h=g$ is prescribed.
+- $\eta-\eta_g$: the nodes where $u^h$ is **unknown**.
+- $n_{eq}$: how many nodes are in $\eta-\eta_g$. That is the number of equations.
+
+**Example (the mesh of Section 2.6, Fig. 2.6.1).** Twelve nodes, with the left edge held at a known temperature:
+
+$$
+\eta=\{1,2,\dots,12\},\quad \eta_g=\{1,4,7,10\},\quad \eta-\eta_g=\{2,3,5,6,8,9,11,12\},\quad n_{eq}=12-4=8
+$$
+
+## Step 1.4: write each function as a sum over nodes (2.4.3 to 2.4.5)
+
+$$
+w^h(\boldsymbol{x})=\sum_{A\in\eta-\eta_g}N_A(\boldsymbol{x})\,c_A \tag{2.4.3}
+$$
+
+$$
+v^h(\boldsymbol{x})=\sum_{A\in\eta-\eta_g}N_A(\boldsymbol{x})\,d_A \tag{2.4.4}
+$$
+
+$$
+g^h(\boldsymbol{x})=\sum_{A\in\eta_g}N_A(\boldsymbol{x})\,g_A,\qquad g_A=g(\boldsymbol{x}_A) \tag{2.4.5}
+$$
+
+where:
+
+- $\sum_{A\in\eta-\eta_g}$ means "add up one term for each unknown node $A$."
+- $N_A$ is the **shape function of node $A$**: 1 at node $A$, 0 at every other node, and nonzero only on the elements that touch node $A$.
+- $c_A$ are **arbitrary** constants (any values at all). They describe a generic weighting function.
+- $d_A$ is the **unknown temperature at node $A$**: what the solver computes.
+- $g_A$ is the **prescribed temperature at g-node $A$**, found by evaluating the given boundary function $g$ at that node's coordinates $\boldsymbol{x}_A$.
+
+Notice that $w^h$ and $v^h$ only use the unknown nodes, and $g^h$ only uses the g-nodes.
+
+**An error source hiding in (2.4.5).** $g^h$ matches the true boundary temperature $g$ only **at the nodes**. Between nodes it follows whatever shape the shape functions have: straight lines for linear elements. Hughes calls this the boundary data being "straightened out" (Fig. 2.4.2). Drag the slider to see how much error a coarse boundary mesh introduces:
+
+```{=html}
+<div class="fe-widget">
+<div class="fe-ctrl"><label for="gb-n">nodes on Γ_g</label><input type="range" id="gb-n" min="2" max="12" step="1" value="4"><output id="gb-n-v"></output></div>
+<div id="gb-plot"></div>
+<p class="fe-out" id="gb-out"></p>
+</div>
+<script>
+FE.bind(['gb-n'],function(){
+  const n=FE.val('gb-n'),g=s=>40+25*Math.sin(2.6*s)+8*Math.sin(7*s);
+  const ex=[];for(let i=0;i<=200;i++){const s=i/200;ex.push([s,g(s)]);}
+  const nod=[];for(let i=0;i<n;i++){const s=i/(n-1);nod.push([s,g(s)]);}
+  let emax=0,smax=0;for(let i=0;i<=400;i++){const s=i/400;const k=Math.min(n-2,Math.floor(s*(n-1)));const t=s*(n-1)-k;const gh=(1-t)*nod[k][1]+t*nod[k+1][1];const er=Math.abs(gh-g(s));if(er>emax){emax=er;smax=s;}}
+  FE.plot('gb-plot',{x:[0,1],y:[20,80],height:260,label:'prescribed boundary temperature versus its nodal interpolate',xlabel:'distance along the boundary Γ_g',ylabel:'temperature',
+    lines:[{pts:ex,color:FE.C.gray,dash:true},{pts:nod,color:FE.C.orange,width:2.5}],
+    dots:nod.map(q=>({x:q[0],y:q[1],color:FE.C.orange,r:4})),
+    legend:[{label:'true g (what you meant to prescribe)',color:FE.C.gray,dash:true},{label:'gʰ (what the model actually uses)',color:FE.C.orange}]});
+  document.getElementById('gb-out').innerHTML='With '+n+' boundary nodes, the largest difference between g and gʰ is <b>'+emax.toFixed(1)+'°</b>, at '+smax.toFixed(2)+' of the way along. It is exactly zero at every node.';
+});
+</script>
+```
+
+Hughes lists two more error sources of the same kind: replacing $\ell$ and $h$ by approximations $\ell^h$ and $h^h$, and element edges that do not exactly follow a curved boundary. **None of these errors goes away by refining the interior of the mesh.** You have to refine where the data or the geometry is curved.
+
+## Step 1.5: derive one equation per unknown node (2.4.6)
+
+This is the same argument as Section 1.6, line by line.
+
+**(a) Move everything in (2.4.2) to one side.**
+
+$$
+0=a(w^h,v^h)-(w^h,\ell)-(w^h,h)_\Gamma+a(w^h,g^h)
+$$
+
+**(b) Substitute $w^h=\sum_A N_A c_A$.** Each of the four terms is linear in its first slot (this is the bilinearity from Section 1.4, Exercise 1). That means a sum and a constant can be pulled out of the first slot: $a\big(\sum_A N_A c_A,\,u\big)=\sum_A c_A\,a(N_A,u)$. Do this to all four terms:
+
+$$
+0=\sum_{A\in\eta-\eta_g}c_A\underbrace{\Big[a(N_A,v^h)-(N_A,\ell)-(N_A,h)_\Gamma+a(N_A,g^h)\Big]}_{G_A}
+$$
+
+where $G_A$ is a single number for each unknown node $A$ (the book's bookkeeping quantity from Section 1.6).
+
+**(c) Use "for every $w^h$."** The equation $0=\sum_A c_A G_A$ must hold for **every** choice of the constants $c_A$. Choose $c_A=1$ for one node and $0$ for all the others; the sum collapses to that single $G_A$, so it must be zero. Repeat for every node:
+
+$$
+G_A=0\quad\text{for each } A\in\eta-\eta_g
+\qquad\Longrightarrow\qquad
+a(N_A,v^h)=(N_A,\ell)+(N_A,h)_\Gamma-a(N_A,g^h)
+$$
+
+**(d) Substitute $v^h$ and $g^h$.** Now use linearity in the **second** slot, $a\big(u,\sum_B N_B d_B\big)=\sum_B a(u,N_B)\,d_B$:
+
+$$
+\boxed{\sum_{B\in\eta-\eta_g}a(N_A,N_B)\,d_B=(N_A,\ell)+(N_A,h)_\Gamma-\sum_{B\in\eta_g}a(N_A,N_B)\,g_B,\qquad A\in\eta-\eta_g} \tag{2.4.6}
+$$
+
+where:
+
+- $A$ labels **which equation** this is (one per unknown node). $B$ is the **summation** index, running over nodes.
+- $a(N_A,N_B)$ measures how strongly node $A$ and node $B$ are coupled. It is **zero unless the two nodes share an element**, because otherwise $N_A$ and $N_B$ are never nonzero at the same place.
+- The left side multiplies the **unknowns** $d_B$. The right side is all **known**: heat source, boundary flux, and the effect of the prescribed temperatures $g_B$ on neighboring nodes.
+
+**Concrete look.** In the Fig. 2.6.1 mesh, take node $A=5$, the interior node in the second row. It touches elements 1 to 4, which contain nodes 1 to 9. So the equation for node 5 contains
+
+- unknowns $d_2,d_3,d_5,d_6,d_8,d_9$ on the left (its unknown neighbors, and itself);
+- known terms $g_1,g_4,g_7$ on the right (its prescribed neighbors).
+
+## Step 1.6: why the ID array is needed (2.4.7)
+
+Equation (2.4.6) labels rows by **node** numbers, and those skip the g-nodes: the unknown nodes are $2,3,5,6,8,9,11,12$. A matrix needs rows numbered $1,2,\dots,n_{eq}$ with no gaps. In Section 1.9 (1D) node numbers and equation numbers happened to coincide, because the only g-node was the last one. In 2D and 3D, requiring that would force you to number nodes in an awkward order. So Hughes introduces a translation table:
+
+$$
+\mathrm{ID}(A)=\begin{cases}P & \text{if } A\in\eta-\eta_g\\[2pt] 0 & \text{if } A\in\eta_g\end{cases} \tag{2.4.7}
+$$
+
+where:
+
+- $P$ is the **global equation number** of node $A$, with $1\le P\le n_{eq}$.
+- **0 is a flag** meaning "this node is prescribed, so it has no equation."
+- ID has $n_{np}$ entries, one per node. The book also calls it the **destination array**: it tells each node where its equation goes.
+
+**How to build it.** Walk through the nodes in ascending order with a counter. Skip g-nodes (give them 0); give every other node the next counter value. For Fig. 2.6.1:
+
+| node $A$ | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| g-node? | yes | | | yes | | | yes | | | yes | | |
+| $\mathrm{ID}(A)$ | **0** | 1 | 2 | **0** | 3 | 4 | **0** | 5 | 6 | **0** | 7 | 8 |
+
+So the equation for node 5 becomes **row 3**, and its unknown neighbors $d_2,d_3,d_5,d_6,d_8,d_9$ become **columns** $1,2,3,4,5,6$.
+
+## Step 1.7: the matrix form (2.4.8 to 2.4.11)
+
+With ID, (2.4.6) becomes an ordinary matrix equation:
+
+$$
+\boldsymbol{K}\boldsymbol{d}=\boldsymbol{F} \tag{2.4.8}
+$$
+
+$$
+\boldsymbol{K}=[K_{PQ}],\qquad \boldsymbol{d}=\{d_Q\},\qquad \boldsymbol{F}=\{F_P\},\qquad 1\le P,Q\le n_{eq} \tag{2.4.9}
+$$
+
+$$
+K_{PQ}=a(N_A,N_B),\qquad P=\mathrm{ID}(A),\qquad Q=\mathrm{ID}(B) \tag{2.4.10}
+$$
+
+$$
+F_P=(N_A,\ell)+(N_A,h)_\Gamma-\sum_{B\in\eta_g}a(N_A,N_B)\,g_B \tag{2.4.11}
+$$
+
+where square brackets $[\;]$ mean "the matrix whose entries are" and curly brackets $\{\;\}$ mean "the column vector whose entries are." Read (2.4.10) as: **the coupling between node $A$ and node $B$ goes in row $\mathrm{ID}(A)$, column $\mathrm{ID}(B)$.**
+
+## Step 1.8: the theorem: $\boldsymbol{K}$ is symmetric and positive definite
+
+These two properties are what make $\boldsymbol{K}\boldsymbol{d}=\boldsymbol{F}$ solvable and cheap to solve, so it is worth seeing where they come from.
+
+**Part 1: symmetric** means $K_{PQ}=K_{QP}$ (the matrix is a mirror image across its diagonal):
+
+$$
+K_{PQ}=a(N_A,N_B)=a(N_B,N_A)=K_{QP}
+$$
+
+The middle step uses the symmetry of $a(\cdot,\cdot)$: swapping $w$ and $u$ in $(\nabla w)^T\boldsymbol{\kappa}(\nabla u)$ gives the same number as long as $\boldsymbol{\kappa}$ is itself symmetric.
+
+**Part 2: positive definite.** A matrix is positive definite when
+
+- (i) $\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}\ge 0$ for every vector $\boldsymbol{c}$, and
+- (ii) $\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}=0$ only when $\boldsymbol{c}=\boldsymbol{0}$.
+
+Here $\boldsymbol{c}$ is any list of $n_{eq}$ numbers, and $\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}=\sum_{P}\sum_{Q}c_P K_{PQ} c_Q$ is a single number (called a **quadratic form**). Physically it is an **energy**: think "$\tfrac12 kx^2$" for a spring, with $\boldsymbol{c}$ playing the role of $x$. Positive definite means every nonzero temperature pattern costs positive "energy," so the matrix can be inverted.
+
+**Proof of (i), one step at a time.** Pair each equation number $P$ with its node $A$ through $P=\mathrm{ID}(A)$, and write $\bar c_A=c_P$ (the same number, labeled by node instead of equation). Then build the weighting function $w^h=\sum_A N_A\bar c_A$.
+
+$$
+\begin{aligned}
+\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}
+&=\sum_{P,Q=1}^{n_{eq}}c_P\,K_{PQ}\,c_Q &&\text{(matrix multiplication written out)}\\
+&=\sum_{A,B\in\eta-\eta_g}\bar c_A\,a(N_A,N_B)\,\bar c_B &&\text{(relabel with ID, use (2.4.10))}\\
+&=a\Big(\sum_A N_A\bar c_A,\ \sum_B N_B\bar c_B\Big) &&\text{(bilinearity, run backward)}\\
+&=a(w^h,w^h) &&\text{(definition of } w^h\text{)}\\
+&=\int_\Omega w^h_{,i}\,\kappa_{ij}\,w^h_{,j}\,d\Omega\ \ge 0 &&\text{(conductivity is positive definite)}
+\end{aligned}
+$$
+
+The last line is (2.3.17) in index notation: $w_{,i}\kappa_{ij}w_{,j}$ means $\sum_i\sum_j$ (repeated indices are summed). It is never negative because heat always flows from hot to cold: there is no direction with zero or negative conductivity. For an isotropic material it is just $\kappa\,(w_{,x}^2+w_{,y}^2)\ge0$, a sum of squares.
+
+**Proof of (ii).** Suppose $\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}=0$. Then the integral of a never-negative quantity is zero, so the quantity is zero everywhere: $\nabla w^h=\boldsymbol{0}$. A function with zero slope everywhere is a **constant**. But $w^h=0$ on $\Gamma_g$, so that constant is 0. So $w^h=0$ everywhere, which forces every $\bar c_A$, and hence every $c_P$, to be 0. ∎
+
+**Remark 1 in practice.** The proof used two things: positive conductivity, **and** a non-empty $\Gamma_g$ (somewhere the temperature is fixed). Remove all prescribed temperatures and a uniform temperature shift costs zero energy, so $\boldsymbol{K}$ is **singular**. This is the reason a thermal model with only prescribed-flux boundaries (no fixed temperature anywhere), or a structural model without enough supports, fails with "singular matrix" or "zero pivot."
+
+**Remark 2 in practice.** Because $a(N_A,N_B)=0$ unless nodes $A$ and $B$ share an element, $\boldsymbol{K}$ is **sparse and banded**: its nonzeros cluster near the diagonal. How tightly they cluster depends on how the nodes are numbered. You can see this in the mesh explorer in Part 2.
+
+::: {.callout-note collapse="true"}
+## What Section 2.4's Exercise 1 is about (no solution)
+
+It asks you to redo the weak-form-to-strong-form argument of Section 1.4 when $u$ and $w$ are smooth **inside** each element but may have kinks across element edges, which is exactly what $C^0$ finite element functions look like. The result is three statements: the heat equation holds inside each element, the flux condition holds on $\Gamma_h$, and the **jump** in normal heat flux across every interior element edge is zero. The notation $[q_n]$ is that jump: flux leaving one side minus flux arriving on the other.
+
+**Why you care:** the exact solution has continuous flux across element edges, but a finite element solution generally does **not**. Its flux jumps from element to element. Those jumps are what you see when a post-processor shows "unaveraged" stress or heat-flux contours, and their size is a common error indicator.
+:::
+
+# Part 2. Section 2.6: the IEN and LM arrays
+
+**Goal of this part.** Add the other two tables: IEN, which describes the mesh, and LM, which drives assembly. Then work through both of Hughes's examples.
+
+## Step 2.1: IEN, the element nodes array (2.6.1)
+
+$$
+\mathrm{IEN}(a,e)=A \tag{2.6.1}
+$$
+
+where:
+
+- $a$ is the **local** node number inside element $e$: $a=1,\dots,n_{en}$.
+- $e$ is the **element** number: $e=1,\dots,n_{el}$.
+- $A$ is the **global** node number at that corner.
+
+IEN is the mesh's **connectivity**: column $e$ lists element $e$'s nodes. Every mesh file has this table in some form (in ANSYS it is the element definition `E,n1,n2,n3,n4`; in Abaqus, the `*ELEMENT` lines).
+
+**The local numbering convention matters.** For the four-node rectangle, Hughes starts at the **lower-left** corner and goes **counterclockwise**. That order must match the element's parent square (Section 3.3), or the Jacobian becomes negative.
+
+## Step 2.2: LM, the location matrix (2.6.2)
+
+$$
+\mathrm{LM}(a,e)=\mathrm{ID}\big(\mathrm{IEN}(a,e)\big) \tag{2.6.2}
+$$
+
+This is a **composition of functions**: do one lookup, then feed its answer into the next. Read it inside out:
+
+1. $\mathrm{IEN}(a,e)$ answers "which global node is corner $a$ of element $e$?" Call the answer $A$.
+2. $\mathrm{ID}(A)$ answers "which equation does node $A$ own?" Call the answer $P$.
+
+So $\mathrm{LM}(a,e)=P$ answers the question that assembly actually needs: **which row of $\boldsymbol{K}$ does corner $a$ of element $e$ feed into?** A 0 means "prescribed, no row." Hughes calls LM the element "localization" of ID. Strictly, LM is redundant (it can always be recomputed from IEN and ID), but programs build it once because assembly asks this question millions of times.
+
+In practice, **IEN and ID are built from input data** (mesh connectivity and boundary conditions), and **LM is computed from them**.
+
+## Step 2.3: Example 1, built by hand (Figs. 2.6.1 and 2.6.2)
+
+**The mesh.** Six four-node rectangles, two across and three up. Global nodes are numbered left to right, then bottom to top: 1, 2, 3 on the bottom row; 4, 5, 6 on the next; and so on to 12. The left edge (nodes 1, 4, 7, 10) has a prescribed temperature, so $n_{eq}=8$.
+
+**ID** (from Step 1.6):
+
+| $A$ | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
+|---|---|---|---|---|---|---|---|---|---|---|---|---|
+| $\mathrm{ID}(A)$ | 0 | 1 | 2 | 0 | 3 | 4 | 0 | 5 | 6 | 0 | 7 | 8 |
+
+**IEN.** For each element, start at its lower-left node and go counterclockwise: lower-left, lower-right, upper-right, upper-left. Element 1 sits between nodes 1, 2, 5, 4, so its column is $(1,2,5,4)$. Every element follows the same pattern: if its lower-left node is $A$, its corners are $A$, $A+1$, $A+4$, $A+3$ (the row above is 3 nodes later).
+
+| | $e=1$ | 2 | 3 | 4 | 5 | 6 |
+|---|---|---|---|---|---|---|
+| $a=1$ (lower-left) | 1 | 2 | 4 | 5 | 7 | 8 |
+| $a=2$ (lower-right) | 2 | 3 | 5 | 6 | 8 | 9 |
+| $a=3$ (upper-right) | 5 | 6 | 8 | 9 | 11 | 12 |
+| $a=4$ (upper-left) | 4 | 5 | 7 | 8 | 10 | 11 |
+
+**LM.** Replace every entry of IEN by its ID value. Element 1 is worked fully:
+
+$$
+\begin{aligned}
+\mathrm{LM}(1,1)&=\mathrm{ID}(\mathrm{IEN}(1,1))=\mathrm{ID}(1)=0\\
+\mathrm{LM}(2,1)&=\mathrm{ID}(\mathrm{IEN}(2,1))=\mathrm{ID}(2)=1\\
+\mathrm{LM}(3,1)&=\mathrm{ID}(\mathrm{IEN}(3,1))=\mathrm{ID}(5)=3\\
+\mathrm{LM}(4,1)&=\mathrm{ID}(\mathrm{IEN}(4,1))=\mathrm{ID}(4)=0
+\end{aligned}
+$$
+
+Doing the same for every column gives Fig. 2.6.2:
+
+| | $e=1$ | 2 | 3 | 4 | 5 | 6 |
+|---|---|---|---|---|---|---|
+| $a=1$ | 0 | 1 | 0 | 3 | 0 | 5 |
+| $a=2$ | 1 | 2 | 3 | 4 | 5 | 6 |
+| $a=3$ | 3 | 4 | 5 | 6 | 7 | 8 |
+| $a=4$ | 0 | 3 | 0 | 5 | 0 | 7 |
+
+The zeros appear in every element that touches the left wall (elements 1, 3, 5), at its two left corners.
+
+## Step 2.4: explore it
+
+This is the Example 1 mesh, live. You can:
+
+- **click an element** to follow its corners through IEN and ID to LM, and see which entries of $\boldsymbol{K}$ it fills;
+- **click a node** to prescribe or release its temperature, and watch ID, LM and $n_{eq}$ renumber themselves;
+- **change the mesh size** and the **node numbering direction**, and watch how far the nonzeros spread from the diagonal of $\boldsymbol{K}$.
+
+```{=html}
+<div class="fe-widget" id="mx">
+<div class="fe-btns" id="mx-btns">
+  <button data-act="book" class="on">Book Example 1</button>
+  <button data-act="ordx">Number along x first</button>
+  <button data-act="ordy">Number along y first</button>
+  <button data-act="clear">Release all nodes</button>
+  <button data-act="bottom">Fix bottom edge instead</button>
+</div>
+<div class="fe-ctrl"><label for="mx-nx">elements across (x)</label><input type="range" id="mx-nx" min="1" max="4" step="1" value="2"><output id="mx-nx-v"></output><label for="mx-ny">elements up (y)</label><input type="range" id="mx-ny" min="1" max="4" step="1" value="3"><output id="mx-ny-v"></output></div>
+<div class="fe-row">
+  <div><div id="mx-mesh"></div><p class="fe-cap">Large number: global node A. Small number under it: its equation number ID(A); red <b>0</b> = prescribed. Circled: element number. Inside the selected element, (a) marks local node numbers.</p></div>
+  <div><div id="mx-chain"></div><div id="mx-k"></div></div>
+</div>
+<div id="mx-status"></div>
+<div class="scroll-x" id="mx-tables"></div>
+</div>
+<script>
+(function(){
+  const st={nx:2,ny:3,ord:'x',fixed:new Set(['0,0','0,1','0,2','0,3']),sel:1};
+  const $=id=>document.getElementById(id);
+  function nodeNum(i,j){return st.ord==='x'? j*(st.nx+1)+i+1 : i*(st.ny+1)+j+1;}
+  function elNum(i,j){return st.ord==='x'? j*st.nx+i+1 : i*st.ny+j+1;}
+  function build(){
+    const nnp=(st.nx+1)*(st.ny+1),nel=st.nx*st.ny,pos=[],epos=[],IEN=[],LM=[];
+    for(let j=0;j<=st.ny;j++)for(let i=0;i<=st.nx;i++)pos[nodeNum(i,j)]=[i,j];
+    const ID=[0];let neq=0;
+    for(let A=1;A<=nnp;A++){if(st.fixed.has(pos[A].join(',')))ID[A]=0;else{neq++;ID[A]=neq;}}
+    for(let j=0;j<st.ny;j++)for(let i=0;i<st.nx;i++)epos[elNum(i,j)]=[i,j];
+    for(let e=1;e<=nel;e++){const [i,j]=epos[e];IEN[e]=[0,nodeNum(i,j),nodeNum(i+1,j),nodeNum(i+1,j+1),nodeNum(i,j+1)];LM[e]=IEN[e].map((A,a)=>a?ID[A]:0);}
+    return {nnp,nel,pos,epos,ID,IEN,LM,neq};
+  }
+  function render(){
+    if(st.sel>st.nx*st.ny)st.sel=1;
+    const M=build(),W=340,H=340,pad=34,cs=Math.min((W-2*pad)/st.nx,(H-2*pad)/st.ny);
+    const ox=(W-cs*st.nx)/2,oy=(H-cs*st.ny)/2,X=i=>ox+i*cs,Y=j=>H-oy-j*cs;
+    let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block;font-size:12px" role="img" aria-label="mesh">`;
+    for(let e=1;e<=M.nel;e++){const [i,j]=M.epos[e],on=e===st.sel;
+      s+=`<rect data-e="${e}" x="${X(i)}" y="${Y(j+1)}" width="${cs}" height="${cs}" fill="${on?'rgba(212,87,42,.22)':'rgba(128,128,128,.05)'}" stroke="currentColor" stroke-opacity=".55" style="cursor:pointer"/>`;
+      s+=`<circle data-e="${e}" cx="${X(i+.5)}" cy="${Y(j+.5)}" r="11" fill="none" stroke="currentColor" stroke-opacity=".7" style="cursor:pointer"/><text data-e="${e}" x="${X(i+.5)}" y="${Y(j+.5)+4}" text-anchor="middle" fill="currentColor" style="cursor:pointer">${e}</text>`;}
+    for(let A=1;A<=M.nnp;A++){const [i,j]=M.pos[A],fx=M.ID[A]===0;
+      s+=`<g data-n="${i},${j}" style="cursor:pointer">`;
+      s+=fx?`<rect x="${X(i)-7}" y="${Y(j)-7}" width="14" height="14" fill="#d62828"/>`:`<circle cx="${X(i)}" cy="${Y(j)}" r="7" fill="#2e86c1"/>`;
+      s+=`<circle cx="${X(i)}" cy="${Y(j)}" r="14" fill="transparent"/>`;
+      s+=`<text x="${X(i)-10}" y="${Y(j)-10}" text-anchor="end" fill="currentColor" font-size="13" font-weight="600">${A}</text>`;
+      s+=`<text x="${X(i)-10}" y="${Y(j)+17}" text-anchor="end" fill="${fx?'#d62828':'#1d9e75'}" font-size="11">${M.ID[A]}</text></g>`;}
+    const [si,sj]=M.epos[st.sel]||[0,0],corner=[[0,0],[1,0],[1,1],[0,1]],off=Math.max(18,0.22*cs);
+    corner.forEach((c,k)=>{const cx=X(si+c[0])+(c[0]?-off:off),cy=Y(sj+c[1])+(c[1]?off:-off);
+      s+=`<rect x="${cx-14}" y="${cy-9}" width="28" height="18" rx="9" fill="#d4572a"/><text x="${cx}" y="${cy+4}" text-anchor="middle" fill="#fff" font-size="11" font-weight="600">(${k+1})</text>`;});
+    s+='</svg>';$('mx-mesh').innerHTML=s;
+    $('mx-mesh').querySelectorAll('[data-e]').forEach(el=>el.addEventListener('click',()=>{st.sel=+el.getAttribute('data-e');render();}));
+    $('mx-mesh').querySelectorAll('[data-n]').forEach(el=>el.addEventListener('click',()=>{const k=el.getAttribute('data-n');if(st.fixed.has(k))st.fixed.delete(k);else st.fixed.add(k);render();}));
+    /* chain for the selected element */
+    const e=st.sel,rows=[1,2,3,4].map(a=>['a = '+a,M.IEN[e][a],M.LM[e][a]]);
+    $('mx-chain').innerHTML='<p class="fe-cap"><b>Element '+e+':</b> local corner → global node → equation</p>'+FE.TB(['a','A = IEN(a,'+e+')','P = LM(a,'+e+')'],rows,{zeroRed:true});
+    /* K sparsity */
+    const n=M.neq,cnt=[];for(let P=0;P<=n;P++)cnt.push(new Array(n+1).fill(0));
+    const mine=new Set();let bw=0,nnz=0;
+    for(let q=1;q<=M.nel;q++)for(let a=1;a<=4;a++)for(let b=1;b<=4;b++){const P=M.LM[q][a],Q=M.LM[q][b];if(P&&Q){cnt[P][Q]++;if(q===e)mine.add(P+','+Q);}}
+    for(let P=1;P<=n;P++)for(let Q=1;Q<=n;Q++)if(cnt[P][Q]){nnz++;bw=Math.max(bw,Math.abs(P-Q));}
+    if(n===0){$('mx-k').innerHTML='<p class="fe-cap">Every node is prescribed: there is nothing to solve for.</p>';}
+    else{const KW=300,c=Math.min(22,(KW-30)/n),o=24;let k=`<svg viewBox="0 0 ${o+c*n+4} ${o+c*n+4}" width="100%" style="max-width:${o+c*n+4}px;display:block;font-size:10px" role="img" aria-label="nonzero pattern of K">`;
+      for(let P=1;P<=n;P++){if(n<=14){k+=`<text x="${o+(P-.5)*c}" y="${o-6}" text-anchor="middle" fill="currentColor" opacity=".7">${P}</text><text x="${o-5}" y="${o+(P-.5)*c+3}" text-anchor="end" fill="currentColor" opacity=".7">${P}</text>`;}
+        for(let Q=1;Q<=n;Q++){const v=cnt[P][Q],m=mine.has(P+','+Q);
+          k+=`<rect x="${o+(Q-1)*c+1}" y="${o+(P-1)*c+1}" width="${c-2}" height="${c-2}" fill="${v?'#6c5ce7':'transparent'}" fill-opacity="${v?0.18+0.2*v:0}" stroke="${m?'#d4572a':'currentColor'}" stroke-opacity="${m?1:0.15}" stroke-width="${m?2.2:1}"/>`;
+          if(v&&c>=16)k+=`<text x="${o+(Q-.5)*c}" y="${o+(P-.5)*c+3.5}" text-anchor="middle" fill="currentColor">${v}</text>`;}}
+      k+='</svg>';
+      $('mx-k').innerHTML='<p class="fe-cap"><b>Nonzero pattern of K</b> ('+n+' × '+n+'). Shaded = nonzero; the number is how many elements add into that cell. Orange outline = cells element '+e+' fills.</p>'+k+'<p class="fe-out">Nonzero entries: <b>'+nnz+'</b> of '+(n*n)+'. Half-bandwidth (largest |P − Q| among nonzeros): <b>'+bw+'</b>.</p>';}
+    const fx=M.nnp-M.neq;
+    $('mx-status').innerHTML=fx===0?'<div class="fe-status fe-bad"><b>No prescribed temperatures.</b> Part 2 of the theorem fails: a uniform temperature shift costs no energy, so K is singular and cannot be solved.</div>'
+      :'<div class="fe-status fe-ok">n<sub>np</sub> = '+M.nnp+' nodes − '+fx+' prescribed = <b>n<sub>eq</sub> = '+M.neq+'</b> equations. K is '+M.neq+' × '+M.neq+'.</div>';
+    const A=[];for(let q=1;q<=M.nnp;q++)A.push(q);
+    const E=[];for(let q=1;q<=M.nel;q++)E.push(q);
+    $('mx-tables').innerHTML='<p class="fe-cap"><b>ID array</b>: P = ID(A)</p>'+FE.TB(['A'].concat(A),[['ID(A)'].concat(A.map(q=>M.ID[q]))],{zeroRed:true})
+      +'<p class="fe-cap"><b>IEN array</b>: A = IEN(a, e). Column of the selected element highlighted.</p>'+FE.TB(['a \\ e'].concat(E),[1,2,3,4].map(a=>['a = '+a].concat(E.map(q=>M.IEN[q][a]))),{hlCol:e})
+      +'<p class="fe-cap"><b>LM array</b>: P = LM(a, e) = ID(IEN(a, e))</p>'+FE.TB(['a \\ e'].concat(E),[1,2,3,4].map(a=>['a = '+a].concat(E.map(q=>M.LM[q][a]))),{hlCol:e,zeroRed:true});
+    document.querySelectorAll('#mx-btns button').forEach(b=>{const a=b.getAttribute('data-act');b.classList.toggle('on',(a==='ordx'&&st.ord==='x')||(a==='ordy'&&st.ord==='y'));});
+  }
+  st.bc='left';
+  function applyBC(){
+    if(st.bc==='left'){st.fixed=new Set();for(let j=0;j<=st.ny;j++)st.fixed.add('0,'+j);}
+    else if(st.bc==='bottom'){st.fixed=new Set();for(let i=0;i<=st.nx;i++)st.fixed.add(i+',0');}
+    else [...st.fixed].forEach(k=>{const [i,j]=k.split(',').map(Number);if(i>st.nx||j>st.ny)st.fixed.delete(k);});
+  }
+  $('mx-btns').querySelectorAll('button').forEach(b=>b.addEventListener('click',()=>{const a=b.getAttribute('data-act');
+    if(a==='book'){st.nx=2;st.ny=3;st.ord='x';st.sel=1;st.bc='left';$('mx-nx').value=2;$('mx-ny').value=3;FE.show('mx-nx');FE.show('mx-ny');}
+    if(a==='ordx')st.ord='x';if(a==='ordy')st.ord='y';
+    if(a==='clear'){st.bc='custom';st.fixed=new Set();}
+    if(a==='bottom')st.bc='bottom';
+    applyBC();render();}));
+  /* clicking a node switches to a custom set of prescribed nodes */
+  $('mx-mesh').addEventListener('click',ev=>{if(ev.target.closest('[data-n]'))st.bc='custom';},true);
+  FE.bind(['mx-nx','mx-ny'],function(){st.nx=FE.val('mx-nx');st.ny=FE.val('mx-ny');applyBC();render();});
+})();
+</script>
+```
+
+Things to try:
+
+1. Click **element 4**. Its corners are nodes 5, 6, 9, 8, which become equations 3, 4, 6, 5. It is the only element here with **no** zeros in its LM column, so all 16 of its stiffness numbers land in $\boldsymbol{K}$.
+2. Click **element 1**. Only local nodes 2 and 3 have equations (1 and 3), so only 4 of its 16 numbers go into $\boldsymbol{K}$. The rest involve the wall. That is Example 2's situation.
+3. Click **node 12** to prescribe it too. $n_{eq}$ drops to 7, and every LM entry that pointed at equation 8 becomes 0. Nothing else changes, because node 12 is last.
+4. Now release node 12 and prescribe **node 2** instead. **Every** equation number after node 2 shifts down by one. This is why you never type LM in by hand: you compute it.
+5. Press **Number along y first**. The mesh is identical, but the half-bandwidth grows from 3 to 5, because each row of nodes now holds 4 nodes instead of 3, and a node's neighbors in the next column are further away in the numbering. Numbering across the **short** direction keeps the nonzeros closer to the diagonal. Older direct solvers were very sensitive to this; modern codes reorder the equations automatically, but the idea behind their "reordering" step is exactly this picture.
+
+## Step 2.5: the element's own copy of the prescribed values (2.6.3)
+
+The element routine needs to know which of its corners have known temperatures, and what they are. Hughes defines
+
+$$
+g^e_a=\begin{cases}0 & \text{if } \mathrm{LM}(a,e)\neq 0\\[2pt] g_A & \text{if } \mathrm{LM}(a,e)=0,\quad\text{where } A=\mathrm{IEN}(a,e)\end{cases} \tag{2.6.3}
+$$
+
+where:
+
+- $g^e_a$ is the prescribed temperature at local corner $a$ of element $e$, or 0 if that corner is unknown.
+- $g_A$ is the prescribed value at global node $A$ (from the input).
+
+**Example 1, element 1.** LM is $(0,1,3,0)$ and IEN is $(1,2,5,4)$, so $g^1_1=g_1$, $g^1_2=0$, $g^1_3=0$, $g^1_4=g_4$.
+
+These values are used in the element force vector. Its full form is equation (2.5.8) from Section 2.5 (not in your screenshots, but it is the 2D version of (1.13.12) that you already know):
+
+$$
+f^e_a=\int_{\Omega^e}N_a\,\ell\,d\Omega+\int_{\Gamma^e_h}N_a\,h\,d\Gamma-\sum_{b=1}^{n_{en}}k^e_{ab}\,g^e_b
+$$
+
+where:
+
+- the first term spreads the heat source over the element's nodes;
+- the second adds any prescribed flux on the part of the element's edge that lies on $\Gamma_h$;
+- the last term moves the **known** corner temperatures to the right side, exactly like $-k^e_{a2}g$ in 1D. Since $g^e_b=0$ at unknown corners, only prescribed corners contribute.
+
+"This definition may be easily programmed": it is one `if` statement per corner.
+
+## Step 2.6: Example 2: assembling one element with prescribed corners (2.6.4 to 2.6.8)
+
+**The data.** A typical four-node element $e$ has
+
+$$
+\mathrm{LM}(1,e)=5,\quad \mathrm{LM}(2,e)=0,\quad \mathrm{LM}(3,e)=0,\quad \mathrm{LM}(4,e)=9 \tag{2.6.4}
+$$
+
+So corners 1 and 4 own equations 5 and 9, and corners 2 and 3 are prescribed.
+
+**The rule.** For every pair of corners $(a,b)$: if both $\mathrm{LM}(a,e)=P$ and $\mathrm{LM}(b,e)=Q$ are nonzero, then $k^e_{ab}$ is added into $K_{PQ}$. Go through all 16 pairs:
+
+| | $b=1$ ($Q=5$) | $b=2$ ($Q=0$) | $b=3$ ($Q=0$) | $b=4$ ($Q=9$) |
+|---|---|---|---|---|
+| $a=1$ ($P=5$) | $K_{55}$ | to $f^e_1$ via $g^e_2$ | to $f^e_1$ via $g^e_3$ | $K_{59}$ |
+| $a=2$ ($P=0$) | dropped | dropped | dropped | dropped |
+| $a=3$ ($P=0$) | dropped | dropped | dropped | dropped |
+| $a=4$ ($P=9$) | $K_{95}$ | to $f^e_4$ via $g^e_2$ | to $f^e_4$ via $g^e_3$ | $K_{99}$ |
+
+That gives the four stiffness updates and two force updates:
+
+$$
+\begin{aligned}
+K_{55}&\leftarrow K_{55}+k^e_{11}, & K_{59}&\leftarrow K_{59}+k^e_{14},\\
+K_{95}&\leftarrow K_{95}+k^e_{41}, & K_{99}&\leftarrow K_{99}+k^e_{44}
+\end{aligned}
+\tag{2.6.5}
+$$
+
+$$
+F_5\leftarrow F_5+f^e_1,\qquad F_9\leftarrow F_9+f^e_4 \tag{2.6.6}
+$$
+
+**Where the circled terms go (2.6.7, 2.6.8).** Write out row 1 of the element's equations, $\sum_b k^e_{1b}d^e_b=(\text{loads})$:
+
+$$
+k^e_{11}d^e_1+k^e_{12}d^e_2+k^e_{13}d^e_3+k^e_{14}d^e_4=(\text{loads on corner }1)
+$$
+
+Corners 2 and 3 are prescribed, so $d^e_2=g^e_2$ and $d^e_3=g^e_3$ are **known numbers**. Move them to the right side:
+
+$$
+k^e_{11}d^e_1+k^e_{14}d^e_4=(\text{loads on corner }1)-k^e_{12}g^e_2-k^e_{13}g^e_3
+$$
+
+The right side is $f^e_1$:
+
+$$
+f^e_1=\cdots-k^e_{12}g^e_2-k^e_{13}g^e_3 \tag{2.6.7}
+$$
+
+$$
+f^e_4=\cdots-k^e_{42}g^e_2-k^e_{43}g^e_3 \tag{2.6.8}
+$$
+
+where "$\cdots$" is the heat-source and flux terms. Rows 2 and 3 are not equations at all, because those temperatures are already known. Hughes's Figure 2.6.3 is a picture of the table above: squares go to $\boldsymbol{K}$, circles go to $\boldsymbol{f}^e$, angle brackets go to $\boldsymbol{F}$.
+
+**The book's last sentence is the key idea: all the information assembly needs is in the LM array.** Type any LM values below to see it. The default is the book's Example 2.
+
+```{=html}
+<div class="fe-widget">
+<div class="fe-btns"><button id="ex2-book" class="on">Book Example 2: (5, 0, 0, 9)</button><button id="ex2-free">All free: (3, 4, 6, 5)</button><button id="ex2-wall">Example 1, element 1: (0, 1, 3, 0)</button></div>
+<div class="lm-in">
+  <div><label for="ex2-1">LM(1, e)</label><input type="number" id="ex2-1" min="0" max="99" value="5"></div>
+  <div><label for="ex2-2">LM(2, e)</label><input type="number" id="ex2-2" min="0" max="99" value="0"></div>
+  <div><label for="ex2-3">LM(3, e)</label><input type="number" id="ex2-3" min="0" max="99" value="0"></div>
+  <div><label for="ex2-4">LM(4, e)</label><input type="number" id="ex2-4" min="0" max="99" value="9"></div>
+</div>
+<div class="fe-row">
+  <div class="scroll-x"><div id="ex2-grid"></div>
+  <p class="fe-cap"><span style="color:#d4572a">■ square</span>: goes into K. <span style="color:#2e86c1">● circle</span>: goes into f<sup>e</sup> as −k·g. Faded: dropped (no equation for that row). Dashed squares sit below the diagonal; by symmetry a code usually skips them and copies the mirror entry.</p></div>
+  <div><div class="stmts" id="ex2-out"></div></div>
+</div>
+</div>
+<script>
+(function(){
+  const ids=['ex2-1','ex2-2','ex2-3','ex2-4'],$=id=>document.getElementById(id),sub=s=>'<sub>'+s+'</sub>';
+  function render(){
+    const L=[0].concat(ids.map(id=>Math.max(0,Math.round(+$(id).value||0))));
+    let g='<'+'table class="kgrid"><tr><td class="fv"></td>'+[1,2,3,4].map(b=>'<td class="fv"><small>b = '+b+'<br>Q = '+L[b]+'</small></td>').join('')+'<td class="fv"></td><td class="fv"></td></tr>';
+    for(let a=1;a<=4;a++){g+='<tr><td class="fv"><small>a = '+a+'<br>P = '+L[a]+'</small></td>';
+      for(let b=1;b<=4;b++){const P=L[a],Q=L[b];let cls='dr',tx='k'+sub(a+''+b),dest='dropped';
+        if(P&&Q){cls='sq'+(a>b?' sym':'');dest='→ K'+sub(P+','+Q);}else if(P&&!Q){cls='ci';dest='→ f'+sub(a)+' (−k·g'+sub(b)+')';}
+        g+='<td class="'+cls+'">'+tx+'<small>'+dest+'</small></td>';}
+      g+='<td class="fv">'+(L[a]?'⟨f'+sub(a)+'⟩':'<span style="opacity:.4">f'+sub(a)+'</span>')+'</td><td class="fv"><small>'+(L[a]?'→ F'+sub(L[a]):'dropped')+'</small></td></tr>';}
+    $('ex2-grid').innerHTML=g+'</table>';
+    let s='<b>Stiffness updates (2.6.5):</b><br>';let nK=0;
+    for(let a=1;a<=4;a++)for(let b=1;b<=4;b++){const P=L[a],Q=L[b];if(P&&Q){nK++;s+='K'+sub(P+','+Q)+' ← K'+sub(P+','+Q)+' + k'+sub(a+''+b)+'<br>';}}
+    if(!nK)s+='(none: every corner is prescribed)<br>';
+    s+='<br><b>Force updates (2.6.6):</b><br>';
+    for(let a=1;a<=4;a++)if(L[a])s+='F'+sub(L[a])+' ← F'+sub(L[a])+' + f'+sub(a)+'<br>';
+    const pres=[1,2,3,4].filter(b=>!L[b]);
+    s+='<br><b>Element force terms from prescribed corners (2.6.7, 2.6.8):</b><br>';
+    if(!pres.length)s+='(none: no corner is prescribed, so g<sup>e</sup> is all zeros)<br>';
+    else for(let a=1;a<=4;a++)if(L[a])s+='f'+sub(a)+' = ⋯ '+pres.map(b=>'− k'+sub(a+''+b)+'g'+sub(b)).join(' ')+'<br>';
+    const used=[1,2,3,4].map(a=>L[a]).filter(v=>v),dup=used.length!==new Set(used).size;
+    s+='<br>'+nK+' of 16 stiffness numbers reach K.'+(dup?'<br><span style="color:#d62828"><b>Warning:</b> two corners share an equation number. That means two corners are the same node: a connectivity error.</span>':'');
+    $('ex2-out').innerHTML=s;
+  }
+  ids.forEach(id=>$(id).addEventListener('input',render));
+  function preset(v,btn){ids.forEach((id,k)=>$(id).value=v[k]);document.querySelectorAll('#ex2-book,#ex2-free,#ex2-wall').forEach(b=>b.classList.toggle('on',b.id===btn));render();}
+  $('ex2-book').addEventListener('click',()=>preset([5,0,0,9],'ex2-book'));
+  $('ex2-free').addEventListener('click',()=>preset([3,4,6,5],'ex2-free'));
+  $('ex2-wall').addEventListener('click',()=>preset([0,1,3,0],'ex2-wall'));
+  render();
+})();
+</script>
+```
+
+**About the dropped rows.** A program skips rows 2 and 3 when it solves, but they are not useless. After the solve, plugging the now-known temperatures into those rows gives the **heat flow needed to hold those nodes at their prescribed temperatures**. In structural analysis the same calculation gives the **reaction forces** at the supports. When ANSYS or Abaqus prints reactions, this is where they come from, and checking that they balance the applied load is one of the best sanity checks you have.
+
+## Step 2.7: Section 2.6, Exercise 1: how to approach it
+
+The exercise gives an irregular U-shaped mesh and asks for ID, IEN and LM. The answer is yours to work out, but the procedure is the one above:
+
+1. Read off $\eta_g$: the nodes on the hatched line along the bottom. Then $n_{eq}=n_{np}-(\text{number of g-nodes})$.
+2. **ID:** walk through the nodes **in ascending node number** (not by position on the page), giving 0 to g-nodes and a running count to the rest. The node numbers in this mesh jump around on purpose.
+3. **IEN:** for each element, find its **lower-left** corner and go counterclockwise. Be careful: in elements 1 and 5 the numbers are not arranged left to right.
+4. **LM:** replace each IEN entry by its ID value.
+5. **Check:** every nonzero equation number $1,\dots,n_{eq}$ should appear somewhere in LM, and each element's LM column should have no repeated nonzero values. You can type your LM columns into the Example 2 box above to see which entries of $\boldsymbol{K}$ each element fills.
+
+# Part 3. Section 1.14: the same arrays in one dimension
+
+**Goal of this part.** See that the 1D assembly rules of Section 1.14 are not a special trick: they are just ID, IEN and LM for a row of two-node elements. This is the version you will build into your Project 1 code.
+
+## Step 3.1: the 1D model problem's three arrays
+
+Recall the setup: $n_{el}=n$ linear elements on $[0,1]$, nodes $A=1,\dots,n+1$ from left to right, flux $h$ given at $x=0$, and temperature $u(1)=g$ prescribed at the **last** node $n+1$.
+
+**ID.** Only node $n+1$ is prescribed, and it is last, so the counter never skips until the end:
+
+$$
+\mathrm{ID}(A)=\begin{cases}A & A=1,\dots,n\\ 0 & A=n+1\end{cases}
+$$
+
+**IEN.** Element $e$ runs from node $e$ to node $e+1$, with local node 1 on the left:
+
+$$
+\mathrm{IEN}(1,e)=e,\qquad \mathrm{IEN}(2,e)=e+1
+$$
+
+**LM** by composition:
+
+$$
+\begin{aligned}
+\mathrm{LM}(1,e)&=\mathrm{ID}(\mathrm{IEN}(1,e))=\mathrm{ID}(e)=e\\
+\mathrm{LM}(2,e)&=\mathrm{ID}(\mathrm{IEN}(2,e))=\mathrm{ID}(e+1)=\begin{cases}e+1 & e<n_{el}\\ 0 & e=n_{el}\end{cases}
+\end{aligned}
+$$
+
+That is exactly the LM array of Section 1.14 (1.14.1). In 1D it looked like a formula; in 2D it is a table, because there is no simple formula for an arbitrary mesh.
+
+For $n_{el}=4$:
+
+| | $e=1$ | 2 | 3 | 4 |
+|---|---|---|---|---|
+| $\mathrm{IEN}(1,e)$ | 1 | 2 | 3 | 4 |
+| $\mathrm{IEN}(2,e)$ | 2 | 3 | 4 | 5 |
+| $\mathrm{LM}(1,e)$ | 1 | 2 | 3 | 4 |
+| $\mathrm{LM}(2,e)$ | 2 | 3 | 4 | **0** |
+
+## Step 3.2: the assembly rules are the LM rule
+
+Apply the Example 2 rule ("$k^e_{ab}$ goes to $K_{PQ}$ when both $P=\mathrm{LM}(a,e)$ and $Q=\mathrm{LM}(b,e)$ are nonzero") to a 1D element:
+
+- **Interior element** ($e<n_{el}$, LM $=(e,\,e+1)$): all four numbers land,
+
+$$
+\begin{aligned}
+K_{e,e}&\leftarrow K_{e,e}+k^e_{11}, & K_{e,e+1}&\leftarrow K_{e,e+1}+k^e_{12},\\
+K_{e+1,e}&\leftarrow K_{e+1,e}+k^e_{21}, & K_{e+1,e+1}&\leftarrow K_{e+1,e+1}+k^e_{22},\\
+F_e&\leftarrow F_e+f^e_1, & F_{e+1}&\leftarrow F_{e+1}+f^e_2.
+\end{aligned}
+$$
+
+- **Last element** ($e=n_{el}$, LM $=(n,\,0)$): only $K_{nn}\leftarrow K_{nn}+k^{n_{el}}_{11}$ and $F_n\leftarrow F_n+f^{n_{el}}_1$ survive, and $f^{n_{el}}_1$ contains $-k^{n_{el}}_{12}\,g$. That is the 1D version of the circles in Fig. 2.6.3, and it is the term $-k^e_{a2}g$ in (1.13.12).
+
+The book packs the whole loop into the **assembly operator**:
+
+$$
+\boldsymbol{K}=\mathop{\mathbf{A}}_{e=1}^{n_{el}}\big(\boldsymbol{k}^e\big),\qquad \boldsymbol{F}=\mathop{\mathbf{A}}_{e=1}^{n_{el}}\big(\boldsymbol{f}^e\big) \tag{1.14.10}
+$$
+
+Read the bold $\mathbf{A}$ as "a sum that uses LM to put each element's numbers in the right place." It is not a matrix.
+
+## Step 3.3: watch assembly happen
+
+Drag **elements assembled** from 0 upward to add one element at a time. Green cells are the ones the newest element just changed. Switch the boundary conditions to see ID gain a second zero at the **first** node, which shifts every equation number by one. That is the case where the 1D shortcut "equation number = node number" breaks, and the reason your code should use ID instead.
+
+Units are dimensionless here, with conductivity $\kappa=1$; the element matrices are $\boldsymbol{k}^e=\frac{1}{h^e}\begin{bmatrix}1&-1\\-1&1\end{bmatrix}$ and $\boldsymbol{f}^e=\frac{\ell h^e}{2}\begin{Bmatrix}1\\1\end{Bmatrix}$ from Section 1.15.
+
+```{=html}
+<div class="fe-widget">
+<div class="fe-btns"><button id="fd-b1" class="on">Book: flux h at x = 0, u(1) = g</button><button id="fd-b2">Both ends prescribed: u(0) = 0, u(1) = g</button></div>
+<div class="fe-ctrl">
+<label for="fd-n">number of elements</label><input type="range" id="fd-n" min="1" max="6" step="1" value="3"><output id="fd-n-v"></output>
+<label for="fd-s">elements assembled</label><input type="range" id="fd-s" min="0" max="3" step="1" value="1"><output id="fd-s-v"></output>
+<label for="fd-l">source ℓ</label><input type="range" id="fd-l" min="-2" max="4" step="0.5" value="2"><output id="fd-l-v"></output>
+<label for="fd-g">g = u(1)</label><input type="range" id="fd-g" min="-1" max="1" step="0.1" value="0.5"><output id="fd-g-v"></output>
+<label for="fd-h">flux h at x = 0</label><input type="range" id="fd-h" min="-1" max="1" step="0.1" value="0.5"><output id="fd-h-v"></output>
+</div>
+<div class="scroll-x" id="fd-arr"></div>
+<div class="fe-row"><div class="scroll-x" id="fd-el"></div><div class="scroll-x" id="fd-K"></div></div>
+<div id="fd-plot"></div>
+<p class="fe-out" id="fd-out"></p>
+</div>
+<script>
+(function(){
+  let mode=1;const $=id=>document.getElementById(id),fm=v=>Math.abs(v)<1e-10?'0':(+v.toFixed(3)).toString();
+  function run(){
+    const n=FE.val('fd-n'),sEl=$('fd-s');sEl.max=n;if(+sEl.value>n)sEl.value=n;FE.show('fd-s');
+    const s=+sEl.value,ell=FE.val('fd-l'),g=FE.val('fd-g'),hf=FE.val('fd-h'),he=1/n,nnp=n+1;
+    $('fd-h').disabled=(mode===2);
+    const pres={};pres[nnp]=g;if(mode===2)pres[1]=0;
+    const ID=[0];let neq=0;for(let A=1;A<=nnp;A++){if(A in pres)ID[A]=0;else ID[A]=++neq;}
+    const IEN=[],LM=[];for(let e=1;e<=n;e++){IEN[e]=[0,e,e+1];LM[e]=[0,ID[e],ID[e+1]];}
+    const E=[];for(let e=1;e<=n;e++)E.push(e);const Al=[];for(let A=1;A<=nnp;A++)Al.push(A);
+    $('fd-arr').innerHTML='<p class="fe-cap"><b>ID</b></p>'+FE.TB(['A'].concat(Al),[['ID(A)'].concat(Al.map(A=>ID[A]))],{zeroRed:true})
+      +'<p class="fe-cap"><b>IEN and LM</b> (column of the element being added is highlighted)</p>'
+      +FE.TB(['e'].concat(E),[['IEN(1,e)'].concat(E.map(e=>IEN[e][1])),['IEN(2,e)'].concat(E.map(e=>IEN[e][2])),['LM(1,e)'].concat(E.map(e=>LM[e][1])),['LM(2,e)'].concat(E.map(e=>LM[e][2]))],{hlCol:s||null,zeroRed:true});
+    const K=[],F=[],chg=new Set();for(let P=0;P<neq;P++){K.push(new Array(neq).fill(0));F.push(0);}
+    let elHTML='<p class="fe-cap">Set "elements assembled" to 1 or more to see an element being added.</p>';
+    for(let e=1;e<=s;e++){
+      const k=[[1/he,-1/he],[-1/he,1/he]],f0=[ell*he/2,ell*he/2],ge=[1,2].map(a=>LM[e][a]===0?pres[IEN[e][a]]:0);
+      const f=f0.map((v,a)=>v-k[a][0]*ge[0]-k[a][1]*ge[1]);
+      if(e===1&&mode===1)f[0]+=hf;
+      for(let a=0;a<2;a++){const P=LM[e][a+1];if(!P)continue;F[P-1]+=f[a];if(e===s)chg.add('F'+P);
+        for(let b=0;b<2;b++){const Q=LM[e][b+1];if(!Q)continue;K[P-1][Q-1]+=k[a][b];if(e===s)chg.add(P+','+Q);}}
+      if(e===s){elHTML='<p class="fe-cap"><b>Element '+e+'</b>: x from '+fm((e-1)*he)+' to '+fm(e*he)+', LM = ('+LM[e][1]+', '+LM[e][2]+')</p>'
+        +FE.TB(['','b = 1','b = 2','gᵉ','fᵉ final'],[0,1].map(a=>['k<sub>'+(a+1)+'b</sub>',fm(k[a][0]),fm(k[a][1]),fm(ge[a]),{v:fm(f[a]),cls:LM[e][a+1]?'':'zero'}]))
+        +'<p class="fe-cap">fᵉ final = ℓhᵉ/2 − Σ<sub>b</sub> k<sub>ab</sub>g<sup>e</sup><sub>b</sub>'+(e===1&&mode===1?' + h (flux, local node 1 of element 1)':'')+'. A red entry belongs to a prescribed corner and is dropped.</p>';}
+    }
+    $('fd-el').innerHTML=elHTML;
+    if(neq===0){$('fd-K').innerHTML='';}else{
+      const rows=[];for(let P=1;P<=neq;P++){rows.push(['row '+P].concat(K[P-1].map((v,Q)=>({v:fm(v),cls:chg.has(P+','+(Q+1))?'new':''}))).concat([{v:fm(F[P-1]),cls:chg.has('F'+P)?'new':''}]));}
+      const hd=['K ('+s+' of '+n+' elements)'];for(let Q=1;Q<=neq;Q++)hd.push('col '+Q);hd.push('F');
+      $('fd-K').innerHTML='<p class="fe-cap"><b>Global K and F so far</b></p>'+FE.TB(hd,rows);}
+    const exact=mode===1?(x=>g+hf*(1-x)+ell/2*(1-x*x)):(x=>g*x+ell/2*x*(1-x));
+    const ex=[];for(let i=0;i<=100;i++){const x=i/100;ex.push([x,exact(x)]);}
+    if(s<n){$('fd-plot').innerHTML='';$('fd-out').innerHTML='K is not finished yet: '+(n-s)+' element'+(n-s>1?'s':'')+' still to add. Rows that have not received all their contributions are wrong until then, so the system cannot be solved yet.';return;}
+    const d=FE.solve(K,F),u=[];for(let A=1;A<=nnp;A++)u.push([(A-1)*he,ID[A]?d[ID[A]-1]:pres[A]]);
+    FE.plot('fd-plot',{x:[0,1],y:FE.span(ex.map(q=>q[1]).concat(u.map(q=>q[1]))),height:250,label:'finite element solution versus exact',xlabel:'x',ylabel:'u (temperature)',
+      lines:[{pts:ex,color:FE.C.gray,dash:true},{pts:u,color:FE.C.orange,width:2.5}],dots:u.map((q,i)=>({x:q[0],y:q[1],color:ID[i+1]?FE.C.orange:FE.C.red,r:5})),
+      legend:[{label:'exact u',color:FE.C.gray,dash:true},{label:'FE uʰ (orange = solved, red = prescribed)',color:FE.C.orange}]});
+    $('fd-out').innerHTML='Solved d = ('+d.map(fm).join(', ')+'). <b>Post-processing</b> puts these back on the nodes with ID: node A gets d<sub>ID(A)</sub>, or its prescribed value if ID(A) = 0.';
+  }
+  FE.bind(['fd-n','fd-s','fd-l','fd-g','fd-h'],run);
+  $('fd-b1').addEventListener('click',()=>{mode=1;$('fd-b1').classList.add('on');$('fd-b2').classList.remove('on');run();});
+  $('fd-b2').addEventListener('click',()=>{mode=2;$('fd-b2').classList.add('on');$('fd-b1').classList.remove('on');run();});
+})();
+</script>
+```
+
+Things to notice:
+
+- **Each element touches only its own two rows and columns**, so $\boldsymbol{K}$ comes out tridiagonal. The middle diagonal entries get contributions from two elements (that is why they are twice as large).
+- **The last element changes only one cell of $\boldsymbol{K}$**, but it also changes $F_n$ through $-k_{12}\,g$. Set $g$ to 0 and that contribution disappears; set it back and watch $F_n$ change.
+- **With both ends prescribed**, node 1 gets ID $=0$ and node 2 becomes equation 1. If your code assumed equation number = node number, it would now put every number one row too low.
+- **The nodal values sit exactly on the exact solution.** As in Section 1.10, that is special to this 1D problem.
+
+# Part 4. The layout of a finite element program
+
+**Goal of this part.** Put every piece from this page, and from the basis-function and quadrature pages, in the order a program runs them. This is the structure your Project 1 code is about to take on.
+
+::: {.callout-important}
+## About Figure 1.14.2
+
+The Figure 1.14.2 screenshot did not come through, so the flowchart below is built from the order described in Sections 1.14 and 2.6 (input → ID and IEN → LM → element loop with assembly → solve). Once you add that figure to the project, this part will be redrawn to match it.
+:::
+
+```{mermaid}
+%%| fig-cap: "The order of operations in a linear static finite element program. The orange boxes are this page; the element loop is where the basis-function and quadrature machinery lives."
+flowchart TD
+  A["Step 1: Input<br>node coordinates, IEN (connectivity),<br>which nodes are prescribed and their g values,<br>loads ℓ and h, material κ"] --> B["Step 2: Build ID<br>loop over nodes with a counter; prescribed nodes get 0"]
+  B --> C["Step 3: Build LM<br>LM(a,e) = ID(IEN(a,e))"]
+  C --> D["Step 4: Allocate and zero K (n_eq × n_eq) and F (n_eq)"]
+  D --> E["Step 5: For each element e = 1, ..., n_el"]
+  E --> E1["Step 5a: Gather element data<br>x_a = x(IEN(a,e)); g^e_a from (2.6.3)"]
+  E1 --> E2["Step 5b: For each quadrature point:<br>N_a and N_a,ξ (basis functions),<br>Jacobian x,ξ, then N_a,x;<br>add weight × integrand into k^e and f^e"]
+  E2 --> E3["Step 5c: f^e ← f^e − k^e g^e, plus flux terms"]
+  E3 --> E4["Step 5d: Assemble with LM:<br>K[P,Q] += k^e[a,b], F[P] += f^e[a]"]
+  E4 --> E
+  E4 --> G["Step 6: Solve K d = F"]
+  G --> H["Step 7: Post-process<br>u_A = d[ID(A)] or g_A;<br>gradients and fluxes per element;<br>reactions from the dropped rows"]
+  style B fill:#d4572a22,stroke:#d4572a
+  style C fill:#d4572a22,stroke:#d4572a
+  style E4 fill:#d4572a22,stroke:#d4572a
+  style H fill:#d4572a22,stroke:#d4572a
+```
+
+## Step 4.1: why this structure, instead of building $\boldsymbol{K}$ directly
+
+A first 1D code often fills $\boldsymbol{K}$ row by row with the known tridiagonal pattern ($2/h$ on the diagonal, $-1/h$ next to it). That works for one problem and breaks for every other one. The structure above separates the code into pieces that each do one job:
+
+| Piece | Changes when you change... | Stays the same when you change... |
+|---|---|---|
+| Steps 1 to 3 (input, ID, IEN, LM) | the mesh or the boundary conditions | the element type, the physics |
+| Step 5b (element routine) | the element type, polynomial degree, physics | the mesh, the boundary conditions |
+| Step 5d (assembly) | nothing | everything: it is identical in 1D, 2D and 3D |
+| Step 6 (solver) | nothing | everything |
+
+So upgrading from linear to quadratic elements only touches step 5b. Moving a boundary condition only touches the input. Going from 1D to 2D changes the element routine and the mesh, but assembly does not change at all.
+
+## Step 4.2: a reference implementation
+
+Below is a short Python version of the whole flowchart for the 1D model problem, with Lagrange shape functions of any degree $p$ and Gauss quadrature. It uses the same names as the book so you can compare it with your own Project 1 code. Python counts from 0, so "prescribed" is marked with $-1$ instead of 0. I ran it for $p=1,2,3$ with 1 to 4 elements and nonzero $g$ and $h$; the nodal error was at round-off level ($10^{-15}$) every time.
+
+::: {.callout-note collapse="true"}
+## Show the code
+
+```python
+import numpy as np
+
+# ---------- 1. Input data ----------
+n_el, p = 4, 1                 # number of elements, polynomial degree (1 = linear)
+kappa, ell = 1.0, 2.0          # conductivity, constant source per length
+g, h = 0.0, 0.5                # u(1) = g (essential), -kappa*u_x(0) = h (natural)
+
+n_en = p + 1                   # nodes per element
+n_np = n_el * p + 1            # total number of nodes
+x_nodes = np.linspace(0.0, 1.0, n_np)
+
+# ---------- 2-3. Data-processing arrays ----------
+# IEN[a, e] = global node number of local node a of element e (0-based here)
+IEN = np.array([[e * p + a for e in range(n_el)] for a in range(n_en)])
+
+# ID[A] = equation number of node A, or -1 if A is prescribed
+prescribed = {n_np - 1: g}     # node -> prescribed value
+ID = -np.ones(n_np, dtype=int)
+n_eq = 0
+for A in range(n_np):          # ascending node order -> ascending equation order
+    if A not in prescribed:
+        ID[A] = n_eq
+        n_eq += 1
+
+LM = ID[IEN]                   # LM(a, e) = ID(IEN(a, e))
+
+# ---------- basis-function and quadrature machinery ----------
+xi_nodes = np.linspace(-1.0, 1.0, n_en)
+
+def shape(xi):
+    """Lagrange shape functions N_a(xi) and derivatives N_a,xi on [-1, 1]."""
+    N = np.ones(n_en)
+    dN = np.zeros(n_en)
+    for a in range(n_en):
+        others = [b for b in range(n_en) if b != a]
+        for b in others:
+            N[a] *= (xi - xi_nodes[b]) / (xi_nodes[a] - xi_nodes[b])
+        for c in others:                       # product rule
+            term = 1.0 / (xi_nodes[a] - xi_nodes[c])
+            for b in others:
+                if b != c:
+                    term *= (xi - xi_nodes[b]) / (xi_nodes[a] - xi_nodes[b])
+            dN[a] += term
+    return N, dN
+
+xi_q, w_q = np.polynomial.legendre.leggauss(n_en)   # Gauss points and weights
+
+# ---------- 4-5. Element loop and assembly ----------
+K = np.zeros((n_eq, n_eq))
+F = np.zeros(n_eq)
+for e in range(n_el):
+    xe = x_nodes[IEN[:, e]]                  # 5a. element nodal coordinates
+    ke = np.zeros((n_en, n_en))
+    fe = np.zeros(n_en)
+    for xi, w in zip(xi_q, w_q):             # 5b. quadrature loop
+        N, dN_dxi = shape(xi)
+        jac = dN_dxi @ xe                    # dx/dxi (the 1D Jacobian)
+        dN_dx = dN_dxi / jac                 # chain rule
+        ke += kappa * np.outer(dN_dx, dN_dx) * jac * w
+        fe += N * ell * jac * w
+    ge = np.array([prescribed.get(IEN[a, e], 0.0) if LM[a, e] < 0 else 0.0
+                   for a in range(n_en)])    # g^e_a, equation (2.6.3)
+    fe -= ke @ ge                            # 5c. known values to the right side
+    for a in range(n_en):                    # 5d. assemble with LM
+        P = LM[a, e]
+        if P < 0:
+            continue
+        F[P] += fe[a]
+        for b in range(n_en):
+            Q = LM[b, e]
+            if Q >= 0:
+                K[P, Q] += ke[a, b]
+
+if ID[0] >= 0:                               # natural BC: flux h at x = 0
+    F[ID[0]] += h
+
+# ---------- 6-7. Solve and post-process ----------
+d = np.linalg.solve(K, F)
+u_nodes = np.array([d[ID[A]] if ID[A] >= 0 else prescribed[A] for A in range(n_np)])
+
+exact = g + h / kappa * (1 - x_nodes) + ell / (2 * kappa) * (1 - x_nodes**2)
+print("max nodal error =", np.abs(u_nodes - exact).max())
+```
+:::
+
+Four details in that code are easy to get wrong in your own version:
+
+1. **`ID` is built in ascending node order.** That is the "usual convention" Hughes mentions in Example 1.
+2. **`ge` is nonzero only at prescribed corners**, so `fe -= ke @ ge` is exactly $-\sum_b k^e_{ab}g^e_b$.
+3. **Rows with `P < 0` are skipped**, both for `F` and for `K`. Forgetting the column check (`Q >= 0`) writes known values into the wrong place.
+4. **Post-processing uses `ID` in reverse** to rebuild the full nodal vector, including the prescribed nodes. Plots and flux calculations need all the nodes, not just the unknowns.
+
+# Practitioner checklist from these sections
+
+| What to check in any model | Why it follows from this page |
+|---|---|
+| Number of equations = number of nodes × unknowns per node − number of prescribed values | Definition of $n_{eq}$ and the ID array |
+| At least one prescribed temperature (thermal) or enough supports to stop rigid motion (structural) | Theorem part 2 needs $\Gamma_g$ non-empty; otherwise $\boldsymbol{K}$ is singular |
+| Element connectivity lists corners in the element's standard order | IEN order must match the parent element, or the Jacobian goes negative |
+| No duplicate or unconnected nodes | A duplicate node shows up as two equation numbers where there should be one, and the mesh splits apart there |
+| Nonzero prescribed values actually change the answer | They enter only through $-\boldsymbol{k}^e\boldsymbol{g}^e$; a code that skips it silently treats every prescribed value as zero |
+| Reactions (or boundary heat flows) balance the applied load | Reactions come from the rows that were dropped during assembly |
+| Boundary data is resolved where it curves | $g^h$ only matches $g$ at nodes (Fig. 2.4.2) |
+| Fluxes and stresses are discontinuous between elements | Exercise 1 of Section 2.4: the FE flux jumps across element edges; the size of the jumps indicates error |
+
+::: {.callout-tip}
+## Looking ahead to solid and fluid mechanics
+
+In heat conduction each node has **one** unknown (temperature). In 2D elasticity each node has **two** (displacement in $x$ and $y$), and in 2D flow each node can have velocities and a pressure. The arrays stay the same in spirit but gain one more index: $\mathrm{ID}(i,A)$ is the equation number of unknown $i$ at node $A$, and $\mathrm{LM}(i,a,e)=\mathrm{ID}(i,\mathrm{IEN}(a,e))$. A support that fixes only the $x$ displacement puts a 0 in $\mathrm{ID}(1,A)$ but not in $\mathrm{ID}(2,A)$, which is exactly how a roller is modeled.
+:::
+
+# Check yourself
+
+1. In Example 1, suppose node 12 is also prescribed. What are $n_{eq}$, $\mathrm{ID}(11)$ and $\mathrm{ID}(12)$, and which LM entries change?
+
+::: {.callout-note collapse="true"}
+## Answer
+
+$n_{eq}=7$, $\mathrm{ID}(11)=7$, and $\mathrm{ID}(12)=0$. Node 12 appears in IEN only as $\mathrm{IEN}(3,6)$, so only $\mathrm{LM}(3,6)$ changes, from 8 to 0. No other numbers shift, because node 12 was the last unknown node.
+:::
+
+2. Element 4 of Example 1 has $\mathrm{LM}=(3,4,6,5)$. Which entry of $\boldsymbol{K}$ receives $k^4_{23}$? Which receives $k^4_{32}$?
+
+::: {.callout-note collapse="true"}
+## Answer
+
+$k^4_{23}$ goes to row $\mathrm{LM}(2,4)=4$, column $\mathrm{LM}(3,4)=6$, so $K_{46}$. $k^4_{32}$ goes to $K_{64}$. Because $\boldsymbol{k}^4$ is symmetric, they are the same number, which is why codes often assemble only one of them.
+:::
+
+3. In Example 2, why does $f^e_1$ get $-k^e_{12}g^e_2$ but **not** a $-k^e_{14}g^e_4$ term?
+
+::: {.callout-note collapse="true"}
+## Answer
+
+Corner 4 is not prescribed ($\mathrm{LM}(4,e)=9\neq0$), so $g^e_4=0$ by (2.6.3). Its temperature $d_9$ is an unknown, and its coupling $k^e_{14}$ goes into $K_{59}$ on the left side of the equations instead.
+:::
+
+4. A 1D bar has three linear elements and both ends prescribed. Write ID and LM.
+
+::: {.callout-note collapse="true"}
+## Answer
+
+Nodes 1 to 4, with nodes 1 and 4 prescribed: $\mathrm{ID}=(0,1,2,0)$ and $n_{eq}=2$. IEN columns are $(1,2)$, $(2,3)$, $(3,4)$, so LM columns are $(0,1)$, $(1,2)$, $(2,0)$. Elements 1 and 3 each put a single number into $\boldsymbol{K}$; element 2 puts all four. You can check this in the 1D widget with "Both ends prescribed" and 3 elements.
+:::
+
+5. A colleague's 2D thermal model has convection-free heat-flux boundaries all the way around and no prescribed temperature anywhere. The solver stops with "zero pivot." Explain in one or two sentences, using the theorem.
+
+::: {.callout-note collapse="true"}
+## Answer
+
+With no prescribed temperature, $\eta_g$ is empty, so a uniform temperature everywhere (all $c_P$ equal and nonzero) gives $\nabla w^h=0$ and $\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}=0$. $\boldsymbol{K}$ is therefore not positive definite but singular, and elimination hits a zero pivot. Physically, flux conditions alone fix how much heat flows but not the temperature level; the model needs at least one temperature (or a convection boundary) to pin it.
+:::
