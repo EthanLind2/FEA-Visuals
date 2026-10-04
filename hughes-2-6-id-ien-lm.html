@@ -7,7 +7,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
 
 
-<title>The bookkeeping arrays: ID, IEN and LM</title>
+<title>ID, IEN and LM: where does each number go?</title>
 <style>
 code{white-space: pre-wrap;}
 span.smallcaps{font-variant: small-caps;}
@@ -4867,44 +4867,15 @@ window.Quarto = {
   <nav id="TOC" role="doc-toc" class="toc-active">
     <h2 id="toc-title">Table of contents</h2>
    
-  <ul class="collapse">
-  <li><a href="#the-big-picture-what-is-the-goal-of-these-sections" id="toc-the-big-picture-what-is-the-goal-of-these-sections" class="nav-link active" data-scroll-target="#the-big-picture-what-is-the-goal-of-these-sections">The big picture: what is the goal of these sections?</a>
-  <ul class="collapse">
-  <li><a href="#notation-used-on-this-page" id="toc-notation-used-on-this-page" class="nav-link" data-scroll-target="#notation-used-on-this-page">Notation used on this page</a></li>
-  </ul></li>
-  <li><a href="#part-1.-section-2.4-the-galerkin-equations-in-2d-and-3d-and-the-id-array" id="toc-part-1.-section-2.4-the-galerkin-equations-in-2d-and-3d-and-the-id-array" class="nav-link" data-scroll-target="#part-1.-section-2.4-the-galerkin-equations-in-2d-and-3d-and-the-id-array">Part 1. Section 2.4: the Galerkin equations in 2D and 3D, and the ID array</a>
-  <ul class="collapse">
-  <li><a href="#step-1.1-the-problem-being-solved" id="toc-step-1.1-the-problem-being-solved" class="nav-link" data-scroll-target="#step-1.1-the-problem-being-solved">Step 1.1: the problem being solved</a></li>
-  <li><a href="#step-1.2-split-the-approximate-solution-into-unknown-and-known-parts-2.4.1-2.4.2" id="toc-step-1.2-split-the-approximate-solution-into-unknown-and-known-parts-2.4.1-2.4.2" class="nav-link" data-scroll-target="#step-1.2-split-the-approximate-solution-into-unknown-and-known-parts-2.4.1-2.4.2">Step 1.2: split the approximate solution into “unknown” and “known” parts (2.4.1, 2.4.2)</a></li>
-  <li><a href="#step-1.3-nodes-g-nodes-and-equations" id="toc-step-1.3-nodes-g-nodes-and-equations" class="nav-link" data-scroll-target="#step-1.3-nodes-g-nodes-and-equations">Step 1.3: nodes, g-nodes and equations</a></li>
-  <li><a href="#step-1.4-write-each-function-as-a-sum-over-nodes-2.4.3-to-2.4.5" id="toc-step-1.4-write-each-function-as-a-sum-over-nodes-2.4.3-to-2.4.5" class="nav-link" data-scroll-target="#step-1.4-write-each-function-as-a-sum-over-nodes-2.4.3-to-2.4.5">Step 1.4: write each function as a sum over nodes (2.4.3 to 2.4.5)</a></li>
-  <li><a href="#step-1.5-derive-one-equation-per-unknown-node-2.4.6" id="toc-step-1.5-derive-one-equation-per-unknown-node-2.4.6" class="nav-link" data-scroll-target="#step-1.5-derive-one-equation-per-unknown-node-2.4.6">Step 1.5: derive one equation per unknown node (2.4.6)</a></li>
-  <li><a href="#step-1.6-why-the-id-array-is-needed-2.4.7" id="toc-step-1.6-why-the-id-array-is-needed-2.4.7" class="nav-link" data-scroll-target="#step-1.6-why-the-id-array-is-needed-2.4.7">Step 1.6: why the ID array is needed (2.4.7)</a></li>
-  <li><a href="#step-1.7-the-matrix-form-2.4.8-to-2.4.11" id="toc-step-1.7-the-matrix-form-2.4.8-to-2.4.11" class="nav-link" data-scroll-target="#step-1.7-the-matrix-form-2.4.8-to-2.4.11">Step 1.7: the matrix form (2.4.8 to 2.4.11)</a></li>
-  <li><a href="#step-1.8-the-theorem-boldsymbolk-is-symmetric-and-positive-definite" id="toc-step-1.8-the-theorem-boldsymbolk-is-symmetric-and-positive-definite" class="nav-link" data-scroll-target="#step-1.8-the-theorem-boldsymbolk-is-symmetric-and-positive-definite">Step 1.8: the theorem: <span class="math inline">\(\boldsymbol{K}\)</span> is symmetric and positive definite</a></li>
-  </ul></li>
-  <li><a href="#part-2.-section-2.6-the-ien-and-lm-arrays" id="toc-part-2.-section-2.6-the-ien-and-lm-arrays" class="nav-link" data-scroll-target="#part-2.-section-2.6-the-ien-and-lm-arrays">Part 2. Section 2.6: the IEN and LM arrays</a>
-  <ul class="collapse">
-  <li><a href="#step-2.1-ien-the-element-nodes-array-2.6.1" id="toc-step-2.1-ien-the-element-nodes-array-2.6.1" class="nav-link" data-scroll-target="#step-2.1-ien-the-element-nodes-array-2.6.1">Step 2.1: IEN, the element nodes array (2.6.1)</a></li>
-  <li><a href="#step-2.2-lm-the-location-matrix-2.6.2" id="toc-step-2.2-lm-the-location-matrix-2.6.2" class="nav-link" data-scroll-target="#step-2.2-lm-the-location-matrix-2.6.2">Step 2.2: LM, the location matrix (2.6.2)</a></li>
-  <li><a href="#step-2.3-example-1-built-by-hand-figs.-2.6.1-and-2.6.2" id="toc-step-2.3-example-1-built-by-hand-figs.-2.6.1-and-2.6.2" class="nav-link" data-scroll-target="#step-2.3-example-1-built-by-hand-figs.-2.6.1-and-2.6.2">Step 2.3: Example 1, built by hand (Figs. 2.6.1 and 2.6.2)</a></li>
-  <li><a href="#step-2.4-explore-it" id="toc-step-2.4-explore-it" class="nav-link" data-scroll-target="#step-2.4-explore-it">Step 2.4: explore it</a></li>
-  <li><a href="#step-2.5-the-elements-own-copy-of-the-prescribed-values-2.6.3" id="toc-step-2.5-the-elements-own-copy-of-the-prescribed-values-2.6.3" class="nav-link" data-scroll-target="#step-2.5-the-elements-own-copy-of-the-prescribed-values-2.6.3">Step 2.5: the element’s own copy of the prescribed values (2.6.3)</a></li>
-  <li><a href="#step-2.6-example-2-assembling-one-element-with-prescribed-corners-2.6.4-to-2.6.8" id="toc-step-2.6-example-2-assembling-one-element-with-prescribed-corners-2.6.4-to-2.6.8" class="nav-link" data-scroll-target="#step-2.6-example-2-assembling-one-element-with-prescribed-corners-2.6.4-to-2.6.8">Step 2.6: Example 2: assembling one element with prescribed corners (2.6.4 to 2.6.8)</a></li>
-  <li><a href="#step-2.7-section-2.6-exercise-1-how-to-approach-it" id="toc-step-2.7-section-2.6-exercise-1-how-to-approach-it" class="nav-link" data-scroll-target="#step-2.7-section-2.6-exercise-1-how-to-approach-it">Step 2.7: Section 2.6, Exercise 1: how to approach it</a></li>
-  </ul></li>
-  <li><a href="#part-3.-section-1.14-the-same-arrays-in-one-dimension" id="toc-part-3.-section-1.14-the-same-arrays-in-one-dimension" class="nav-link" data-scroll-target="#part-3.-section-1.14-the-same-arrays-in-one-dimension">Part 3. Section 1.14: the same arrays in one dimension</a>
-  <ul class="collapse">
-  <li><a href="#step-3.1-the-1d-model-problems-three-arrays" id="toc-step-3.1-the-1d-model-problems-three-arrays" class="nav-link" data-scroll-target="#step-3.1-the-1d-model-problems-three-arrays">Step 3.1: the 1D model problem’s three arrays</a></li>
-  <li><a href="#step-3.2-the-assembly-rules-are-the-lm-rule" id="toc-step-3.2-the-assembly-rules-are-the-lm-rule" class="nav-link" data-scroll-target="#step-3.2-the-assembly-rules-are-the-lm-rule">Step 3.2: the assembly rules are the LM rule</a></li>
-  <li><a href="#step-3.3-watch-assembly-happen" id="toc-step-3.3-watch-assembly-happen" class="nav-link" data-scroll-target="#step-3.3-watch-assembly-happen">Step 3.3: watch assembly happen</a></li>
-  </ul></li>
-  <li><a href="#part-4.-the-layout-of-a-finite-element-program" id="toc-part-4.-the-layout-of-a-finite-element-program" class="nav-link" data-scroll-target="#part-4.-the-layout-of-a-finite-element-program">Part 4. The layout of a finite element program</a>
-  <ul class="collapse">
-  <li><a href="#step-4.1-why-this-structure-instead-of-building-boldsymbolk-directly" id="toc-step-4.1-why-this-structure-instead-of-building-boldsymbolk-directly" class="nav-link" data-scroll-target="#step-4.1-why-this-structure-instead-of-building-boldsymbolk-directly">Step 4.1: why this structure, instead of building <span class="math inline">\(\boldsymbol{K}\)</span> directly</a></li>
-  <li><a href="#step-4.2-a-reference-implementation" id="toc-step-4.2-a-reference-implementation" class="nav-link" data-scroll-target="#step-4.2-a-reference-implementation">Step 4.2: a reference implementation</a></li>
-  </ul></li>
-  <li><a href="#practitioner-checklist-from-these-sections" id="toc-practitioner-checklist-from-these-sections" class="nav-link" data-scroll-target="#practitioner-checklist-from-these-sections">Practitioner checklist from these sections</a></li>
+  <ul>
+  <li><a href="#the-one-question-this-reading-answers" id="toc-the-one-question-this-reading-answers" class="nav-link active" data-scroll-target="#the-one-question-this-reading-answers">The one question this reading answers</a></li>
+  <li><a href="#id-why-node-numbers-equation-numbers-section-2.4" id="toc-id-why-node-numbers-equation-numbers-section-2.4" class="nav-link" data-scroll-target="#id-why-node-numbers-equation-numbers-section-2.4">1. ID: why node numbers ≠ equation numbers (Section 2.4)</a></li>
+  <li><a href="#ien-the-mesh-section-2.6" id="toc-ien-the-mesh-section-2.6" class="nav-link" data-scroll-target="#ien-the-mesh-section-2.6">2. IEN: the mesh (Section 2.6)</a></li>
+  <li><a href="#lm-the-only-table-assembly-uses" id="toc-lm-the-only-table-assembly-uses" class="nav-link" data-scroll-target="#lm-the-only-table-assembly-uses">3. LM: the only table assembly uses</a></li>
+  <li><a href="#assembling-one-element-example-2" id="toc-assembling-one-element-example-2" class="nav-link" data-scroll-target="#assembling-one-element-example-2">4. Assembling one element: Example 2</a></li>
+  <li><a href="#the-1d-version-section-1.14-your-project-1-code" id="toc-the-1d-version-section-1.14-your-project-1-code" class="nav-link" data-scroll-target="#the-1d-version-section-1.14-your-project-1-code">5. The 1D version (Section 1.14): your Project 1 code</a></li>
+  <li><a href="#where-these-tables-go-in-your-code" id="toc-where-these-tables-go-in-your-code" class="nav-link" data-scroll-target="#where-these-tables-go-in-your-code">6. Where these tables go in your code</a></li>
+  <li><a href="#why-k-can-be-solved-at-all-the-theorem-in-section-2.4" id="toc-why-k-can-be-solved-at-all-the-theorem-in-section-2.4" class="nav-link" data-scroll-target="#why-k-can-be-solved-at-all-the-theorem-in-section-2.4">7. Why K can be solved at all (the theorem in Section 2.4)</a></li>
   <li><a href="#check-yourself" id="toc-check-yourself" class="nav-link" data-scroll-target="#check-yourself">Check yourself</a></li>
   </ul>
 </nav>
@@ -4916,8 +4887,8 @@ window.Quarto = {
 
 <header id="title-block-header" class="quarto-title-block default">
 <div class="quarto-title">
-<h1 class="title">The bookkeeping arrays: ID, IEN and LM</h1>
-<p class="subtitle lead">Hughes, Sections 2.4 (Galerkin form and the ID array), 2.6 (IEN and LM, Examples 1 and 2), and 1.14 (the 1D version), plus the layout of a finite element program</p>
+<h1 class="title">ID, IEN and LM: where does each number go?</h1>
+<p class="subtitle lead">Hughes 2.4 (the ID array), 2.6 (IEN, LM, Examples 1 and 2), and 1.14 (the 1D version)</p>
 </div>
 
 
@@ -4934,16 +4905,6 @@ window.Quarto = {
 </header>
 
 
-<div class="callout callout-style-simple callout-note no-icon">
-<div class="callout-body d-flex">
-<div class="callout-icon-container">
-<i class="callout-icon no-icon"></i>
-</div>
-<div class="callout-body-container">
-<p><strong>How to use this page.</strong> Each part opens with its goal, and every equation is followed by a short <em>where</em> list that defines its symbols. The gray boxes are live: click nodes and elements in the mesh, type numbers into the LM boxes, and drag the sliders. The interactive pieces work offline; the equations need an internet connection to typeset. Related pages: <a href="hughes-3-3-isoparametric.html">Section 3.3</a> and <a href="hughes-3-9-shape-function-derivatives.html">Section 3.9</a>.</p>
-</div>
-</div>
-</div>
 <style>
 .fe-widget{border:1px solid rgba(128,128,128,.35);border-radius:8px;padding:12px 14px;margin:1.2rem 0}
 .fe-ctrl{display:grid;grid-template-columns:minmax(110px,max-content) minmax(0,1fr) 3.5em;gap:6px 12px;align-items:center;margin-bottom:8px}
@@ -5026,324 +4987,116 @@ window.FE=(function(){
   return {C,plot,val,bind,show,span,TB,solve};
 })();
 </script>
-<section id="the-big-picture-what-is-the-goal-of-these-sections" class="level1">
-<h1>The big picture: what is the goal of these sections?</h1>
-<p>Up to now, the finite element method has been mostly <strong>math</strong>: pick shape functions, plug them into the weak form, and get a matrix equation <span class="math inline">\(\boldsymbol{K}\boldsymbol{d}=\boldsymbol{F}\)</span>. These sections answer a very practical question:</p>
-<blockquote class="blockquote">
-<p><strong>When a program adds element <span class="math inline">\(e\)</span>’s little matrix into the big matrix <span class="math inline">\(\boldsymbol{K}\)</span>, how does it know which rows and columns to put each number in?</strong></p>
-</blockquote>
-<p>The answer is three lookup tables. Each one translates between two of the <strong>three numbering systems</strong> that every finite element program juggles:</p>
+<div class="callout callout-style-simple callout-note no-icon">
+<div class="callout-body d-flex">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-body-container">
+<p>Every section starts with a <strong>Why am I showing you this?</strong> box. If a section doesn’t deliver on its box, it’s padding: skip it and tell me.</p>
+</div>
+</div>
+</div>
+<section id="the-one-question-this-reading-answers" class="level1">
+<h1>The one question this reading answers</h1>
+<div class="callout callout-style-simple callout-tip no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Why am I showing you this?
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Your Project 1 code most likely drops element <span class="math inline">\(e\)</span> into rows <span class="math inline">\(e\)</span> and <span class="math inline">\(e+1\)</span>. That only works for 1D linear elements with the fixed node at the end. Change the element order, the boundary conditions, or the dimension, and it breaks. The three tables on this page are the version that always works, and your code is about to be rebuilt around them.</p>
+</div>
+</div>
+<p>Your element routine hands you a small matrix <span class="math inline">\(\boldsymbol{k}^e\)</span>. For a four-node element it is <span class="math inline">\(4\times4\)</span>, and its rows and columns are numbered by <strong>corner of the element</strong>: 1, 2, 3, 4.</p>
+<p>The global <span class="math inline">\(\boldsymbol{K}\)</span> has rows numbered by <strong>equation</strong>: 1 to <span class="math inline">\(n_{eq}\)</span>.</p>
+<p><strong>Where in <span class="math inline">\(\boldsymbol{K}\)</span> does each of those 16 numbers go?</strong></p>
+<p>Three lookup tables answer that:</p>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 21%">
-<col style="width: 35%">
-<col style="width: 21%">
-<col style="width: 21%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
+<col style="width: 25%">
 </colgroup>
 <thead>
 <tr class="header">
-<th>Numbering system</th>
-<th style="text-align: center;">Symbol</th>
-<th>Example</th>
-<th>Who uses it</th>
+<th>Table</th>
+<th>You give it</th>
+<th>It gives back</th>
+<th>Example from Fig. 2.6.1</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td><strong>Local</strong> node number: which corner of <em>this</em> element</td>
-<td style="text-align: center;"><span class="math inline">\(a\)</span>, <span class="math inline">\(b\)</span></td>
-<td>“node 3 of element 2”</td>
-<td>the element routine that computes <span class="math inline">\(\boldsymbol{k}^e\)</span> and <span class="math inline">\(\boldsymbol{f}^e\)</span></td>
+<td><span class="math inline">\(\mathrm{IEN}(a,e)\)</span></td>
+<td>corner <span class="math inline">\(a\)</span> of element <span class="math inline">\(e\)</span></td>
+<td>global node number <span class="math inline">\(A\)</span></td>
+<td><span class="math inline">\(\mathrm{IEN}(3,1)=5\)</span></td>
 </tr>
 <tr class="even">
-<td><strong>Global</strong> node number: which node of the whole mesh</td>
-<td style="text-align: center;"><span class="math inline">\(A\)</span>, <span class="math inline">\(B\)</span></td>
-<td>“node 6”</td>
-<td>the mesh, the input file, the plots</td>
+<td><span class="math inline">\(\mathrm{ID}(A)\)</span></td>
+<td>global node <span class="math inline">\(A\)</span></td>
+<td>equation number <span class="math inline">\(P\)</span>, or 0 if that node’s temperature is fixed</td>
+<td><span class="math inline">\(\mathrm{ID}(5)=3\)</span></td>
 </tr>
 <tr class="odd">
-<td><strong>Global equation</strong> number: which row of <span class="math inline">\(\boldsymbol{K}\)</span></td>
-<td style="text-align: center;"><span class="math inline">\(P\)</span>, <span class="math inline">\(Q\)</span></td>
-<td>“row 4”</td>
-<td>the equation solver</td>
+<td><span class="math inline">\(\mathrm{LM}(a,e)\)</span></td>
+<td>corner <span class="math inline">\(a\)</span> of element <span class="math inline">\(e\)</span></td>
+<td>equation number <span class="math inline">\(P\)</span> (it is ID applied to IEN)</td>
+<td><span class="math inline">\(\mathrm{LM}(3,1)=3\)</span></td>
 </tr>
 </tbody>
 </table>
+<p>The answer to the question, in one line:</p>
+<blockquote class="blockquote">
+<p><span class="math inline">\(k^e_{ab}\)</span> is added to <span class="math inline">\(\boldsymbol{K}\)</span> at <strong>row <span class="math inline">\(\mathrm{LM}(a,e)\)</span>, column <span class="math inline">\(\mathrm{LM}(b,e)\)</span></strong>. If either one is 0, it does not go into <span class="math inline">\(\boldsymbol{K}\)</span>.</p>
+</blockquote>
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div>
 <p></p><figure class="figure"><p></p>
 <div>
 <pre class="mermaid mermaid-js">flowchart LR
-  L[&quot;Local node a of element e&lt;br&gt;(a = 1, ..., n_en)&quot;] -- &quot;IEN(a, e)&quot; --&gt; G[&quot;Global node A&lt;br&gt;(A = 1, ..., n_np)&quot;]
-  G -- &quot;ID(A)&quot; --&gt; P[&quot;Equation number P&lt;br&gt;(P = 1, ..., n_eq, or 0 if prescribed)&quot;]
-  L -. &quot;LM(a, e) = ID(IEN(a, e))&quot; .-&gt; P
+  L[&quot;corner a of element e&quot;] -- &quot;IEN&quot; --&gt; G[&quot;global node A&quot;]
+  G -- &quot;ID&quot; --&gt; P[&quot;row P of K&lt;br&gt;(0 = fixed, no row)&quot;]
+  L -. &quot;LM = ID(IEN)&quot; .-&gt; P
 </pre>
 </div>
-<p></p><figcaption> The three numbering systems and the three tables that connect them. LM is just IEN followed by ID, stored once so the program does not have to do two lookups every time.</figcaption> </figure><p></p>
+<p></p><figcaption> Corner → node → equation. LM does both steps at once.</figcaption> </figure><p></p>
 </div>
 </div>
 </div>
-<p>Why are there three systems instead of one?</p>
-<ul>
-<li><strong>Elements are all alike.</strong> The routine that computes an element stiffness matrix should not care where the element sits in the mesh. So it numbers the element’s corners <span class="math inline">\(1,2,3,4\)</span> every time.</li>
-<li><strong>Nodes are numbered once for the whole mesh.</strong> That is what your mesh generator or input file does.</li>
-<li><strong>Not every node gets an equation.</strong> At a node where the temperature (or displacement) is <em>prescribed</em>, the value is already known, so there is nothing to solve for. Those nodes are skipped when equations are numbered, which is why node numbers and equation numbers stop lining up as soon as you have boundary conditions anywhere other than the last node.</li>
-</ul>
-<p><strong>Why this matters to you as a practitioner.</strong> Every commercial code (ANSYS, Abaqus, COMSOL) builds exactly these tables behind the scenes. When a model has a missing support, a duplicated node, an element with its corners listed in the wrong order, or a load that seems to vanish, the bug lives in these tables. Knowing them is also what lets you read a solver’s “DOF numbering,” “connectivity,” and “reaction force” output and understand it. And your class code is about to be rebuilt around them.</p>
-<section id="notation-used-on-this-page" class="level2">
-<h2 class="anchored" data-anchor-id="notation-used-on-this-page">Notation used on this page</h2>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 45%">
-<col style="width: 27%">
-<col style="width: 27%">
-</colgroup>
-<thead>
-<tr class="header">
-<th style="text-align: center;">Symbol</th>
-<th>Read as</th>
-<th>Meaning</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td style="text-align: center;"><span class="math inline">\(n_{np}\)</span></td>
-<td>“n n p”</td>
-<td><strong>n</strong>umber of <strong>n</strong>odal <strong>p</strong>oints (all nodes in the mesh)</td>
-</tr>
-<tr class="even">
-<td style="text-align: center;"><span class="math inline">\(n_{el}\)</span></td>
-<td>“n e l”</td>
-<td><strong>n</strong>umber of <strong>el</strong>ements</td>
-</tr>
-<tr class="odd">
-<td style="text-align: center;"><span class="math inline">\(n_{en}\)</span></td>
-<td>“n e n”</td>
-<td><strong>n</strong>umber of <strong>e</strong>lement <strong>n</strong>odes (4 for the four-node rectangle, 2 for a 1D linear element)</td>
-</tr>
-<tr class="even">
-<td style="text-align: center;"><span class="math inline">\(n_{eq}\)</span></td>
-<td>“n e q”</td>
-<td><strong>n</strong>umber of <strong>eq</strong>uations = number of unknowns = size of <span class="math inline">\(\boldsymbol{K}\)</span></td>
-</tr>
-<tr class="odd">
-<td style="text-align: center;"><span class="math inline">\(\eta\)</span></td>
-<td>“eta”</td>
-<td>the <strong>set</strong> of all global node numbers, <span class="math inline">\(\{1,2,\dots,n_{np}\}\)</span></td>
-</tr>
-<tr class="even">
-<td style="text-align: center;"><span class="math inline">\(\eta_g\)</span></td>
-<td>“eta sub g”</td>
-<td>the set of <strong>g-nodes</strong>: nodes where the value is prescribed</td>
-</tr>
-<tr class="odd">
-<td style="text-align: center;"><span class="math inline">\(\eta-\eta_g\)</span></td>
-<td>“eta minus eta g”</td>
-<td>the nodes left over after removing the g-nodes: the <strong>unknown</strong> nodes</td>
-</tr>
-<tr class="even">
-<td style="text-align: center;"><span class="math inline">\(\mathrm{ID}(A)\)</span></td>
-<td>“I D of A”</td>
-<td>equation number of node <span class="math inline">\(A\)</span> (0 if <span class="math inline">\(A\)</span> is a g-node)</td>
-</tr>
-<tr class="odd">
-<td style="text-align: center;"><span class="math inline">\(\mathrm{IEN}(a,e)\)</span></td>
-<td>“I E N of a, e”</td>
-<td>global node number of local node <span class="math inline">\(a\)</span> of element <span class="math inline">\(e\)</span></td>
-</tr>
-<tr class="even">
-<td style="text-align: center;"><span class="math inline">\(\mathrm{LM}(a,e)\)</span></td>
-<td>“L M of a, e”</td>
-<td>equation number of local node <span class="math inline">\(a\)</span> of element <span class="math inline">\(e\)</span> (0 if prescribed)</td>
-</tr>
-<tr class="odd">
-<td style="text-align: center;"><span class="math inline">\(\boldsymbol{k}^e,\ \boldsymbol{f}^e\)</span></td>
-<td>“k e, f e”</td>
-<td>element stiffness matrix (<span class="math inline">\(n_{en}\times n_{en}\)</span>) and element force vector (<span class="math inline">\(n_{en}\times 1\)</span>)</td>
-</tr>
-<tr class="even">
-<td style="text-align: center;"><span class="math inline">\(\leftarrow\)</span></td>
-<td>“is replaced by”</td>
-<td>the update in code: <code>K[P,Q] += ...</code></td>
-</tr>
-</tbody>
-</table>
-<p><strong>Set notation, quickly.</strong> Curly brackets list the members of a set: <span class="math inline">\(\eta_g=\{1,4,7,10\}\)</span>. The symbol <span class="math inline">\(\in\)</span> means “is a member of,” so <span class="math inline">\(A\in\eta_g\)</span> reads “node <span class="math inline">\(A\)</span> is a g-node.” <span class="math inline">\(\eta_g\subset\eta\)</span> means “<span class="math inline">\(\eta_g\)</span> is part of <span class="math inline">\(\eta\)</span>.” Subtracting sets removes members: <span class="math inline">\(\{1,2,3,4\}-\{1,4\}=\{2,3\}\)</span>.</p>
-<div class="callout callout-style-simple callout-warning callout-titled">
+</section>
+<section id="id-why-node-numbers-equation-numbers-section-2.4" class="level1">
+<h1>1. ID: why node numbers ≠ equation numbers (Section 2.4)</h1>
+<div class="callout callout-style-simple callout-tip no-icon callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
-<i class="callout-icon"></i>
+<i class="callout-icon no-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Script letters in your ebook
+Why am I showing you this?
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The ebook does not render Hughes’s script letters well. On this page:</p>
-<ul>
-<li><span class="math inline">\(g\)</span> is the <strong>prescribed temperature</strong> (the book’s script <em>g</em>). In your screenshots it often shows as a tiny squiggle, as in “<span class="math inline">\(u=\)</span> ⸱ on <span class="math inline">\(\Gamma_g\)</span>”.</li>
-<li><span class="math inline">\(h\)</span> is the <strong>prescribed heat flux</strong> and <span class="math inline">\(\ell\)</span> is the <strong>heat source</strong> (both script letters in the book).</li>
-<li><span class="math inline">\(\mathcal{S}^h\)</span> and <span class="math inline">\(\mathcal{V}^h\)</span> are the collections of trial and weighting functions. They may show up as a small <em>s</em> and <em>v</em>.</li>
-</ul>
+<p>You only solve for temperatures you <strong>don’t</strong> know. A node with a fixed temperature gets no row in <span class="math inline">\(\boldsymbol{K}\)</span>. So the rows of <span class="math inline">\(\boldsymbol{K}\)</span> can’t just be the node numbers: there would be gaps. ID is the list that closes the gaps.</p>
 </div>
 </div>
-</section>
-</section>
-<section id="part-1.-section-2.4-the-galerkin-equations-in-2d-and-3d-and-the-id-array" class="level1">
-<h1>Part 1. Section 2.4: the Galerkin equations in 2D and 3D, and the ID array</h1>
-<p><strong>Goal of this part.</strong> Redo the 1D recipe from Sections 1.5 and 1.6 for a heat-conduction problem in 2D or 3D, arrive at one equation per unknown node (2.4.6), and then see why a translation table from nodes to equations (the ID array) is needed.</p>
-<section id="step-1.1-the-problem-being-solved" class="level2">
-<h2 class="anchored" data-anchor-id="step-1.1-the-problem-being-solved">Step 1.1: the problem being solved</h2>
-<p>In 2D or 3D, the domain is a region <span class="math inline">\(\Omega\)</span> (Greek capital omega), for example a plate or a heat-sink cross section. Its boundary <span class="math inline">\(\Gamma\)</span> (capital gamma) is split in two:</p>
+<p><strong>The example used all through Section 2.6 (Fig. 2.6.1):</strong> 12 nodes, 6 square elements, left edge held at a known temperature.</p>
+<p>Hughes’s notation for this:</p>
 <ul>
-<li><span class="math inline">\(\Gamma_g\)</span>: where the <strong>temperature is prescribed</strong>, <span class="math inline">\(u=g\)</span>. This is an <strong>essential</strong> boundary condition.</li>
-<li><span class="math inline">\(\Gamma_h\)</span>: where the <strong>heat flux is prescribed</strong>, <span class="math inline">\(h\)</span>. This is a <strong>natural</strong> boundary condition.</li>
+<li><span class="math inline">\(n_{np}=12\)</span>: <strong>n</strong>umber of <strong>n</strong>odal <strong>p</strong>oints.</li>
+<li><span class="math inline">\(\eta=\{1,2,\dots,12\}\)</span>: the set of all node numbers (<span class="math inline">\(\eta\)</span> is “eta”).</li>
+<li><span class="math inline">\(\eta_g=\{1,4,7,10\}\)</span>: the <strong>g-nodes</strong>, where the temperature <span class="math inline">\(g\)</span> is prescribed.</li>
+<li><span class="math inline">\(\eta-\eta_g=\{2,3,5,6,8,9,11,12\}\)</span>: the nodes left over, where temperature is unknown.</li>
+<li><span class="math inline">\(n_{eq}=12-4=8\)</span>: the number of unknowns, so <span class="math inline">\(\boldsymbol{K}\)</span> is <span class="math inline">\(8\times8\)</span>.</li>
 </ul>
-<p>The weak form uses three integrals. The first is (2.3.17):</p>
-<p><span class="math display">\[
-a(w,u)=\int_\Omega (\nabla w)^T\,\boldsymbol{\kappa}\,(\nabla u)\,d\Omega \tag{2.3.17}
-\]</span></p>
-<p>where:</p>
-<ul>
-<li><span class="math inline">\(u(\boldsymbol{x})\)</span> is the <strong>temperature</strong> at a point <span class="math inline">\(\boldsymbol{x}=(x,y)\)</span>, and <span class="math inline">\(w(\boldsymbol{x})\)</span> is a <strong>weighting function</strong> (the mathematical probe from Section 1.4).</li>
-<li><span class="math inline">\(\nabla w\)</span> (“grad <span class="math inline">\(w\)</span>”) is the <strong>gradient</strong>: the column of slopes <span class="math inline">\(\begin{Bmatrix}w_{,x}\\ w_{,y}\end{Bmatrix}\)</span>. It points uphill, toward increasing <span class="math inline">\(w\)</span>.</li>
-<li><span class="math inline">\(\boldsymbol{\kappa}\)</span> (kappa) is the <strong>conductivity matrix</strong>. For an ordinary isotropic material it is just <span class="math inline">\(\kappa\boldsymbol{I}\)</span> (the same conductivity in every direction). It becomes a full matrix for materials like composites or wood that conduct better along the grain.</li>
-<li>The superscript <span class="math inline">\(T\)</span> is the <strong>transpose</strong>: it turns a column into a row so the product is a single number.</li>
-<li><span class="math inline">\(d\Omega\)</span> is a tiny piece of area (or volume in 3D).</li>
-</ul>
-<p>For an isotropic material, multiply it out:</p>
-<p><span class="math display">\[
-(\nabla w)^T\,\kappa\boldsymbol{I}\,(\nabla u)
-=\kappa\begin{bmatrix}w_{,x} &amp; w_{,y}\end{bmatrix}\begin{Bmatrix}u_{,x}\\ u_{,y}\end{Bmatrix}
-=\kappa\,(w_{,x}u_{,x}+w_{,y}u_{,y})
-\]</span></p>
-<p>This is the 2D version of the 1D integrand <span class="math inline">\(w_{,x}u_{,x}\)</span>. The other two integrals are</p>
-<p><span class="math display">\[
-(w,\ell)=\int_\Omega w\,\ell\,d\Omega,\qquad (w,h)_\Gamma=\int_{\Gamma_h} w\,h\,d\Gamma
-\]</span></p>
-<p>where <span class="math inline">\(\ell\)</span> is the heat generated per unit volume and <span class="math inline">\(d\Gamma\)</span> is a tiny piece of boundary length (or area in 3D).</p>
-</section>
-<section id="step-1.2-split-the-approximate-solution-into-unknown-and-known-parts-2.4.1-2.4.2" class="level2">
-<h2 class="anchored" data-anchor-id="step-1.2-split-the-approximate-solution-into-unknown-and-known-parts-2.4.1-2.4.2">Step 1.2: split the approximate solution into “unknown” and “known” parts (2.4.1, 2.4.2)</h2>
-<p>Exactly as in Section 1.5:</p>
-<p><span class="math display">\[
-u^h=v^h+g^h \tag{2.4.1}
-\]</span></p>
-<p>where:</p>
-<ul>
-<li><span class="math inline">\(u^h\)</span> is the finite element temperature field. The superscript <span class="math inline">\(h\)</span> means “built on a mesh,” not a power.</li>
-<li><span class="math inline">\(v^h\)</span> is the part we solve for. It belongs to <span class="math inline">\(\mathcal{V}^h\)</span>, so it is zero (or nearly zero) on <span class="math inline">\(\Gamma_g\)</span>.</li>
-<li><span class="math inline">\(g^h\)</span> is a known function that carries the prescribed temperature on <span class="math inline">\(\Gamma_g\)</span>.</li>
-</ul>
-<p>The Galerkin problem (G) is: given <span class="math inline">\(\ell\)</span>, <span class="math inline">\(g\)</span> and <span class="math inline">\(h\)</span>, find <span class="math inline">\(u^h=v^h+g^h\)</span> such that <strong>for every</strong> <span class="math inline">\(w^h\)</span> in <span class="math inline">\(\mathcal{V}^h\)</span>,</p>
-<p><span class="math display">\[
-a(w^h,v^h)=(w^h,\ell)+(w^h,h)_\Gamma-a(w^h,g^h) \tag{2.4.2}
-\]</span></p>
-<p>The last term, <span class="math inline">\(-a(w^h,g^h)\)</span>, moved to the right side because <span class="math inline">\(g^h\)</span> is known. You saw the same move in 1D.</p>
-</section>
-<section id="step-1.3-nodes-g-nodes-and-equations" class="level2">
-<h2 class="anchored" data-anchor-id="step-1.3-nodes-g-nodes-and-equations">Step 1.3: nodes, g-nodes and equations</h2>
-<p>Now the domain is chopped into elements <span class="math inline">\(\Omega^e\)</span>, <span class="math inline">\(e=1,\dots,n_{el}\)</span> (Fig. 2.4.1). The book defines:</p>
-<ul>
-<li><span class="math inline">\(\eta=\{1,2,\dots,n_{np}\}\)</span>: every node number.</li>
-<li><span class="math inline">\(\eta_g\)</span>: the <strong>g-nodes</strong>, where <span class="math inline">\(u^h=g\)</span> is prescribed.</li>
-<li><span class="math inline">\(\eta-\eta_g\)</span>: the nodes where <span class="math inline">\(u^h\)</span> is <strong>unknown</strong>.</li>
-<li><span class="math inline">\(n_{eq}\)</span>: how many nodes are in <span class="math inline">\(\eta-\eta_g\)</span>. That is the number of equations.</li>
-</ul>
-<p><strong>Example (the mesh of Section 2.6, Fig. 2.6.1).</strong> Twelve nodes, with the left edge held at a known temperature:</p>
-<p><span class="math display">\[
-\eta=\{1,2,\dots,12\},\quad \eta_g=\{1,4,7,10\},\quad \eta-\eta_g=\{2,3,5,6,8,9,11,12\},\quad n_{eq}=12-4=8
-\]</span></p>
-</section>
-<section id="step-1.4-write-each-function-as-a-sum-over-nodes-2.4.3-to-2.4.5" class="level2">
-<h2 class="anchored" data-anchor-id="step-1.4-write-each-function-as-a-sum-over-nodes-2.4.3-to-2.4.5">Step 1.4: write each function as a sum over nodes (2.4.3 to 2.4.5)</h2>
-<p><span class="math display">\[
-w^h(\boldsymbol{x})=\sum_{A\in\eta-\eta_g}N_A(\boldsymbol{x})\,c_A \tag{2.4.3}
-\]</span></p>
-<p><span class="math display">\[
-v^h(\boldsymbol{x})=\sum_{A\in\eta-\eta_g}N_A(\boldsymbol{x})\,d_A \tag{2.4.4}
-\]</span></p>
-<p><span class="math display">\[
-g^h(\boldsymbol{x})=\sum_{A\in\eta_g}N_A(\boldsymbol{x})\,g_A,\qquad g_A=g(\boldsymbol{x}_A) \tag{2.4.5}
-\]</span></p>
-<p>where:</p>
-<ul>
-<li><span class="math inline">\(\sum_{A\in\eta-\eta_g}\)</span> means “add up one term for each unknown node <span class="math inline">\(A\)</span>.”</li>
-<li><span class="math inline">\(N_A\)</span> is the <strong>shape function of node <span class="math inline">\(A\)</span></strong>: 1 at node <span class="math inline">\(A\)</span>, 0 at every other node, and nonzero only on the elements that touch node <span class="math inline">\(A\)</span>.</li>
-<li><span class="math inline">\(c_A\)</span> are <strong>arbitrary</strong> constants (any values at all). They describe a generic weighting function.</li>
-<li><span class="math inline">\(d_A\)</span> is the <strong>unknown temperature at node <span class="math inline">\(A\)</span></strong>: what the solver computes.</li>
-<li><span class="math inline">\(g_A\)</span> is the <strong>prescribed temperature at g-node <span class="math inline">\(A\)</span></strong>, found by evaluating the given boundary function <span class="math inline">\(g\)</span> at that node’s coordinates <span class="math inline">\(\boldsymbol{x}_A\)</span>.</li>
-</ul>
-<p>Notice that <span class="math inline">\(w^h\)</span> and <span class="math inline">\(v^h\)</span> only use the unknown nodes, and <span class="math inline">\(g^h\)</span> only uses the g-nodes.</p>
-<p><strong>An error source hiding in (2.4.5).</strong> <span class="math inline">\(g^h\)</span> matches the true boundary temperature <span class="math inline">\(g\)</span> only <strong>at the nodes</strong>. Between nodes it follows whatever shape the shape functions have: straight lines for linear elements. Hughes calls this the boundary data being “straightened out” (Fig. 2.4.2). Drag the slider to see how much error a coarse boundary mesh introduces:</p>
-<div class="fe-widget">
-<div class="fe-ctrl"><label for="gb-n">nodes on Γ_g</label><input type="range" id="gb-n" min="2" max="12" step="1" value="4"><output id="gb-n-v"></output></div>
-<div id="gb-plot"></div>
-<p class="fe-out" id="gb-out"></p>
-</div>
-<script>
-FE.bind(['gb-n'],function(){
-  const n=FE.val('gb-n'),g=s=>40+25*Math.sin(2.6*s)+8*Math.sin(7*s);
-  const ex=[];for(let i=0;i<=200;i++){const s=i/200;ex.push([s,g(s)]);}
-  const nod=[];for(let i=0;i<n;i++){const s=i/(n-1);nod.push([s,g(s)]);}
-  let emax=0,smax=0;for(let i=0;i<=400;i++){const s=i/400;const k=Math.min(n-2,Math.floor(s*(n-1)));const t=s*(n-1)-k;const gh=(1-t)*nod[k][1]+t*nod[k+1][1];const er=Math.abs(gh-g(s));if(er>emax){emax=er;smax=s;}}
-  FE.plot('gb-plot',{x:[0,1],y:[20,80],height:260,label:'prescribed boundary temperature versus its nodal interpolate',xlabel:'distance along the boundary Γ_g',ylabel:'temperature',
-    lines:[{pts:ex,color:FE.C.gray,dash:true},{pts:nod,color:FE.C.orange,width:2.5}],
-    dots:nod.map(q=>({x:q[0],y:q[1],color:FE.C.orange,r:4})),
-    legend:[{label:'true g (what you meant to prescribe)',color:FE.C.gray,dash:true},{label:'gʰ (what the model actually uses)',color:FE.C.orange}]});
-  document.getElementById('gb-out').innerHTML='With '+n+' boundary nodes, the largest difference between g and gʰ is <b>'+emax.toFixed(1)+'°</b>, at '+smax.toFixed(2)+' of the way along. It is exactly zero at every node.';
-});
-</script>
-<p>Hughes lists two more error sources of the same kind: replacing <span class="math inline">\(\ell\)</span> and <span class="math inline">\(h\)</span> by approximations <span class="math inline">\(\ell^h\)</span> and <span class="math inline">\(h^h\)</span>, and element edges that do not exactly follow a curved boundary. <strong>None of these errors goes away by refining the interior of the mesh.</strong> You have to refine where the data or the geometry is curved.</p>
-</section>
-<section id="step-1.5-derive-one-equation-per-unknown-node-2.4.6" class="level2">
-<h2 class="anchored" data-anchor-id="step-1.5-derive-one-equation-per-unknown-node-2.4.6">Step 1.5: derive one equation per unknown node (2.4.6)</h2>
-<p>This is the same argument as Section 1.6, line by line.</p>
-<p><strong>(a) Move everything in (2.4.2) to one side.</strong></p>
-<p><span class="math display">\[
-0=a(w^h,v^h)-(w^h,\ell)-(w^h,h)_\Gamma+a(w^h,g^h)
-\]</span></p>
-<p><strong>(b) Substitute <span class="math inline">\(w^h=\sum_A N_A c_A\)</span>.</strong> Each of the four terms is linear in its first slot (this is the bilinearity from Section 1.4, Exercise 1). That means a sum and a constant can be pulled out of the first slot: <span class="math inline">\(a\big(\sum_A N_A c_A,\,u\big)=\sum_A c_A\,a(N_A,u)\)</span>. Do this to all four terms:</p>
-<p><span class="math display">\[
-0=\sum_{A\in\eta-\eta_g}c_A\underbrace{\Big[a(N_A,v^h)-(N_A,\ell)-(N_A,h)_\Gamma+a(N_A,g^h)\Big]}_{G_A}
-\]</span></p>
-<p>where <span class="math inline">\(G_A\)</span> is a single number for each unknown node <span class="math inline">\(A\)</span> (the book’s bookkeeping quantity from Section 1.6).</p>
-<p><strong>(c) Use “for every <span class="math inline">\(w^h\)</span>.”</strong> The equation <span class="math inline">\(0=\sum_A c_A G_A\)</span> must hold for <strong>every</strong> choice of the constants <span class="math inline">\(c_A\)</span>. Choose <span class="math inline">\(c_A=1\)</span> for one node and <span class="math inline">\(0\)</span> for all the others; the sum collapses to that single <span class="math inline">\(G_A\)</span>, so it must be zero. Repeat for every node:</p>
-<p><span class="math display">\[
-G_A=0\quad\text{for each } A\in\eta-\eta_g
-\qquad\Longrightarrow\qquad
-a(N_A,v^h)=(N_A,\ell)+(N_A,h)_\Gamma-a(N_A,g^h)
-\]</span></p>
-<p><strong>(d) Substitute <span class="math inline">\(v^h\)</span> and <span class="math inline">\(g^h\)</span>.</strong> Now use linearity in the <strong>second</strong> slot, <span class="math inline">\(a\big(u,\sum_B N_B d_B\big)=\sum_B a(u,N_B)\,d_B\)</span>:</p>
-<p><span class="math display">\[
-\boxed{\sum_{B\in\eta-\eta_g}a(N_A,N_B)\,d_B=(N_A,\ell)+(N_A,h)_\Gamma-\sum_{B\in\eta_g}a(N_A,N_B)\,g_B,\qquad A\in\eta-\eta_g} \tag{2.4.6}
-\]</span></p>
-<p>where:</p>
-<ul>
-<li><span class="math inline">\(A\)</span> labels <strong>which equation</strong> this is (one per unknown node). <span class="math inline">\(B\)</span> is the <strong>summation</strong> index, running over nodes.</li>
-<li><span class="math inline">\(a(N_A,N_B)\)</span> measures how strongly node <span class="math inline">\(A\)</span> and node <span class="math inline">\(B\)</span> are coupled. It is <strong>zero unless the two nodes share an element</strong>, because otherwise <span class="math inline">\(N_A\)</span> and <span class="math inline">\(N_B\)</span> are never nonzero at the same place.</li>
-<li>The left side multiplies the <strong>unknowns</strong> <span class="math inline">\(d_B\)</span>. The right side is all <strong>known</strong>: heat source, boundary flux, and the effect of the prescribed temperatures <span class="math inline">\(g_B\)</span> on neighboring nodes.</li>
-</ul>
-<p><strong>Concrete look.</strong> In the Fig. 2.6.1 mesh, take node <span class="math inline">\(A=5\)</span>, the interior node in the second row. It touches elements 1 to 4, which contain nodes 1 to 9. So the equation for node 5 contains</p>
-<ul>
-<li>unknowns <span class="math inline">\(d_2,d_3,d_5,d_6,d_8,d_9\)</span> on the left (its unknown neighbors, and itself);</li>
-<li>known terms <span class="math inline">\(g_1,g_4,g_7\)</span> on the right (its prescribed neighbors).</li>
-</ul>
-</section>
-<section id="step-1.6-why-the-id-array-is-needed-2.4.7" class="level2">
-<h2 class="anchored" data-anchor-id="step-1.6-why-the-id-array-is-needed-2.4.7">Step 1.6: why the ID array is needed (2.4.7)</h2>
-<p>Equation (2.4.6) labels rows by <strong>node</strong> numbers, and those skip the g-nodes: the unknown nodes are <span class="math inline">\(2,3,5,6,8,9,11,12\)</span>. A matrix needs rows numbered <span class="math inline">\(1,2,\dots,n_{eq}\)</span> with no gaps. In Section 1.9 (1D) node numbers and equation numbers happened to coincide, because the only g-node was the last one. In 2D and 3D, requiring that would force you to number nodes in an awkward order. So Hughes introduces a translation table:</p>
-<p><span class="math display">\[
-\mathrm{ID}(A)=\begin{cases}P &amp; \text{if } A\in\eta-\eta_g\\[2pt] 0 &amp; \text{if } A\in\eta_g\end{cases} \tag{2.4.7}
-\]</span></p>
-<p>where:</p>
-<ul>
-<li><span class="math inline">\(P\)</span> is the <strong>global equation number</strong> of node <span class="math inline">\(A\)</span>, with <span class="math inline">\(1\le P\le n_{eq}\)</span>.</li>
-<li><strong>0 is a flag</strong> meaning “this node is prescribed, so it has no equation.”</li>
-<li>ID has <span class="math inline">\(n_{np}\)</span> entries, one per node. The book also calls it the <strong>destination array</strong>: it tells each node where its equation goes.</li>
-</ul>
-<p><strong>How to build it.</strong> Walk through the nodes in ascending order with a counter. Skip g-nodes (give them 0); give every other node the next counter value. For Fig. 2.6.1:</p>
+<p><strong>Build ID:</strong> go through the nodes in order with a counter. Fixed node → 0. Unknown node → next count.</p>
 <table class="caption-top table">
 <colgroup>
 <col style="width: 7%">
@@ -5379,21 +5132,6 @@ a(N_A,v^h)=(N_A,\ell)+(N_A,h)_\Gamma-a(N_A,g^h)
 </thead>
 <tbody>
 <tr class="odd">
-<td>g-node?</td>
-<td>yes</td>
-<td></td>
-<td></td>
-<td>yes</td>
-<td></td>
-<td></td>
-<td>yes</td>
-<td></td>
-<td></td>
-<td>yes</td>
-<td></td>
-<td></td>
-</tr>
-<tr class="even">
 <td><span class="math inline">\(\mathrm{ID}(A)\)</span></td>
 <td><strong>0</strong></td>
 <td>1</td>
@@ -5410,148 +5148,62 @@ a(N_A,v^h)=(N_A,\ell)+(N_A,h)_\Gamma-a(N_A,g^h)
 </tr>
 </tbody>
 </table>
-<p>So the equation for node 5 becomes <strong>row 3</strong>, and its unknown neighbors <span class="math inline">\(d_2,d_3,d_5,d_6,d_8,d_9\)</span> become <strong>columns</strong> <span class="math inline">\(1,2,3,4,5,6\)</span>.</p>
-</section>
-<section id="step-1.7-the-matrix-form-2.4.8-to-2.4.11" class="level2">
-<h2 class="anchored" data-anchor-id="step-1.7-the-matrix-form-2.4.8-to-2.4.11">Step 1.7: the matrix form (2.4.8 to 2.4.11)</h2>
-<p>With ID, (2.4.6) becomes an ordinary matrix equation:</p>
+<p>That is Hughes’s definition (2.4.7):</p>
 <p><span class="math display">\[
-\boldsymbol{K}\boldsymbol{d}=\boldsymbol{F} \tag{2.4.8}
+\mathrm{ID}(A)=\begin{cases}P &amp; \text{if node } A \text{ is unknown}\\ 0 &amp; \text{if node } A \text{ is fixed}\end{cases}
 \]</span></p>
+<p><strong>What it buys you</strong> (2.4.10): the coupling between node <span class="math inline">\(A\)</span> and node <span class="math inline">\(B\)</span> goes in row <span class="math inline">\(\mathrm{ID}(A)\)</span>, column <span class="math inline">\(\mathrm{ID}(B)\)</span>:</p>
 <p><span class="math display">\[
-\boldsymbol{K}=[K_{PQ}],\qquad \boldsymbol{d}=\{d_Q\},\qquad \boldsymbol{F}=\{F_P\},\qquad 1\le P,Q\le n_{eq} \tag{2.4.9}
+K_{PQ}=a(N_A,N_B),\qquad P=\mathrm{ID}(A),\quad Q=\mathrm{ID}(B)
 \]</span></p>
-<p><span class="math display">\[
-K_{PQ}=a(N_A,N_B),\qquad P=\mathrm{ID}(A),\qquad Q=\mathrm{ID}(B) \tag{2.4.10}
-\]</span></p>
-<p><span class="math display">\[
-F_P=(N_A,\ell)+(N_A,h)_\Gamma-\sum_{B\in\eta_g}a(N_A,N_B)\,g_B \tag{2.4.11}
-\]</span></p>
-<p>where square brackets <span class="math inline">\([\;]\)</span> mean “the matrix whose entries are” and curly brackets <span class="math inline">\(\{\;\}\)</span> mean “the column vector whose entries are.” Read (2.4.10) as: <strong>the coupling between node <span class="math inline">\(A\)</span> and node <span class="math inline">\(B\)</span> goes in row <span class="math inline">\(\mathrm{ID}(A)\)</span>, column <span class="math inline">\(\mathrm{ID}(B)\)</span>.</strong></p>
-</section>
-<section id="step-1.8-the-theorem-boldsymbolk-is-symmetric-and-positive-definite" class="level2">
-<h2 class="anchored" data-anchor-id="step-1.8-the-theorem-boldsymbolk-is-symmetric-and-positive-definite">Step 1.8: the theorem: <span class="math inline">\(\boldsymbol{K}\)</span> is symmetric and positive definite</h2>
-<p>These two properties are what make <span class="math inline">\(\boldsymbol{K}\boldsymbol{d}=\boldsymbol{F}\)</span> solvable and cheap to solve, so it is worth seeing where they come from.</p>
-<p><strong>Part 1: symmetric</strong> means <span class="math inline">\(K_{PQ}=K_{QP}\)</span> (the matrix is a mirror image across its diagonal):</p>
-<p><span class="math display">\[
-K_{PQ}=a(N_A,N_B)=a(N_B,N_A)=K_{QP}
-\]</span></p>
-<p>The middle step uses the symmetry of <span class="math inline">\(a(\cdot,\cdot)\)</span>: swapping <span class="math inline">\(w\)</span> and <span class="math inline">\(u\)</span> in <span class="math inline">\((\nabla w)^T\boldsymbol{\kappa}(\nabla u)\)</span> gives the same number as long as <span class="math inline">\(\boldsymbol{\kappa}\)</span> is itself symmetric.</p>
-<p><strong>Part 2: positive definite.</strong> A matrix is positive definite when</p>
-<ul>
-<li><ol type="i">
-<li><span class="math inline">\(\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}\ge 0\)</span> for every vector <span class="math inline">\(\boldsymbol{c}\)</span>, and</li>
-</ol></li>
-<li><ol start="2" type="i">
-<li><span class="math inline">\(\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}=0\)</span> only when <span class="math inline">\(\boldsymbol{c}=\boldsymbol{0}\)</span>.</li>
-</ol></li>
-</ul>
-<p>Here <span class="math inline">\(\boldsymbol{c}\)</span> is any list of <span class="math inline">\(n_{eq}\)</span> numbers, and <span class="math inline">\(\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}=\sum_{P}\sum_{Q}c_P K_{PQ} c_Q\)</span> is a single number (called a <strong>quadratic form</strong>). Physically it is an <strong>energy</strong>: think “<span class="math inline">\(\tfrac12 kx^2\)</span>” for a spring, with <span class="math inline">\(\boldsymbol{c}\)</span> playing the role of <span class="math inline">\(x\)</span>. Positive definite means every nonzero temperature pattern costs positive “energy,” so the matrix can be inverted.</p>
-<p><strong>Proof of (i), one step at a time.</strong> Pair each equation number <span class="math inline">\(P\)</span> with its node <span class="math inline">\(A\)</span> through <span class="math inline">\(P=\mathrm{ID}(A)\)</span>, and write <span class="math inline">\(\bar c_A=c_P\)</span> (the same number, labeled by node instead of equation). Then build the weighting function <span class="math inline">\(w^h=\sum_A N_A\bar c_A\)</span>.</p>
-<p><span class="math display">\[
-\begin{aligned}
-\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}
-&amp;=\sum_{P,Q=1}^{n_{eq}}c_P\,K_{PQ}\,c_Q &amp;&amp;\text{(matrix multiplication written out)}\\
-&amp;=\sum_{A,B\in\eta-\eta_g}\bar c_A\,a(N_A,N_B)\,\bar c_B &amp;&amp;\text{(relabel with ID, use (2.4.10))}\\
-&amp;=a\Big(\sum_A N_A\bar c_A,\ \sum_B N_B\bar c_B\Big) &amp;&amp;\text{(bilinearity, run backward)}\\
-&amp;=a(w^h,w^h) &amp;&amp;\text{(definition of } w^h\text{)}\\
-&amp;=\int_\Omega w^h_{,i}\,\kappa_{ij}\,w^h_{,j}\,d\Omega\ \ge 0 &amp;&amp;\text{(conductivity is positive definite)}
-\end{aligned}
-\]</span></p>
-<p>The last line is (2.3.17) in index notation: <span class="math inline">\(w_{,i}\kappa_{ij}w_{,j}\)</span> means <span class="math inline">\(\sum_i\sum_j\)</span> (repeated indices are summed). It is never negative because heat always flows from hot to cold: there is no direction with zero or negative conductivity. For an isotropic material it is just <span class="math inline">\(\kappa\,(w_{,x}^2+w_{,y}^2)\ge0\)</span>, a sum of squares.</p>
-<p><strong>Proof of (ii).</strong> Suppose <span class="math inline">\(\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}=0\)</span>. Then the integral of a never-negative quantity is zero, so the quantity is zero everywhere: <span class="math inline">\(\nabla w^h=\boldsymbol{0}\)</span>. A function with zero slope everywhere is a <strong>constant</strong>. But <span class="math inline">\(w^h=0\)</span> on <span class="math inline">\(\Gamma_g\)</span>, so that constant is 0. So <span class="math inline">\(w^h=0\)</span> everywhere, which forces every <span class="math inline">\(\bar c_A\)</span>, and hence every <span class="math inline">\(c_P\)</span>, to be 0. ∎</p>
-<p><strong>Remark 1 in practice.</strong> The proof used two things: positive conductivity, <strong>and</strong> a non-empty <span class="math inline">\(\Gamma_g\)</span> (somewhere the temperature is fixed). Remove all prescribed temperatures and a uniform temperature shift costs zero energy, so <span class="math inline">\(\boldsymbol{K}\)</span> is <strong>singular</strong>. This is the reason a thermal model with only prescribed-flux boundaries (no fixed temperature anywhere), or a structural model without enough supports, fails with “singular matrix” or “zero pivot.”</p>
-<p><strong>Remark 2 in practice.</strong> Because <span class="math inline">\(a(N_A,N_B)=0\)</span> unless nodes <span class="math inline">\(A\)</span> and <span class="math inline">\(B\)</span> share an element, <span class="math inline">\(\boldsymbol{K}\)</span> is <strong>sparse and banded</strong>: its nonzeros cluster near the diagonal. How tightly they cluster depends on how the nodes are numbered. You can see this in the mesh explorer in Part 2.</p>
+<p>where <span class="math inline">\(a(N_A,N_B)=\int_\Omega \kappa\,(N_{A,x}N_{B,x}+N_{A,y}N_{B,y})\,d\Omega\)</span> is the 2D version of the 1D stiffness integral <span class="math inline">\(\int N_{A,x}N_{B,x}\,dx\)</span>. It is zero unless nodes <span class="math inline">\(A\)</span> and <span class="math inline">\(B\)</span> share an element.</p>
+<p><strong>Takeaway:</strong> <span class="math inline">\(n_{eq}\)</span> = (number of nodes) − (number of fixed values). If your <span class="math inline">\(\boldsymbol{K}\)</span> is the wrong size, recount this first.</p>
 <div class="callout callout-style-simple callout-note callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-2-contents" aria-controls="callout-2" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-3-contents" aria-controls="callout-3" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-What Section 2.4’s Exercise 1 is about (no solution)
+Where Hughes’s equation (2.4.6) comes from (same algebra you did in Section 1.6)
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-2" class="callout-2-contents callout-collapse collapse">
+<div id="callout-3" class="callout-3-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
-<p>It asks you to redo the weak-form-to-strong-form argument of Section 1.4 when <span class="math inline">\(u\)</span> and <span class="math inline">\(w\)</span> are smooth <strong>inside</strong> each element but may have kinks across element edges, which is exactly what <span class="math inline">\(C^0\)</span> finite element functions look like. The result is three statements: the heat equation holds inside each element, the flux condition holds on <span class="math inline">\(\Gamma_h\)</span>, and the <strong>jump</strong> in normal heat flux across every interior element edge is zero. The notation <span class="math inline">\([q_n]\)</span> is that jump: flux leaving one side minus flux arriving on the other.</p>
-<p><strong>Why you care:</strong> the exact solution has continuous flux across element edges, but a finite element solution generally does <strong>not</strong>. Its flux jumps from element to element. Those jumps are what you see when a post-processor shows “unaveraged” stress or heat-flux contours, and their size is a common error indicator.</p>
-</div>
-</div>
-</div>
-</section>
-</section>
-<section id="part-2.-section-2.6-the-ien-and-lm-arrays" class="level1">
-<h1>Part 2. Section 2.6: the IEN and LM arrays</h1>
-<p><strong>Goal of this part.</strong> Add the other two tables: IEN, which describes the mesh, and LM, which drives assembly. Then work through both of Hughes’s examples.</p>
-<section id="step-2.1-ien-the-element-nodes-array-2.6.1" class="level2">
-<h2 class="anchored" data-anchor-id="step-2.1-ien-the-element-nodes-array-2.6.1">Step 2.1: IEN, the element nodes array (2.6.1)</h2>
-<p><span class="math display">\[
-\mathrm{IEN}(a,e)=A \tag{2.6.1}
-\]</span></p>
-<p>where:</p>
-<ul>
-<li><span class="math inline">\(a\)</span> is the <strong>local</strong> node number inside element <span class="math inline">\(e\)</span>: <span class="math inline">\(a=1,\dots,n_{en}\)</span>.</li>
-<li><span class="math inline">\(e\)</span> is the <strong>element</strong> number: <span class="math inline">\(e=1,\dots,n_{el}\)</span>.</li>
-<li><span class="math inline">\(A\)</span> is the <strong>global</strong> node number at that corner.</li>
-</ul>
-<p>IEN is the mesh’s <strong>connectivity</strong>: column <span class="math inline">\(e\)</span> lists element <span class="math inline">\(e\)</span>’s nodes. Every mesh file has this table in some form (in ANSYS it is the element definition <code>E,n1,n2,n3,n4</code>; in Abaqus, the <code>*ELEMENT</code> lines).</p>
-<p><strong>The local numbering convention matters.</strong> For the four-node rectangle, Hughes starts at the <strong>lower-left</strong> corner and goes <strong>counterclockwise</strong>. That order must match the element’s parent square (Section 3.3), or the Jacobian becomes negative.</p>
-</section>
-<section id="step-2.2-lm-the-location-matrix-2.6.2" class="level2">
-<h2 class="anchored" data-anchor-id="step-2.2-lm-the-location-matrix-2.6.2">Step 2.2: LM, the location matrix (2.6.2)</h2>
-<p><span class="math display">\[
-\mathrm{LM}(a,e)=\mathrm{ID}\big(\mathrm{IEN}(a,e)\big) \tag{2.6.2}
-\]</span></p>
-<p>This is a <strong>composition of functions</strong>: do one lookup, then feed its answer into the next. Read it inside out:</p>
+<p>Start from the Galerkin equation (2.4.2):</p>
+<p><span class="math display">\[a(w^h,v^h)=(w^h,\ell)+(w^h,h)_\Gamma-a(w^h,g^h)\]</span></p>
+<p>where <span class="math inline">\(v^h\)</span> is the unknown part of the temperature, <span class="math inline">\(g^h\)</span> the known (fixed) part, <span class="math inline">\(\ell\)</span> the heat source and <span class="math inline">\(h\)</span> the boundary heat flux.</p>
 <ol type="1">
-<li><span class="math inline">\(\mathrm{IEN}(a,e)\)</span> answers “which global node is corner <span class="math inline">\(a\)</span> of element <span class="math inline">\(e\)</span>?” Call the answer <span class="math inline">\(A\)</span>.</li>
-<li><span class="math inline">\(\mathrm{ID}(A)\)</span> answers “which equation does node <span class="math inline">\(A\)</span> own?” Call the answer <span class="math inline">\(P\)</span>.</li>
+<li>Write each function as a sum over nodes: <span class="math inline">\(w^h=\sum_A N_A c_A\)</span> and <span class="math inline">\(v^h=\sum_B N_B d_B\)</span> over unknown nodes; <span class="math inline">\(g^h=\sum_B N_B g_B\)</span> over fixed nodes. Here <span class="math inline">\(c_A\)</span> are arbitrary numbers, <span class="math inline">\(d_B\)</span> the unknown nodal temperatures, <span class="math inline">\(g_B\)</span> the fixed ones.</li>
+<li>Pull the sum over <span class="math inline">\(A\)</span> out of the first slot (bilinearity): <span class="math inline">\(\sum_A c_A\,[\text{stuff}_A]=0\)</span>.</li>
+<li>This must hold for <strong>every</strong> set of <span class="math inline">\(c_A\)</span>. Pick <span class="math inline">\(c_A=1\)</span> for one node and 0 for the rest: that node’s <span class="math inline">\([\text{stuff}_A]\)</span> must be 0. One equation per unknown node.</li>
+<li>Pull the sums over <span class="math inline">\(B\)</span> out of the second slot:</li>
 </ol>
-<p>So <span class="math inline">\(\mathrm{LM}(a,e)=P\)</span> answers the question that assembly actually needs: <strong>which row of <span class="math inline">\(\boldsymbol{K}\)</span> does corner <span class="math inline">\(a\)</span> of element <span class="math inline">\(e\)</span> feed into?</strong> A 0 means “prescribed, no row.” Hughes calls LM the element “localization” of ID. Strictly, LM is redundant (it can always be recomputed from IEN and ID), but programs build it once because assembly asks this question millions of times.</p>
-<p>In practice, <strong>IEN and ID are built from input data</strong> (mesh connectivity and boundary conditions), and <strong>LM is computed from them</strong>.</p>
+<p><span class="math display">\[
+\sum_{B\ \text{unknown}}a(N_A,N_B)\,d_B=(N_A,\ell)+(N_A,h)_\Gamma-\sum_{B\ \text{fixed}}a(N_A,N_B)\,g_B
+\]</span></p>
+<p>Left side: unknowns. Right side: known source, flux, and fixed temperatures of neighbors. The rows are labeled by node <span class="math inline">\(A\)</span>, which skips the fixed nodes. That is the gap ID closes.</p>
+</div>
+</div>
+</div>
 </section>
-<section id="step-2.3-example-1-built-by-hand-figs.-2.6.1-and-2.6.2" class="level2">
-<h2 class="anchored" data-anchor-id="step-2.3-example-1-built-by-hand-figs.-2.6.1-and-2.6.2">Step 2.3: Example 1, built by hand (Figs. 2.6.1 and 2.6.2)</h2>
-<p><strong>The mesh.</strong> Six four-node rectangles, two across and three up. Global nodes are numbered left to right, then bottom to top: 1, 2, 3 on the bottom row; 4, 5, 6 on the next; and so on to 12. The left edge (nodes 1, 4, 7, 10) has a prescribed temperature, so <span class="math inline">\(n_{eq}=8\)</span>.</p>
-<p><strong>ID</strong> (from Step 1.6):</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th><span class="math inline">\(A\)</span></th>
-<th>1</th>
-<th>2</th>
-<th>3</th>
-<th>4</th>
-<th>5</th>
-<th>6</th>
-<th>7</th>
-<th>8</th>
-<th>9</th>
-<th>10</th>
-<th>11</th>
-<th>12</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><span class="math inline">\(\mathrm{ID}(A)\)</span></td>
-<td>0</td>
-<td>1</td>
-<td>2</td>
-<td>0</td>
-<td>3</td>
-<td>4</td>
-<td>0</td>
-<td>5</td>
-<td>6</td>
-<td>0</td>
-<td>7</td>
-<td>8</td>
-</tr>
-</tbody>
-</table>
-<p><strong>IEN.</strong> For each element, start at its lower-left node and go counterclockwise: lower-left, lower-right, upper-right, upper-left. Element 1 sits between nodes 1, 2, 5, 4, so its column is <span class="math inline">\((1,2,5,4)\)</span>. Every element follows the same pattern: if its lower-left node is <span class="math inline">\(A\)</span>, its corners are <span class="math inline">\(A\)</span>, <span class="math inline">\(A+1\)</span>, <span class="math inline">\(A+4\)</span>, <span class="math inline">\(A+3\)</span> (the row above is 3 nodes later).</p>
+<section id="ien-the-mesh-section-2.6" class="level1">
+<h1>2. IEN: the mesh (Section 2.6)</h1>
+<div class="callout callout-style-simple callout-tip no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Why am I showing you this?
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>The element routine only knows “corner 1, 2, 3, 4.” IEN says which real nodes those corners are. It is the <strong>connectivity table</strong> that every mesh file contains (in ANSYS, the node list on each element; in Abaqus, the <code>*ELEMENT</code> lines).</p>
+</div>
+</div>
+<p><strong>Rule in Hughes:</strong> start at the element’s <strong>lower-left</strong> corner and go <strong>counterclockwise</strong>.</p>
+<p>Element 1 sits on nodes 1, 2, 5, 4, so its column is (1, 2, 5, 4). Every element in this mesh follows the same pattern: if its lower-left node is <span class="math inline">\(A\)</span>, its corners are <span class="math inline">\(A,\ A+1,\ A+4,\ A+3\)</span> (the next row up starts 3 nodes later).</p>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -5603,16 +5255,35 @@ What Section 2.4’s Exercise 1 is about (no solution)
 </tr>
 </tbody>
 </table>
-<p><strong>LM.</strong> Replace every entry of IEN by its ID value. Element 1 is worked fully:</p>
+<p><strong>Takeaway:</strong> the corner order is not cosmetic. List a quad’s corners clockwise and the element maps inside-out, which is the “negative Jacobian” error from the <a href="hughes-3-3-isoparametric.html">Section 3.3 page</a>.</p>
+</section>
+<section id="lm-the-only-table-assembly-uses" class="level1">
+<h1>3. LM: the only table assembly uses</h1>
+<div class="callout callout-style-simple callout-tip no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Why am I showing you this?
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Assembly needs one answer: “corner <span class="math inline">\(a\)</span> of element <span class="math inline">\(e\)</span> → which row of <span class="math inline">\(\boldsymbol{K}\)</span>?” LM is that answer, made by looking up IEN and then ID. Programs compute it once and reuse it.</p>
+</div>
+</div>
 <p><span class="math display">\[
-\begin{aligned}
-\mathrm{LM}(1,1)&amp;=\mathrm{ID}(\mathrm{IEN}(1,1))=\mathrm{ID}(1)=0\\
-\mathrm{LM}(2,1)&amp;=\mathrm{ID}(\mathrm{IEN}(2,1))=\mathrm{ID}(2)=1\\
-\mathrm{LM}(3,1)&amp;=\mathrm{ID}(\mathrm{IEN}(3,1))=\mathrm{ID}(5)=3\\
-\mathrm{LM}(4,1)&amp;=\mathrm{ID}(\mathrm{IEN}(4,1))=\mathrm{ID}(4)=0
-\end{aligned}
+\mathrm{LM}(a,e)=\mathrm{ID}\big(\mathrm{IEN}(a,e)\big) \tag{2.6.2}
 \]</span></p>
-<p>Doing the same for every column gives Fig. 2.6.2:</p>
+<p>Read inside out: first find the node, then find its row.</p>
+<p><strong>Element 1 by hand:</strong></p>
+<ul>
+<li>corner 1 → node <span class="math inline">\(\mathrm{IEN}(1,1)=1\)</span> → <span class="math inline">\(\mathrm{ID}(1)=0\)</span></li>
+<li>corner 2 → node 2 → <span class="math inline">\(\mathrm{ID}(2)=1\)</span></li>
+<li>corner 3 → node 5 → <span class="math inline">\(\mathrm{ID}(5)=3\)</span></li>
+<li>corner 4 → node 4 → <span class="math inline">\(\mathrm{ID}(4)=0\)</span></li>
+</ul>
+<p>So <span class="math inline">\(\mathrm{LM}(\cdot,1)=(0,1,3,0)\)</span>. Doing every element gives Hughes’s Fig. 2.6.2:</p>
 <table class="caption-top table">
 <thead>
 <tr class="header">
@@ -5664,16 +5335,20 @@ What Section 2.4’s Exercise 1 is about (no solution)
 </tr>
 </tbody>
 </table>
-<p>The zeros appear in every element that touches the left wall (elements 1, 3, 5), at its two left corners.</p>
-</section>
-<section id="step-2.4-explore-it" class="level2">
-<h2 class="anchored" data-anchor-id="step-2.4-explore-it">Step 2.4: explore it</h2>
-<p>This is the Example 1 mesh, live. You can:</p>
-<ul>
-<li><strong>click an element</strong> to follow its corners through IEN and ID to LM, and see which entries of <span class="math inline">\(\boldsymbol{K}\)</span> it fills;</li>
-<li><strong>click a node</strong> to prescribe or release its temperature, and watch ID, LM and <span class="math inline">\(n_{eq}\)</span> renumber themselves;</li>
-<li><strong>change the mesh size</strong> and the <strong>node numbering direction</strong>, and watch how far the nonzeros spread from the diagonal of <span class="math inline">\(\boldsymbol{K}\)</span>.</li>
-</ul>
+<p>The zeros sit in elements 1, 3, 5: the ones touching the fixed left wall.</p>
+<div class="callout callout-style-simple callout-tip no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Why this widget?
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>To show that the tables are <strong>mechanical</strong>: change which nodes are fixed and every number updates on its own. That’s why nobody types LM by hand, and why one wrong boundary flag quietly shifts every equation number after it.</p>
+</div>
+</div>
 <div class="fe-widget" id="mx">
 <div class="fe-btns" id="mx-btns">
   <button data-act="book" class="on">Book Example 1</button>
@@ -5742,7 +5417,7 @@ What Section 2.4’s Exercise 1 is about (no solution)
       k+='</svg>';
       $('mx-k').innerHTML='<p class="fe-cap"><b>Nonzero pattern of K</b> ('+n+' × '+n+'). Shaded = nonzero; the number is how many elements add into that cell. Orange outline = cells element '+e+' fills.</p>'+k+'<p class="fe-out">Nonzero entries: <b>'+nnz+'</b> of '+(n*n)+'. Half-bandwidth (largest |P − Q| among nonzeros): <b>'+bw+'</b>.</p>';}
     const fx=M.nnp-M.neq;
-    $('mx-status').innerHTML=fx===0?'<div class="fe-status fe-bad"><b>No prescribed temperatures.</b> Part 2 of the theorem fails: a uniform temperature shift costs no energy, so K is singular and cannot be solved.</div>'
+    $('mx-status').innerHTML=fx===0?'<div class="fe-status fe-bad"><b>No prescribed temperatures.</b> A uniform temperature shift costs no energy, so K is singular and cannot be solved (Section 7).</div>'
       :'<div class="fe-status fe-ok">n<sub>np</sub> = '+M.nnp+' nodes − '+fx+' prescribed = <b>n<sub>eq</sub> = '+M.neq+'</b> equations. K is '+M.neq+' × '+M.neq+'.</div>';
     const A=[];for(let q=1;q<=M.nnp;q++)A.push(q);
     const E=[];for(let q=1;q<=M.nel;q++)E.push(q);
@@ -5768,123 +5443,111 @@ What Section 2.4’s Exercise 1 is about (no solution)
   FE.bind(['mx-nx','mx-ny'],function(){st.nx=FE.val('mx-nx');st.ny=FE.val('mx-ny');applyBC();render();});
 })();
 </script>
-<p>Things to try:</p>
+<p><strong>Try these, in order:</strong></p>
 <ol type="1">
-<li>Click <strong>element 4</strong>. Its corners are nodes 5, 6, 9, 8, which become equations 3, 4, 6, 5. It is the only element here with <strong>no</strong> zeros in its LM column, so all 16 of its stiffness numbers land in <span class="math inline">\(\boldsymbol{K}\)</span>.</li>
-<li>Click <strong>element 1</strong>. Only local nodes 2 and 3 have equations (1 and 3), so only 4 of its 16 numbers go into <span class="math inline">\(\boldsymbol{K}\)</span>. The rest involve the wall. That is Example 2’s situation.</li>
-<li>Click <strong>node 12</strong> to prescribe it too. <span class="math inline">\(n_{eq}\)</span> drops to 7, and every LM entry that pointed at equation 8 becomes 0. Nothing else changes, because node 12 is last.</li>
-<li>Now release node 12 and prescribe <strong>node 2</strong> instead. <strong>Every</strong> equation number after node 2 shifts down by one. This is why you never type LM in by hand: you compute it.</li>
-<li>Press <strong>Number along y first</strong>. The mesh is identical, but the half-bandwidth grows from 3 to 5, because each row of nodes now holds 4 nodes instead of 3, and a node’s neighbors in the next column are further away in the numbering. Numbering across the <strong>short</strong> direction keeps the nonzeros closer to the diagonal. Older direct solvers were very sensitive to this; modern codes reorder the equations automatically, but the idea behind their “reordering” step is exactly this picture.</li>
+<li><strong>Click element 4.</strong> No zeros in its LM column, so all 16 of its numbers land in <span class="math inline">\(\boldsymbol{K}\)</span>.</li>
+<li><strong>Click element 1.</strong> Only corners 2 and 3 have rows, so only 4 of its 16 numbers land in <span class="math inline">\(\boldsymbol{K}\)</span>. Section 4 is about the other 12.</li>
+<li><strong>Click node 2</strong> to fix it. Watch every equation number after node 2 drop by one.</li>
+<li><strong>Press “Release all nodes.”</strong> The warning that appears is Section 7 in one sentence.</li>
+<li><strong>Press “Number along y first.”</strong> Same mesh, but the nonzeros in <span class="math inline">\(\boldsymbol{K}\)</span> spread further from the diagonal (half-bandwidth 3 → 5). Node numbering affects solver cost, which is why solvers reorder equations.</li>
 </ol>
+<div class="callout callout-style-simple callout-note callout-titled">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-7-contents" aria-controls="callout-7" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-icon-container">
+<i class="callout-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Section 2.6, Exercise 1: how to approach it (no answer)
+</div>
+<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
+</div>
+<div id="callout-7" class="callout-7-contents callout-collapse collapse">
+<div class="callout-body-container callout-body">
+<ol type="1">
+<li>Find the fixed nodes (on the hatched line). <span class="math inline">\(n_{eq}\)</span> = 12 − that count.</li>
+<li>ID: go through nodes in <strong>number order</strong>, not page position. The numbers in that mesh jump around on purpose.</li>
+<li>IEN: for each element find its <strong>lower-left</strong> corner, go counterclockwise.</li>
+<li>LM: replace each IEN entry with its ID value. Then type each LM column into the Section 4 widget to see where it lands.</li>
+</ol>
+</div>
+</div>
+</div>
 </section>
-<section id="step-2.5-the-elements-own-copy-of-the-prescribed-values-2.6.3" class="level2">
-<h2 class="anchored" data-anchor-id="step-2.5-the-elements-own-copy-of-the-prescribed-values-2.6.3">Step 2.5: the element’s own copy of the prescribed values (2.6.3)</h2>
-<p>The element routine needs to know which of its corners have known temperatures, and what they are. Hughes defines</p>
-<p><span class="math display">\[
-g^e_a=\begin{cases}0 &amp; \text{if } \mathrm{LM}(a,e)\neq 0\\[2pt] g_A &amp; \text{if } \mathrm{LM}(a,e)=0,\quad\text{where } A=\mathrm{IEN}(a,e)\end{cases} \tag{2.6.3}
-\]</span></p>
-<p>where:</p>
-<ul>
-<li><span class="math inline">\(g^e_a\)</span> is the prescribed temperature at local corner <span class="math inline">\(a\)</span> of element <span class="math inline">\(e\)</span>, or 0 if that corner is unknown.</li>
-<li><span class="math inline">\(g_A\)</span> is the prescribed value at global node <span class="math inline">\(A\)</span> (from the input).</li>
-</ul>
-<p><strong>Example 1, element 1.</strong> LM is <span class="math inline">\((0,1,3,0)\)</span> and IEN is <span class="math inline">\((1,2,5,4)\)</span>, so <span class="math inline">\(g^1_1=g_1\)</span>, <span class="math inline">\(g^1_2=0\)</span>, <span class="math inline">\(g^1_3=0\)</span>, <span class="math inline">\(g^1_4=g_4\)</span>.</p>
-<p>These values are used in the element force vector. Its full form is equation (2.5.8) from Section 2.5 (not in your screenshots, but it is the 2D version of (1.13.12) that you already know):</p>
-<p><span class="math display">\[
-f^e_a=\int_{\Omega^e}N_a\,\ell\,d\Omega+\int_{\Gamma^e_h}N_a\,h\,d\Gamma-\sum_{b=1}^{n_{en}}k^e_{ab}\,g^e_b
-\]</span></p>
-<p>where:</p>
-<ul>
-<li>the first term spreads the heat source over the element’s nodes;</li>
-<li>the second adds any prescribed flux on the part of the element’s edge that lies on <span class="math inline">\(\Gamma_h\)</span>;</li>
-<li>the last term moves the <strong>known</strong> corner temperatures to the right side, exactly like <span class="math inline">\(-k^e_{a2}g\)</span> in 1D. Since <span class="math inline">\(g^e_b=0\)</span> at unknown corners, only prescribed corners contribute.</li>
-</ul>
-<p>“This definition may be easily programmed”: it is one <code>if</code> statement per corner.</p>
-</section>
-<section id="step-2.6-example-2-assembling-one-element-with-prescribed-corners-2.6.4-to-2.6.8" class="level2">
-<h2 class="anchored" data-anchor-id="step-2.6-example-2-assembling-one-element-with-prescribed-corners-2.6.4-to-2.6.8">Step 2.6: Example 2: assembling one element with prescribed corners (2.6.4 to 2.6.8)</h2>
-<p><strong>The data.</strong> A typical four-node element <span class="math inline">\(e\)</span> has</p>
-<p><span class="math display">\[
-\mathrm{LM}(1,e)=5,\quad \mathrm{LM}(2,e)=0,\quad \mathrm{LM}(3,e)=0,\quad \mathrm{LM}(4,e)=9 \tag{2.6.4}
-\]</span></p>
-<p>So corners 1 and 4 own equations 5 and 9, and corners 2 and 3 are prescribed.</p>
-<p><strong>The rule.</strong> For every pair of corners <span class="math inline">\((a,b)\)</span>: if both <span class="math inline">\(\mathrm{LM}(a,e)=P\)</span> and <span class="math inline">\(\mathrm{LM}(b,e)=Q\)</span> are nonzero, then <span class="math inline">\(k^e_{ab}\)</span> is added into <span class="math inline">\(K_{PQ}\)</span>. Go through all 16 pairs:</p>
+<section id="assembling-one-element-example-2" class="level1">
+<h1>4. Assembling one element: Example 2</h1>
+<div class="callout callout-style-simple callout-tip no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Why am I showing you this?
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>Element 1 had 12 numbers that didn’t go into <span class="math inline">\(\boldsymbol{K}\)</span>. They don’t all disappear: some carry the <strong>fixed temperatures</strong> into the force vector. This is the only place a prescribed temperature enters the solution, so if a code gets it wrong, every nonzero boundary temperature is silently treated as zero.</p>
+</div>
+</div>
+<p><strong>Hughes’s data (2.6.4):</strong> an element with <span class="math inline">\(\mathrm{LM}=(5,0,0,9)\)</span>. Corners 1 and 4 own rows 5 and 9. Corners 2 and 3 are fixed.</p>
+<p><strong>Rule for each number <span class="math inline">\(k^e_{ab}\)</span></strong> (row <span class="math inline">\(P=\mathrm{LM}(a,e)\)</span>, column <span class="math inline">\(Q=\mathrm{LM}(b,e)\)</span>):</p>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
-<col style="width: 20%">
+<col style="width: 33%">
+<col style="width: 33%">
+<col style="width: 33%">
 </colgroup>
 <thead>
 <tr class="header">
-<th></th>
-<th><span class="math inline">\(b=1\)</span> (<span class="math inline">\(Q=5\)</span>)</th>
-<th><span class="math inline">\(b=2\)</span> (<span class="math inline">\(Q=0\)</span>)</th>
-<th><span class="math inline">\(b=3\)</span> (<span class="math inline">\(Q=0\)</span>)</th>
-<th><span class="math inline">\(b=4\)</span> (<span class="math inline">\(Q=9\)</span>)</th>
+<th><span class="math inline">\(P\)</span></th>
+<th><span class="math inline">\(Q\)</span></th>
+<th>What happens to <span class="math inline">\(k^e_{ab}\)</span></th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td><span class="math inline">\(a=1\)</span> (<span class="math inline">\(P=5\)</span>)</td>
-<td><span class="math inline">\(K_{55}\)</span></td>
-<td>to <span class="math inline">\(f^e_1\)</span> via <span class="math inline">\(g^e_2\)</span></td>
-<td>to <span class="math inline">\(f^e_1\)</span> via <span class="math inline">\(g^e_3\)</span></td>
-<td><span class="math inline">\(K_{59}\)</span></td>
+<td>nonzero</td>
+<td>nonzero</td>
+<td>added to <span class="math inline">\(K_{PQ}\)</span></td>
 </tr>
 <tr class="even">
-<td><span class="math inline">\(a=2\)</span> (<span class="math inline">\(P=0\)</span>)</td>
-<td>dropped</td>
-<td>dropped</td>
-<td>dropped</td>
-<td>dropped</td>
+<td>nonzero</td>
+<td>0</td>
+<td>multiplies a <strong>known</strong> temperature, so it moves to the force side</td>
 </tr>
 <tr class="odd">
-<td><span class="math inline">\(a=3\)</span> (<span class="math inline">\(P=0\)</span>)</td>
-<td>dropped</td>
-<td>dropped</td>
-<td>dropped</td>
-<td>dropped</td>
-</tr>
-<tr class="even">
-<td><span class="math inline">\(a=4\)</span> (<span class="math inline">\(P=9\)</span>)</td>
-<td><span class="math inline">\(K_{95}\)</span></td>
-<td>to <span class="math inline">\(f^e_4\)</span> via <span class="math inline">\(g^e_2\)</span></td>
-<td>to <span class="math inline">\(f^e_4\)</span> via <span class="math inline">\(g^e_3\)</span></td>
-<td><span class="math inline">\(K_{99}\)</span></td>
+<td>0</td>
+<td>anything</td>
+<td>no equation for this corner; skipped</td>
 </tr>
 </tbody>
 </table>
-<p>That gives the four stiffness updates and two force updates:</p>
+<p>For <span class="math inline">\(\mathrm{LM}=(5,0,0,9)\)</span> that gives (2.6.5, 2.6.6):</p>
 <p><span class="math display">\[
-\begin{aligned}
-K_{55}&amp;\leftarrow K_{55}+k^e_{11}, &amp; K_{59}&amp;\leftarrow K_{59}+k^e_{14},\\
-K_{95}&amp;\leftarrow K_{95}+k^e_{41}, &amp; K_{99}&amp;\leftarrow K_{99}+k^e_{44}
-\end{aligned}
-\tag{2.6.5}
+K_{55}\mathrel{+}=k^e_{11},\quad K_{59}\mathrel{+}=k^e_{14},\quad K_{95}\mathrel{+}=k^e_{41},\quad K_{99}\mathrel{+}=k^e_{44},\qquad F_5\mathrel{+}=f^e_1,\quad F_9\mathrel{+}=f^e_4
 \]</span></p>
+<p><strong>Where “moves to the force side” comes from.</strong> Row 1 of the element’s equations is</p>
 <p><span class="math display">\[
-F_5\leftarrow F_5+f^e_1,\qquad F_9\leftarrow F_9+f^e_4 \tag{2.6.6}
+k^e_{11}d_1+k^e_{12}d_2+k^e_{13}d_3+k^e_{14}d_4=(\text{heat source and flux on corner 1})
 \]</span></p>
-<p><strong>Where the circled terms go (2.6.7, 2.6.8).</strong> Write out row 1 of the element’s equations, <span class="math inline">\(\sum_b k^e_{1b}d^e_b=(\text{loads})\)</span>:</p>
+<p>where <span class="math inline">\(d_a\)</span> is the temperature at corner <span class="math inline">\(a\)</span>. Corners 2 and 3 are fixed, so <span class="math inline">\(d_2=g_2\)</span> and <span class="math inline">\(d_3=g_3\)</span> are known numbers. Move them right:</p>
 <p><span class="math display">\[
-k^e_{11}d^e_1+k^e_{12}d^e_2+k^e_{13}d^e_3+k^e_{14}d^e_4=(\text{loads on corner }1)
+k^e_{11}d_1+k^e_{14}d_4=(\text{source and flux})\;\underbrace{-\,k^e_{12}g_2-k^e_{13}g_3}_{\text{(2.6.7)}}
 \]</span></p>
-<p>Corners 2 and 3 are prescribed, so <span class="math inline">\(d^e_2=g^e_2\)</span> and <span class="math inline">\(d^e_3=g^e_3\)</span> are <strong>known numbers</strong>. Move them to the right side:</p>
-<p><span class="math display">\[
-k^e_{11}d^e_1+k^e_{14}d^e_4=(\text{loads on corner }1)-k^e_{12}g^e_2-k^e_{13}g^e_3
-\]</span></p>
-<p>The right side is <span class="math inline">\(f^e_1\)</span>:</p>
-<p><span class="math display">\[
-f^e_1=\cdots-k^e_{12}g^e_2-k^e_{13}g^e_3 \tag{2.6.7}
-\]</span></p>
-<p><span class="math display">\[
-f^e_4=\cdots-k^e_{42}g^e_2-k^e_{43}g^e_3 \tag{2.6.8}
-\]</span></p>
-<p>where “<span class="math inline">\(\cdots\)</span>” is the heat-source and flux terms. Rows 2 and 3 are not equations at all, because those temperatures are already known. Hughes’s Figure 2.6.3 is a picture of the table above: squares go to <span class="math inline">\(\boldsymbol{K}\)</span>, circles go to <span class="math inline">\(\boldsymbol{f}^e\)</span>, angle brackets go to <span class="math inline">\(\boldsymbol{F}\)</span>.</p>
-<p><strong>The book’s last sentence is the key idea: all the information assembly needs is in the LM array.</strong> Type any LM values below to see it. The default is the book’s Example 2.</p>
+<p>Row 4 works the same way (2.6.8). Rows 2 and 3 aren’t equations at all, because those temperatures are already known.</p>
+<p><strong>How code does all of that in one line.</strong> Hughes’s (2.6.3) builds a vector <span class="math inline">\(\boldsymbol{g}^e\)</span>: the fixed temperature at each fixed corner, 0 at the others. Then <span class="math inline">\(\boldsymbol{f}^e \leftarrow \boldsymbol{f}^e-\boldsymbol{k}^e\boldsymbol{g}^e\)</span> produces every “circle” term at once.</p>
+<div class="callout callout-style-simple callout-tip no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Why this widget?
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>So you can check any element yourself, including your Exercise 1 answers: type an LM column and see which numbers go to <span class="math inline">\(\boldsymbol{K}\)</span> (squares), which go to <span class="math inline">\(\boldsymbol{f}^e\)</span> (circles), and which are dropped. This is Hughes’s Fig. 2.6.3, made live.</p>
+</div>
+</div>
 <div class="fe-widget">
 <div class="fe-btns"><button id="ex2-book" class="on">Book Example 2: (5, 0, 0, 9)</button><button id="ex2-free">All free: (3, 4, 6, 5)</button><button id="ex2-wall">Example 1, element 1: (0, 1, 3, 0)</button></div>
 <div class="lm-in">
@@ -5932,111 +5595,44 @@ f^e_4=\cdots-k^e_{42}g^e_2-k^e_{43}g^e_3 \tag{2.6.8}
   render();
 })();
 </script>
-<p><strong>About the dropped rows.</strong> A program skips rows 2 and 3 when it solves, but they are not useless. After the solve, plugging the now-known temperatures into those rows gives the <strong>heat flow needed to hold those nodes at their prescribed temperatures</strong>. In structural analysis the same calculation gives the <strong>reaction forces</strong> at the supports. When ANSYS or Abaqus prints reactions, this is where they come from, and checking that they balance the applied load is one of the best sanity checks you have.</p>
+<p><strong>Takeaway:</strong> the dropped rows aren’t useless. After solving, plugging the known temperatures into them gives the <strong>heat flow needed to hold those nodes fixed</strong>. In structures, that’s the <strong>reaction force</strong>. Checking that reactions balance the applied load is one of the best sanity checks on any model.</p>
 </section>
-<section id="step-2.7-section-2.6-exercise-1-how-to-approach-it" class="level2">
-<h2 class="anchored" data-anchor-id="step-2.7-section-2.6-exercise-1-how-to-approach-it">Step 2.7: Section 2.6, Exercise 1: how to approach it</h2>
-<p>The exercise gives an irregular U-shaped mesh and asks for ID, IEN and LM. The answer is yours to work out, but the procedure is the one above:</p>
-<ol type="1">
-<li>Read off <span class="math inline">\(\eta_g\)</span>: the nodes on the hatched line along the bottom. Then <span class="math inline">\(n_{eq}=n_{np}-(\text{number of g-nodes})\)</span>.</li>
-<li><strong>ID:</strong> walk through the nodes <strong>in ascending node number</strong> (not by position on the page), giving 0 to g-nodes and a running count to the rest. The node numbers in this mesh jump around on purpose.</li>
-<li><strong>IEN:</strong> for each element, find its <strong>lower-left</strong> corner and go counterclockwise. Be careful: in elements 1 and 5 the numbers are not arranged left to right.</li>
-<li><strong>LM:</strong> replace each IEN entry by its ID value.</li>
-<li><strong>Check:</strong> every nonzero equation number <span class="math inline">\(1,\dots,n_{eq}\)</span> should appear somewhere in LM, and each element’s LM column should have no repeated nonzero values. You can type your LM columns into the Example 2 box above to see which entries of <span class="math inline">\(\boldsymbol{K}\)</span> each element fills.</li>
-</ol>
-</section>
-</section>
-<section id="part-3.-section-1.14-the-same-arrays-in-one-dimension" class="level1">
-<h1>Part 3. Section 1.14: the same arrays in one dimension</h1>
-<p><strong>Goal of this part.</strong> See that the 1D assembly rules of Section 1.14 are not a special trick: they are just ID, IEN and LM for a row of two-node elements. This is the version you will build into your Project 1 code.</p>
-<section id="step-3.1-the-1d-model-problems-three-arrays" class="level2">
-<h2 class="anchored" data-anchor-id="step-3.1-the-1d-model-problems-three-arrays">Step 3.1: the 1D model problem’s three arrays</h2>
-<p>Recall the setup: <span class="math inline">\(n_{el}=n\)</span> linear elements on <span class="math inline">\([0,1]\)</span>, nodes <span class="math inline">\(A=1,\dots,n+1\)</span> from left to right, flux <span class="math inline">\(h\)</span> given at <span class="math inline">\(x=0\)</span>, and temperature <span class="math inline">\(u(1)=g\)</span> prescribed at the <strong>last</strong> node <span class="math inline">\(n+1\)</span>.</p>
-<p><strong>ID.</strong> Only node <span class="math inline">\(n+1\)</span> is prescribed, and it is last, so the counter never skips until the end:</p>
-<p><span class="math display">\[
-\mathrm{ID}(A)=\begin{cases}A &amp; A=1,\dots,n\\ 0 &amp; A=n+1\end{cases}
-\]</span></p>
-<p><strong>IEN.</strong> Element <span class="math inline">\(e\)</span> runs from node <span class="math inline">\(e\)</span> to node <span class="math inline">\(e+1\)</span>, with local node 1 on the left:</p>
-<p><span class="math display">\[
-\mathrm{IEN}(1,e)=e,\qquad \mathrm{IEN}(2,e)=e+1
-\]</span></p>
-<p><strong>LM</strong> by composition:</p>
-<p><span class="math display">\[
-\begin{aligned}
-\mathrm{LM}(1,e)&amp;=\mathrm{ID}(\mathrm{IEN}(1,e))=\mathrm{ID}(e)=e\\
-\mathrm{LM}(2,e)&amp;=\mathrm{ID}(\mathrm{IEN}(2,e))=\mathrm{ID}(e+1)=\begin{cases}e+1 &amp; e&lt;n_{el}\\ 0 &amp; e=n_{el}\end{cases}
-\end{aligned}
-\]</span></p>
-<p>That is exactly the LM array of Section 1.14 (1.14.1). In 1D it looked like a formula; in 2D it is a table, because there is no simple formula for an arbitrary mesh.</p>
-<p>For <span class="math inline">\(n_{el}=4\)</span>:</p>
-<table class="caption-top table">
-<thead>
-<tr class="header">
-<th></th>
-<th><span class="math inline">\(e=1\)</span></th>
-<th>2</th>
-<th>3</th>
-<th>4</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td><span class="math inline">\(\mathrm{IEN}(1,e)\)</span></td>
-<td>1</td>
-<td>2</td>
-<td>3</td>
-<td>4</td>
-</tr>
-<tr class="even">
-<td><span class="math inline">\(\mathrm{IEN}(2,e)\)</span></td>
-<td>2</td>
-<td>3</td>
-<td>4</td>
-<td>5</td>
-</tr>
-<tr class="odd">
-<td><span class="math inline">\(\mathrm{LM}(1,e)\)</span></td>
-<td>1</td>
-<td>2</td>
-<td>3</td>
-<td>4</td>
-</tr>
-<tr class="even">
-<td><span class="math inline">\(\mathrm{LM}(2,e)\)</span></td>
-<td>2</td>
-<td>3</td>
-<td>4</td>
-<td><strong>0</strong></td>
-</tr>
-</tbody>
-</table>
-</section>
-<section id="step-3.2-the-assembly-rules-are-the-lm-rule" class="level2">
-<h2 class="anchored" data-anchor-id="step-3.2-the-assembly-rules-are-the-lm-rule">Step 3.2: the assembly rules are the LM rule</h2>
-<p>Apply the Example 2 rule (“<span class="math inline">\(k^e_{ab}\)</span> goes to <span class="math inline">\(K_{PQ}\)</span> when both <span class="math inline">\(P=\mathrm{LM}(a,e)\)</span> and <span class="math inline">\(Q=\mathrm{LM}(b,e)\)</span> are nonzero”) to a 1D element:</p>
+<section id="the-1d-version-section-1.14-your-project-1-code" class="level1">
+<h1>5. The 1D version (Section 1.14): your Project 1 code</h1>
+<div class="callout callout-style-simple callout-tip no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Why am I showing you this?
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>This is the version you’ll code next. Section 1.14’s LM formula isn’t a new idea: it’s ID(IEN) for a row of two-node elements. Seeing that tells you exactly what to change in your code.</p>
+</div>
+</div>
+<p>Bar on <span class="math inline">\([0,1]\)</span>, <span class="math inline">\(n_{el}\)</span> linear elements, nodes <span class="math inline">\(1,\dots,n_{el}+1\)</span> left to right, temperature fixed at the last node (<span class="math inline">\(u(1)=g\)</span>).</p>
 <ul>
-<li><strong>Interior element</strong> (<span class="math inline">\(e&lt;n_{el}\)</span>, LM <span class="math inline">\(=(e,\,e+1)\)</span>): all four numbers land,</li>
+<li><strong>ID:</strong> only the last node is fixed, so <span class="math inline">\(\mathrm{ID}(A)=A\)</span> for every node except the last, which gets 0.</li>
+<li><strong>IEN:</strong> element <span class="math inline">\(e\)</span> runs from node <span class="math inline">\(e\)</span> to node <span class="math inline">\(e+1\)</span>: <span class="math inline">\(\mathrm{IEN}(1,e)=e\)</span>, <span class="math inline">\(\mathrm{IEN}(2,e)=e+1\)</span>.</li>
+<li><strong>LM:</strong> <span class="math inline">\(\mathrm{LM}(1,e)=\mathrm{ID}(e)=e\)</span>, and <span class="math inline">\(\mathrm{LM}(2,e)=\mathrm{ID}(e+1)=e+1\)</span>, except 0 for the last element.</li>
 </ul>
-<p><span class="math display">\[
-\begin{aligned}
-K_{e,e}&amp;\leftarrow K_{e,e}+k^e_{11}, &amp; K_{e,e+1}&amp;\leftarrow K_{e,e+1}+k^e_{12},\\
-K_{e+1,e}&amp;\leftarrow K_{e+1,e}+k^e_{21}, &amp; K_{e+1,e+1}&amp;\leftarrow K_{e+1,e+1}+k^e_{22},\\
-F_e&amp;\leftarrow F_e+f^e_1, &amp; F_{e+1}&amp;\leftarrow F_{e+1}+f^e_2.
-\end{aligned}
-\]</span></p>
-<ul>
-<li><strong>Last element</strong> (<span class="math inline">\(e=n_{el}\)</span>, LM <span class="math inline">\(=(n,\,0)\)</span>): only <span class="math inline">\(K_{nn}\leftarrow K_{nn}+k^{n_{el}}_{11}\)</span> and <span class="math inline">\(F_n\leftarrow F_n+f^{n_{el}}_1\)</span> survive, and <span class="math inline">\(f^{n_{el}}_1\)</span> contains <span class="math inline">\(-k^{n_{el}}_{12}\,g\)</span>. That is the 1D version of the circles in Fig. 2.6.3, and it is the term <span class="math inline">\(-k^e_{a2}g\)</span> in (1.13.12).</li>
-</ul>
-<p>The book packs the whole loop into the <strong>assembly operator</strong>:</p>
-<p><span class="math display">\[
-\boldsymbol{K}=\mathop{\mathbf{A}}_{e=1}^{n_{el}}\big(\boldsymbol{k}^e\big),\qquad \boldsymbol{F}=\mathop{\mathbf{A}}_{e=1}^{n_{el}}\big(\boldsymbol{f}^e\big) \tag{1.14.10}
-\]</span></p>
-<p>Read the bold <span class="math inline">\(\mathbf{A}\)</span> as “a sum that uses LM to put each element’s numbers in the right place.” It is not a matrix.</p>
-</section>
-<section id="step-3.3-watch-assembly-happen" class="level2">
-<h2 class="anchored" data-anchor-id="step-3.3-watch-assembly-happen">Step 3.3: watch assembly happen</h2>
-<p>Drag <strong>elements assembled</strong> from 0 upward to add one element at a time. Green cells are the ones the newest element just changed. Switch the boundary conditions to see ID gain a second zero at the <strong>first</strong> node, which shifts every equation number by one. That is the case where the 1D shortcut “equation number = node number” breaks, and the reason your code should use ID instead.</p>
-<p>Units are dimensionless here, with conductivity <span class="math inline">\(\kappa=1\)</span>; the element matrices are <span class="math inline">\(\boldsymbol{k}^e=\frac{1}{h^e}\begin{bmatrix}1&amp;-1\\-1&amp;1\end{bmatrix}\)</span> and <span class="math inline">\(\boldsymbol{f}^e=\frac{\ell h^e}{2}\begin{Bmatrix}1\\1\end{Bmatrix}\)</span> from Section 1.15.</p>
+<p>That last line is Hughes’s (1.14.1). The assembly rules (1.14.2 to 1.14.9) are just the Section 4 rule applied to it.</p>
+<p><strong>Where the shortcut breaks:</strong> fix the temperature at the <strong>left</strong> end too, and node 1 gets ID = 0. Now node 2 is equation 1, node 3 is equation 2, and so on. A code that assumed “row = node number” puts every number one row off.</p>
+<div class="callout callout-style-simple callout-tip no-icon callout-titled">
+<div class="callout-header d-flex align-content-center">
+<div class="callout-icon-container">
+<i class="callout-icon no-icon"></i>
+</div>
+<div class="callout-title-container flex-fill">
+Why this widget?
+</div>
+</div>
+<div class="callout-body-container callout-body">
+<p>To watch assembly happen one element at a time, and to see the equation numbers shift when you change the boundary conditions. Drag “elements assembled” from 0 upward. Green cells are what the newest element just changed.</p>
+</div>
+</div>
 <div class="fe-widget">
 <div class="fe-btns"><button id="fd-b1" class="on">Book: flux h at x = 0, u(1) = g</button><button id="fd-b2">Both ends prescribed: u(0) = 0, u(1) = g</button></div>
 <div class="fe-ctrl">
@@ -6096,277 +5692,202 @@ F_e&amp;\leftarrow F_e+f^e_1, &amp; F_{e+1}&amp;\leftarrow F_{e+1}+f^e_2.
   $('fd-b2').addEventListener('click',()=>{mode=2;$('fd-b2').classList.add('on');$('fd-b1').classList.remove('on');run();});
 })();
 </script>
-<p>Things to notice:</p>
+<p><strong>Notice:</strong></p>
 <ul>
-<li><strong>Each element touches only its own two rows and columns</strong>, so <span class="math inline">\(\boldsymbol{K}\)</span> comes out tridiagonal. The middle diagonal entries get contributions from two elements (that is why they are twice as large).</li>
-<li><strong>The last element changes only one cell of <span class="math inline">\(\boldsymbol{K}\)</span></strong>, but it also changes <span class="math inline">\(F_n\)</span> through <span class="math inline">\(-k_{12}\,g\)</span>. Set <span class="math inline">\(g\)</span> to 0 and that contribution disappears; set it back and watch <span class="math inline">\(F_n\)</span> change.</li>
-<li><strong>With both ends prescribed</strong>, node 1 gets ID <span class="math inline">\(=0\)</span> and node 2 becomes equation 1. If your code assumed equation number = node number, it would now put every number one row too low.</li>
-<li><strong>The nodal values sit exactly on the exact solution.</strong> As in Section 1.10, that is special to this 1D problem.</li>
+<li>Each element only touches 2 rows, so <span class="math inline">\(\boldsymbol{K}\)</span> is tridiagonal.</li>
+<li>The last element adds one number to <span class="math inline">\(\boldsymbol{K}\)</span>, but also <span class="math inline">\(-k_{12}\,g\)</span> to <span class="math inline">\(F\)</span>. Set <span class="math inline">\(g=0\)</span> and watch that piece vanish.</li>
+<li>Switch to “both ends prescribed”: ID gets a second 0, and every row shifts.</li>
 </ul>
 </section>
-</section>
-<section id="part-4.-the-layout-of-a-finite-element-program" class="level1">
-<h1>Part 4. The layout of a finite element program</h1>
-<p><strong>Goal of this part.</strong> Put every piece from this page, and from the basis-function and quadrature pages, in the order a program runs them. This is the structure your Project 1 code is about to take on.</p>
-<div class="callout callout-style-simple callout-important callout-titled">
+<section id="where-these-tables-go-in-your-code" class="level1">
+<h1>6. Where these tables go in your code</h1>
+<div class="callout callout-style-simple callout-tip no-icon callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
-<i class="callout-icon"></i>
+<i class="callout-icon no-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-About Figure 1.14.2
+Why am I showing you this?
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>The Figure 1.14.2 screenshot did not come through, so the flowchart below is built from the order described in Sections 1.14 and 2.6 (input → ID and IEN → LM → element loop with assembly → solve). Once you add that figure to the project, this part will be redrawn to match it.</p>
+<p>So you know which part of your code changes when you add basis functions and quadrature, and which part never changes again.</p>
 </div>
 </div>
+<p><em>Figure 1.14.2 didn’t come through in the screenshots, so this flowchart follows the order described in Sections 1.14 and 2.6. Send the figure and I’ll match it.</em></p>
 <div class="cell" data-layout-align="default">
 <div class="cell-output-display">
 <div>
 <p></p><figure class="figure"><p></p>
 <div>
 <pre class="mermaid mermaid-js">flowchart TD
-  A[&quot;Step 1: Input&lt;br&gt;node coordinates, IEN (connectivity),&lt;br&gt;which nodes are prescribed and their g values,&lt;br&gt;loads ℓ and h, material κ&quot;] --&gt; B[&quot;Step 2: Build ID&lt;br&gt;loop over nodes with a counter; prescribed nodes get 0&quot;]
-  B --&gt; C[&quot;Step 3: Build LM&lt;br&gt;LM(a,e) = ID(IEN(a,e))&quot;]
-  C --&gt; D[&quot;Step 4: Allocate and zero K (n_eq × n_eq) and F (n_eq)&quot;]
-  D --&gt; E[&quot;Step 5: For each element e = 1, ..., n_el&quot;]
-  E --&gt; E1[&quot;Step 5a: Gather element data&lt;br&gt;x_a = x(IEN(a,e)); g^e_a from (2.6.3)&quot;]
-  E1 --&gt; E2[&quot;Step 5b: For each quadrature point:&lt;br&gt;N_a and N_a,ξ (basis functions),&lt;br&gt;Jacobian x,ξ, then N_a,x;&lt;br&gt;add weight × integrand into k^e and f^e&quot;]
-  E2 --&gt; E3[&quot;Step 5c: f^e ← f^e − k^e g^e, plus flux terms&quot;]
-  E3 --&gt; E4[&quot;Step 5d: Assemble with LM:&lt;br&gt;K[P,Q] += k^e[a,b], F[P] += f^e[a]&quot;]
-  E4 --&gt; E
-  E4 --&gt; G[&quot;Step 6: Solve K d = F&quot;]
-  G --&gt; H[&quot;Step 7: Post-process&lt;br&gt;u_A = d[ID(A)] or g_A;&lt;br&gt;gradients and fluxes per element;&lt;br&gt;reactions from the dropped rows&quot;]
-  style B fill:#d4572a22,stroke:#d4572a
-  style C fill:#d4572a22,stroke:#d4572a
-  style E4 fill:#d4572a22,stroke:#d4572a
-  style H fill:#d4572a22,stroke:#d4572a
+  A[&quot;Input: node coordinates, IEN,&lt;br&gt;fixed nodes and values, loads&quot;] --&gt; B[&quot;Build ID, then LM = ID(IEN)&quot;]
+  B --&gt; C[&quot;Zero K and F&quot;]
+  C --&gt; D[&quot;Loop over elements:&lt;br&gt;compute k^e, f^e with basis functions + quadrature;&lt;br&gt;f^e -= k^e g^e;&lt;br&gt;add into K, F using LM&quot;]
+  D --&gt; E[&quot;Solve K d = F&quot;]
+  E --&gt; F[&quot;Put d back on the nodes using ID;&lt;br&gt;fixed nodes get their g values&quot;]
 </pre>
 </div>
-<p></p><figcaption> The order of operations in a linear static finite element program. The orange boxes are this page; the element loop is where the basis-function and quadrature machinery lives.</figcaption> </figure><p></p>
+<p></p></figure><p></p>
 </div>
 </div>
 </div>
-<section id="step-4.1-why-this-structure-instead-of-building-boldsymbolk-directly" class="level2">
-<h2 class="anchored" data-anchor-id="step-4.1-why-this-structure-instead-of-building-boldsymbolk-directly">Step 4.1: why this structure, instead of building <span class="math inline">\(\boldsymbol{K}\)</span> directly</h2>
-<p>A first 1D code often fills <span class="math inline">\(\boldsymbol{K}\)</span> row by row with the known tridiagonal pattern (<span class="math inline">\(2/h\)</span> on the diagonal, <span class="math inline">\(-1/h\)</span> next to it). That works for one problem and breaks for every other one. The structure above separates the code into pieces that each do one job:</p>
 <table class="caption-top table">
 <colgroup>
-<col style="width: 33%">
-<col style="width: 33%">
-<col style="width: 33%">
+<col style="width: 50%">
+<col style="width: 50%">
 </colgroup>
 <thead>
 <tr class="header">
-<th>Piece</th>
+<th>Part of the code</th>
 <th>Changes when you change…</th>
-<th>Stays the same when you change…</th>
 </tr>
 </thead>
 <tbody>
 <tr class="odd">
-<td>Steps 1 to 3 (input, ID, IEN, LM)</td>
+<td>Input, ID, LM</td>
 <td>the mesh or the boundary conditions</td>
-<td>the element type, the physics</td>
 </tr>
 <tr class="even">
-<td>Step 5b (element routine)</td>
-<td>the element type, polynomial degree, physics</td>
-<td>the mesh, the boundary conditions</td>
+<td>Element routine (<span class="math inline">\(\boldsymbol{k}^e\)</span>, <span class="math inline">\(\boldsymbol{f}^e\)</span>)</td>
+<td>the element type, polynomial degree, or physics</td>
 </tr>
 <tr class="odd">
-<td>Step 5d (assembly)</td>
-<td>nothing</td>
-<td>everything: it is identical in 1D, 2D and 3D</td>
-</tr>
-<tr class="even">
-<td>Step 6 (solver)</td>
-<td>nothing</td>
-<td>everything</td>
+<td>Assembly with LM, and the solve</td>
+<td>never (identical in 1D, 2D, 3D)</td>
 </tr>
 </tbody>
 </table>
-<p>So upgrading from linear to quadratic elements only touches step 5b. Moving a boundary condition only touches the input. Going from 1D to 2D changes the element routine and the mesh, but assembly does not change at all.</p>
-</section>
-<section id="step-4.2-a-reference-implementation" class="level2">
-<h2 class="anchored" data-anchor-id="step-4.2-a-reference-implementation">Step 4.2: a reference implementation</h2>
-<p>Below is a short Python version of the whole flowchart for the 1D model problem, with Lagrange shape functions of any degree <span class="math inline">\(p\)</span> and Gauss quadrature. It uses the same names as the book so you can compare it with your own Project 1 code. Python counts from 0, so “prescribed” is marked with <span class="math inline">\(-1\)</span> instead of 0. I ran it for <span class="math inline">\(p=1,2,3\)</span> with 1 to 4 elements and nonzero <span class="math inline">\(g\)</span> and <span class="math inline">\(h\)</span>; the nodal error was at round-off level (<span class="math inline">\(10^{-15}\)</span>) every time.</p>
+<p><strong>Bugs to avoid in your version:</strong></p>
+<ol type="1">
+<li>Building ID in some order other than ascending node number.</li>
+<li>Skipping a 0 row but not a 0 column (or the reverse) during assembly.</li>
+<li>Forgetting <span class="math inline">\(\boldsymbol{f}^e\leftarrow\boldsymbol{f}^e-\boldsymbol{k}^e\boldsymbol{g}^e\)</span>. Then every fixed temperature acts like zero.</li>
+<li>Plotting only <span class="math inline">\(\boldsymbol{d}\)</span>. You have to map it back to nodes with ID and add the fixed values, or your plot is missing points.</li>
+</ol>
 <div class="callout callout-style-simple callout-note callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-4-contents" aria-controls="callout-4" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-13-contents" aria-controls="callout-13" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Show the code
+Reference code (Python, any polynomial degree). I ran it for degrees 1 to 3; nodal error was ~1e-15.
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-4" class="callout-4-contents callout-collapse collapse">
+<div id="callout-13" class="callout-13-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
 <div class="sourceCode" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># ---------- 1. Input data ----------</span></span>
-<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>n_el, p <span class="op">=</span> <span class="dv">4</span>, <span class="dv">1</span>                 <span class="co"># number of elements, polynomial degree (1 = linear)</span></span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>kappa, ell <span class="op">=</span> <span class="fl">1.0</span>, <span class="fl">2.0</span>          <span class="co"># conductivity, constant source per length</span></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>g, h <span class="op">=</span> <span class="fl">0.0</span>, <span class="fl">0.5</span>                <span class="co"># u(1) = g (essential), -kappa*u_x(0) = h (natural)</span></span>
-<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>n_en <span class="op">=</span> p <span class="op">+</span> <span class="dv">1</span>                   <span class="co"># nodes per element</span></span>
-<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>n_np <span class="op">=</span> n_el <span class="op">*</span> p <span class="op">+</span> <span class="dv">1</span>            <span class="co"># total number of nodes</span></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>x_nodes <span class="op">=</span> np.linspace(<span class="fl">0.0</span>, <span class="fl">1.0</span>, n_np)</span>
-<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a><span class="co"># ---------- 2-3. Data-processing arrays ----------</span></span>
-<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a><span class="co"># IEN[a, e] = global node number of local node a of element e (0-based here)</span></span>
-<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a>IEN <span class="op">=</span> np.array([[e <span class="op">*</span> p <span class="op">+</span> a <span class="cf">for</span> e <span class="kw">in</span> <span class="bu">range</span>(n_el)] <span class="cf">for</span> a <span class="kw">in</span> <span class="bu">range</span>(n_en)])</span>
-<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a><span class="co"># ID[A] = equation number of node A, or -1 if A is prescribed</span></span>
-<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>prescribed <span class="op">=</span> {n_np <span class="op">-</span> <span class="dv">1</span>: g}     <span class="co"># node -&gt; prescribed value</span></span>
-<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a>ID <span class="op">=</span> <span class="op">-</span>np.ones(n_np, dtype<span class="op">=</span><span class="bu">int</span>)</span>
-<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>n_eq <span class="op">=</span> <span class="dv">0</span></span>
-<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> A <span class="kw">in</span> <span class="bu">range</span>(n_np):          <span class="co"># ascending node order -&gt; ascending equation order</span></span>
-<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> A <span class="kw">not</span> <span class="kw">in</span> prescribed:</span>
-<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>        ID[A] <span class="op">=</span> n_eq</span>
-<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a>        n_eq <span class="op">+=</span> <span class="dv">1</span></span>
-<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>LM <span class="op">=</span> ID[IEN]                   <span class="co"># LM(a, e) = ID(IEN(a, e))</span></span>
-<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a><span class="co"># ---------- basis-function and quadrature machinery ----------</span></span>
-<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>xi_nodes <span class="op">=</span> np.linspace(<span class="op">-</span><span class="fl">1.0</span>, <span class="fl">1.0</span>, n_en)</span>
-<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> shape(xi):</span>
-<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>    <span class="co">&quot;&quot;&quot;Lagrange shape functions N_a(xi) and derivatives N_a,xi on [-1, 1].&quot;&quot;&quot;</span></span>
-<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>    N <span class="op">=</span> np.ones(n_en)</span>
-<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>    dN <span class="op">=</span> np.zeros(n_en)</span>
-<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> a <span class="kw">in</span> <span class="bu">range</span>(n_en):</span>
-<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>        others <span class="op">=</span> [b <span class="cf">for</span> b <span class="kw">in</span> <span class="bu">range</span>(n_en) <span class="cf">if</span> b <span class="op">!=</span> a]</span>
-<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> b <span class="kw">in</span> others:</span>
-<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>            N[a] <span class="op">*=</span> (xi <span class="op">-</span> xi_nodes[b]) <span class="op">/</span> (xi_nodes[a] <span class="op">-</span> xi_nodes[b])</span>
-<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> c <span class="kw">in</span> others:                       <span class="co"># product rule</span></span>
-<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>            term <span class="op">=</span> <span class="fl">1.0</span> <span class="op">/</span> (xi_nodes[a] <span class="op">-</span> xi_nodes[c])</span>
-<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> b <span class="kw">in</span> others:</span>
-<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> b <span class="op">!=</span> c:</span>
-<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>                    term <span class="op">*=</span> (xi <span class="op">-</span> xi_nodes[b]) <span class="op">/</span> (xi_nodes[a] <span class="op">-</span> xi_nodes[b])</span>
-<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a>            dN[a] <span class="op">+=</span> term</span>
-<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> N, dN</span>
-<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>xi_q, w_q <span class="op">=</span> np.polynomial.legendre.leggauss(n_en)   <span class="co"># Gauss points and weights</span></span>
-<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a><span class="co"># ---------- 4-5. Element loop and assembly ----------</span></span>
-<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>K <span class="op">=</span> np.zeros((n_eq, n_eq))</span>
-<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>F <span class="op">=</span> np.zeros(n_eq)</span>
-<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> e <span class="kw">in</span> <span class="bu">range</span>(n_el):</span>
-<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>    xe <span class="op">=</span> x_nodes[IEN[:, e]]                  <span class="co"># 5a. element nodal coordinates</span></span>
-<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>    ke <span class="op">=</span> np.zeros((n_en, n_en))</span>
-<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>    fe <span class="op">=</span> np.zeros(n_en)</span>
-<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> xi, w <span class="kw">in</span> <span class="bu">zip</span>(xi_q, w_q):             <span class="co"># 5b. quadrature loop</span></span>
-<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>        N, dN_dxi <span class="op">=</span> shape(xi)</span>
-<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>        jac <span class="op">=</span> dN_dxi <span class="op">@</span> xe                    <span class="co"># dx/dxi (the 1D Jacobian)</span></span>
-<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>        dN_dx <span class="op">=</span> dN_dxi <span class="op">/</span> jac                 <span class="co"># chain rule</span></span>
-<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>        ke <span class="op">+=</span> kappa <span class="op">*</span> np.outer(dN_dx, dN_dx) <span class="op">*</span> jac <span class="op">*</span> w</span>
-<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>        fe <span class="op">+=</span> N <span class="op">*</span> ell <span class="op">*</span> jac <span class="op">*</span> w</span>
-<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a>    ge <span class="op">=</span> np.array([prescribed.get(IEN[a, e], <span class="fl">0.0</span>) <span class="cf">if</span> LM[a, e] <span class="op">&lt;</span> <span class="dv">0</span> <span class="cf">else</span> <span class="fl">0.0</span></span>
-<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a>                   <span class="cf">for</span> a <span class="kw">in</span> <span class="bu">range</span>(n_en)])    <span class="co"># g^e_a, equation (2.6.3)</span></span>
-<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a>    fe <span class="op">-=</span> ke <span class="op">@</span> ge                            <span class="co"># 5c. known values to the right side</span></span>
-<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> a <span class="kw">in</span> <span class="bu">range</span>(n_en):                    <span class="co"># 5d. assemble with LM</span></span>
-<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>        P <span class="op">=</span> LM[a, e]</span>
-<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> P <span class="op">&lt;</span> <span class="dv">0</span>:</span>
-<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
-<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a>        F[P] <span class="op">+=</span> fe[a]</span>
-<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> b <span class="kw">in</span> <span class="bu">range</span>(n_en):</span>
-<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a>            Q <span class="op">=</span> LM[b, e]</span>
-<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> Q <span class="op">&gt;=</span> <span class="dv">0</span>:</span>
-<span id="cb1-72"><a href="#cb1-72" aria-hidden="true" tabindex="-1"></a>                K[P, Q] <span class="op">+=</span> ke[a, b]</span>
-<span id="cb1-73"><a href="#cb1-73" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-74"><a href="#cb1-74" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> ID[<span class="dv">0</span>] <span class="op">&gt;=</span> <span class="dv">0</span>:                               <span class="co"># natural BC: flux h at x = 0</span></span>
-<span id="cb1-75"><a href="#cb1-75" aria-hidden="true" tabindex="-1"></a>    F[ID[<span class="dv">0</span>]] <span class="op">+=</span> h</span>
-<span id="cb1-76"><a href="#cb1-76" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-77"><a href="#cb1-77" aria-hidden="true" tabindex="-1"></a><span class="co"># ---------- 6-7. Solve and post-process ----------</span></span>
-<span id="cb1-78"><a href="#cb1-78" aria-hidden="true" tabindex="-1"></a>d <span class="op">=</span> np.linalg.solve(K, F)</span>
-<span id="cb1-79"><a href="#cb1-79" aria-hidden="true" tabindex="-1"></a>u_nodes <span class="op">=</span> np.array([d[ID[A]] <span class="cf">if</span> ID[A] <span class="op">&gt;=</span> <span class="dv">0</span> <span class="cf">else</span> prescribed[A] <span class="cf">for</span> A <span class="kw">in</span> <span class="bu">range</span>(n_np)])</span>
-<span id="cb1-80"><a href="#cb1-80" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-81"><a href="#cb1-81" aria-hidden="true" tabindex="-1"></a>exact <span class="op">=</span> g <span class="op">+</span> h <span class="op">/</span> kappa <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> x_nodes) <span class="op">+</span> ell <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> kappa) <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> x_nodes<span class="op">**</span><span class="dv">2</span>)</span>
-<span id="cb1-82"><a href="#cb1-82" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;max nodal error =&quot;</span>, np.<span class="bu">abs</span>(u_nodes <span class="op">-</span> exact).<span class="bu">max</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="co"># Input</span></span>
+<span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a>n_el, p <span class="op">=</span> <span class="dv">4</span>, <span class="dv">1</span>                 <span class="co"># elements, polynomial degree</span></span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a>kappa, ell <span class="op">=</span> <span class="fl">1.0</span>, <span class="fl">2.0</span>          <span class="co"># conductivity, constant source</span></span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>g, h <span class="op">=</span> <span class="fl">0.0</span>, <span class="fl">0.5</span>                <span class="co"># u(1) = g, flux h at x = 0</span></span>
+<span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a>n_en <span class="op">=</span> p <span class="op">+</span> <span class="dv">1</span>                   <span class="co"># nodes per element</span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>n_np <span class="op">=</span> n_el <span class="op">*</span> p <span class="op">+</span> <span class="dv">1</span>            <span class="co"># total nodes</span></span>
+<span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a>x_nodes <span class="op">=</span> np.linspace(<span class="fl">0.0</span>, <span class="fl">1.0</span>, n_np)</span>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a><span class="co"># IEN[a, e]: global node of local node a in element e (Python counts from 0)</span></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>IEN <span class="op">=</span> np.array([[e <span class="op">*</span> p <span class="op">+</span> a <span class="cf">for</span> e <span class="kw">in</span> <span class="bu">range</span>(n_el)] <span class="cf">for</span> a <span class="kw">in</span> <span class="bu">range</span>(n_en)])</span>
+<span id="cb1-13"><a href="#cb1-13" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-14"><a href="#cb1-14" aria-hidden="true" tabindex="-1"></a><span class="co"># ID[A]: equation number, or -1 if fixed (Python&#39;s stand-in for Hughes&#39;s 0)</span></span>
+<span id="cb1-15"><a href="#cb1-15" aria-hidden="true" tabindex="-1"></a>prescribed <span class="op">=</span> {n_np <span class="op">-</span> <span class="dv">1</span>: g}</span>
+<span id="cb1-16"><a href="#cb1-16" aria-hidden="true" tabindex="-1"></a>ID <span class="op">=</span> <span class="op">-</span>np.ones(n_np, dtype<span class="op">=</span><span class="bu">int</span>)</span>
+<span id="cb1-17"><a href="#cb1-17" aria-hidden="true" tabindex="-1"></a>n_eq <span class="op">=</span> <span class="dv">0</span></span>
+<span id="cb1-18"><a href="#cb1-18" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> A <span class="kw">in</span> <span class="bu">range</span>(n_np):</span>
+<span id="cb1-19"><a href="#cb1-19" aria-hidden="true" tabindex="-1"></a>    <span class="cf">if</span> A <span class="kw">not</span> <span class="kw">in</span> prescribed:</span>
+<span id="cb1-20"><a href="#cb1-20" aria-hidden="true" tabindex="-1"></a>        ID[A] <span class="op">=</span> n_eq</span>
+<span id="cb1-21"><a href="#cb1-21" aria-hidden="true" tabindex="-1"></a>        n_eq <span class="op">+=</span> <span class="dv">1</span></span>
+<span id="cb1-22"><a href="#cb1-22" aria-hidden="true" tabindex="-1"></a>LM <span class="op">=</span> ID[IEN]</span>
+<span id="cb1-23"><a href="#cb1-23" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-24"><a href="#cb1-24" aria-hidden="true" tabindex="-1"></a><span class="co"># Basis functions and quadrature</span></span>
+<span id="cb1-25"><a href="#cb1-25" aria-hidden="true" tabindex="-1"></a>xi_nodes <span class="op">=</span> np.linspace(<span class="op">-</span><span class="fl">1.0</span>, <span class="fl">1.0</span>, n_en)</span>
+<span id="cb1-26"><a href="#cb1-26" aria-hidden="true" tabindex="-1"></a><span class="kw">def</span> shape(xi):</span>
+<span id="cb1-27"><a href="#cb1-27" aria-hidden="true" tabindex="-1"></a>    N, dN <span class="op">=</span> np.ones(n_en), np.zeros(n_en)</span>
+<span id="cb1-28"><a href="#cb1-28" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> a <span class="kw">in</span> <span class="bu">range</span>(n_en):</span>
+<span id="cb1-29"><a href="#cb1-29" aria-hidden="true" tabindex="-1"></a>        others <span class="op">=</span> [b <span class="cf">for</span> b <span class="kw">in</span> <span class="bu">range</span>(n_en) <span class="cf">if</span> b <span class="op">!=</span> a]</span>
+<span id="cb1-30"><a href="#cb1-30" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> b <span class="kw">in</span> others:</span>
+<span id="cb1-31"><a href="#cb1-31" aria-hidden="true" tabindex="-1"></a>            N[a] <span class="op">*=</span> (xi <span class="op">-</span> xi_nodes[b]) <span class="op">/</span> (xi_nodes[a] <span class="op">-</span> xi_nodes[b])</span>
+<span id="cb1-32"><a href="#cb1-32" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> c <span class="kw">in</span> others:</span>
+<span id="cb1-33"><a href="#cb1-33" aria-hidden="true" tabindex="-1"></a>            term <span class="op">=</span> <span class="fl">1.0</span> <span class="op">/</span> (xi_nodes[a] <span class="op">-</span> xi_nodes[c])</span>
+<span id="cb1-34"><a href="#cb1-34" aria-hidden="true" tabindex="-1"></a>            <span class="cf">for</span> b <span class="kw">in</span> others:</span>
+<span id="cb1-35"><a href="#cb1-35" aria-hidden="true" tabindex="-1"></a>                <span class="cf">if</span> b <span class="op">!=</span> c:</span>
+<span id="cb1-36"><a href="#cb1-36" aria-hidden="true" tabindex="-1"></a>                    term <span class="op">*=</span> (xi <span class="op">-</span> xi_nodes[b]) <span class="op">/</span> (xi_nodes[a] <span class="op">-</span> xi_nodes[b])</span>
+<span id="cb1-37"><a href="#cb1-37" aria-hidden="true" tabindex="-1"></a>            dN[a] <span class="op">+=</span> term</span>
+<span id="cb1-38"><a href="#cb1-38" aria-hidden="true" tabindex="-1"></a>    <span class="cf">return</span> N, dN</span>
+<span id="cb1-39"><a href="#cb1-39" aria-hidden="true" tabindex="-1"></a>xi_q, w_q <span class="op">=</span> np.polynomial.legendre.leggauss(n_en)</span>
+<span id="cb1-40"><a href="#cb1-40" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-41"><a href="#cb1-41" aria-hidden="true" tabindex="-1"></a><span class="co"># Element loop and assembly</span></span>
+<span id="cb1-42"><a href="#cb1-42" aria-hidden="true" tabindex="-1"></a>K, F <span class="op">=</span> np.zeros((n_eq, n_eq)), np.zeros(n_eq)</span>
+<span id="cb1-43"><a href="#cb1-43" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> e <span class="kw">in</span> <span class="bu">range</span>(n_el):</span>
+<span id="cb1-44"><a href="#cb1-44" aria-hidden="true" tabindex="-1"></a>    xe <span class="op">=</span> x_nodes[IEN[:, e]]</span>
+<span id="cb1-45"><a href="#cb1-45" aria-hidden="true" tabindex="-1"></a>    ke, fe <span class="op">=</span> np.zeros((n_en, n_en)), np.zeros(n_en)</span>
+<span id="cb1-46"><a href="#cb1-46" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> xi, w <span class="kw">in</span> <span class="bu">zip</span>(xi_q, w_q):</span>
+<span id="cb1-47"><a href="#cb1-47" aria-hidden="true" tabindex="-1"></a>        N, dN_dxi <span class="op">=</span> shape(xi)</span>
+<span id="cb1-48"><a href="#cb1-48" aria-hidden="true" tabindex="-1"></a>        jac <span class="op">=</span> dN_dxi <span class="op">@</span> xe</span>
+<span id="cb1-49"><a href="#cb1-49" aria-hidden="true" tabindex="-1"></a>        dN_dx <span class="op">=</span> dN_dxi <span class="op">/</span> jac</span>
+<span id="cb1-50"><a href="#cb1-50" aria-hidden="true" tabindex="-1"></a>        ke <span class="op">+=</span> kappa <span class="op">*</span> np.outer(dN_dx, dN_dx) <span class="op">*</span> jac <span class="op">*</span> w</span>
+<span id="cb1-51"><a href="#cb1-51" aria-hidden="true" tabindex="-1"></a>        fe <span class="op">+=</span> N <span class="op">*</span> ell <span class="op">*</span> jac <span class="op">*</span> w</span>
+<span id="cb1-52"><a href="#cb1-52" aria-hidden="true" tabindex="-1"></a>    ge <span class="op">=</span> np.array([prescribed.get(IEN[a, e], <span class="fl">0.0</span>) <span class="cf">if</span> LM[a, e] <span class="op">&lt;</span> <span class="dv">0</span> <span class="cf">else</span> <span class="fl">0.0</span></span>
+<span id="cb1-53"><a href="#cb1-53" aria-hidden="true" tabindex="-1"></a>                   <span class="cf">for</span> a <span class="kw">in</span> <span class="bu">range</span>(n_en)])</span>
+<span id="cb1-54"><a href="#cb1-54" aria-hidden="true" tabindex="-1"></a>    fe <span class="op">-=</span> ke <span class="op">@</span> ge</span>
+<span id="cb1-55"><a href="#cb1-55" aria-hidden="true" tabindex="-1"></a>    <span class="cf">for</span> a <span class="kw">in</span> <span class="bu">range</span>(n_en):</span>
+<span id="cb1-56"><a href="#cb1-56" aria-hidden="true" tabindex="-1"></a>        P <span class="op">=</span> LM[a, e]</span>
+<span id="cb1-57"><a href="#cb1-57" aria-hidden="true" tabindex="-1"></a>        <span class="cf">if</span> P <span class="op">&lt;</span> <span class="dv">0</span>:</span>
+<span id="cb1-58"><a href="#cb1-58" aria-hidden="true" tabindex="-1"></a>            <span class="cf">continue</span></span>
+<span id="cb1-59"><a href="#cb1-59" aria-hidden="true" tabindex="-1"></a>        F[P] <span class="op">+=</span> fe[a]</span>
+<span id="cb1-60"><a href="#cb1-60" aria-hidden="true" tabindex="-1"></a>        <span class="cf">for</span> b <span class="kw">in</span> <span class="bu">range</span>(n_en):</span>
+<span id="cb1-61"><a href="#cb1-61" aria-hidden="true" tabindex="-1"></a>            Q <span class="op">=</span> LM[b, e]</span>
+<span id="cb1-62"><a href="#cb1-62" aria-hidden="true" tabindex="-1"></a>            <span class="cf">if</span> Q <span class="op">&gt;=</span> <span class="dv">0</span>:</span>
+<span id="cb1-63"><a href="#cb1-63" aria-hidden="true" tabindex="-1"></a>                K[P, Q] <span class="op">+=</span> ke[a, b]</span>
+<span id="cb1-64"><a href="#cb1-64" aria-hidden="true" tabindex="-1"></a><span class="cf">if</span> ID[<span class="dv">0</span>] <span class="op">&gt;=</span> <span class="dv">0</span>:</span>
+<span id="cb1-65"><a href="#cb1-65" aria-hidden="true" tabindex="-1"></a>    F[ID[<span class="dv">0</span>]] <span class="op">+=</span> h</span>
+<span id="cb1-66"><a href="#cb1-66" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-67"><a href="#cb1-67" aria-hidden="true" tabindex="-1"></a><span class="co"># Solve, then map back to nodes</span></span>
+<span id="cb1-68"><a href="#cb1-68" aria-hidden="true" tabindex="-1"></a>d <span class="op">=</span> np.linalg.solve(K, F)</span>
+<span id="cb1-69"><a href="#cb1-69" aria-hidden="true" tabindex="-1"></a>u_nodes <span class="op">=</span> np.array([d[ID[A]] <span class="cf">if</span> ID[A] <span class="op">&gt;=</span> <span class="dv">0</span> <span class="cf">else</span> prescribed[A] <span class="cf">for</span> A <span class="kw">in</span> <span class="bu">range</span>(n_np)])</span>
+<span id="cb1-70"><a href="#cb1-70" aria-hidden="true" tabindex="-1"></a>exact <span class="op">=</span> g <span class="op">+</span> h <span class="op">/</span> kappa <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> x_nodes) <span class="op">+</span> ell <span class="op">/</span> (<span class="dv">2</span> <span class="op">*</span> kappa) <span class="op">*</span> (<span class="dv">1</span> <span class="op">-</span> x_nodes<span class="op">**</span><span class="dv">2</span>)</span>
+<span id="cb1-71"><a href="#cb1-71" aria-hidden="true" tabindex="-1"></a><span class="bu">print</span>(<span class="st">&quot;max nodal error =&quot;</span>, np.<span class="bu">abs</span>(u_nodes <span class="op">-</span> exact).<span class="bu">max</span>())</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
 </div>
 </div>
 </div>
-<p>Four details in that code are easy to get wrong in your own version:</p>
-<ol type="1">
-<li><strong><code>ID</code> is built in ascending node order.</strong> That is the “usual convention” Hughes mentions in Example 1.</li>
-<li><strong><code>ge</code> is nonzero only at prescribed corners</strong>, so <code>fe -= ke @ ge</code> is exactly <span class="math inline">\(-\sum_b k^e_{ab}g^e_b\)</span>.</li>
-<li><strong>Rows with <code>P &lt; 0</code> are skipped</strong>, both for <code>F</code> and for <code>K</code>. Forgetting the column check (<code>Q &gt;= 0</code>) writes known values into the wrong place.</li>
-<li><strong>Post-processing uses <code>ID</code> in reverse</strong> to rebuild the full nodal vector, including the prescribed nodes. Plots and flux calculations need all the nodes, not just the unknowns.</li>
-</ol>
 </section>
-</section>
-<section id="practitioner-checklist-from-these-sections" class="level1">
-<h1>Practitioner checklist from these sections</h1>
-<table class="caption-top table">
-<colgroup>
-<col style="width: 50%">
-<col style="width: 50%">
-</colgroup>
-<thead>
-<tr class="header">
-<th>What to check in any model</th>
-<th>Why it follows from this page</th>
-</tr>
-</thead>
-<tbody>
-<tr class="odd">
-<td>Number of equations = number of nodes × unknowns per node − number of prescribed values</td>
-<td>Definition of <span class="math inline">\(n_{eq}\)</span> and the ID array</td>
-</tr>
-<tr class="even">
-<td>At least one prescribed temperature (thermal) or enough supports to stop rigid motion (structural)</td>
-<td>Theorem part 2 needs <span class="math inline">\(\Gamma_g\)</span> non-empty; otherwise <span class="math inline">\(\boldsymbol{K}\)</span> is singular</td>
-</tr>
-<tr class="odd">
-<td>Element connectivity lists corners in the element’s standard order</td>
-<td>IEN order must match the parent element, or the Jacobian goes negative</td>
-</tr>
-<tr class="even">
-<td>No duplicate or unconnected nodes</td>
-<td>A duplicate node shows up as two equation numbers where there should be one, and the mesh splits apart there</td>
-</tr>
-<tr class="odd">
-<td>Nonzero prescribed values actually change the answer</td>
-<td>They enter only through <span class="math inline">\(-\boldsymbol{k}^e\boldsymbol{g}^e\)</span>; a code that skips it silently treats every prescribed value as zero</td>
-</tr>
-<tr class="even">
-<td>Reactions (or boundary heat flows) balance the applied load</td>
-<td>Reactions come from the rows that were dropped during assembly</td>
-</tr>
-<tr class="odd">
-<td>Boundary data is resolved where it curves</td>
-<td><span class="math inline">\(g^h\)</span> only matches <span class="math inline">\(g\)</span> at nodes (Fig. 2.4.2)</td>
-</tr>
-<tr class="even">
-<td>Fluxes and stresses are discontinuous between elements</td>
-<td>Exercise 1 of Section 2.4: the FE flux jumps across element edges; the size of the jumps indicates error</td>
-</tr>
-</tbody>
-</table>
-<div class="callout callout-style-simple callout-tip callout-titled">
+<section id="why-k-can-be-solved-at-all-the-theorem-in-section-2.4" class="level1">
+<h1>7. Why K can be solved at all (the theorem in Section 2.4)</h1>
+<div class="callout callout-style-simple callout-tip no-icon callout-titled">
 <div class="callout-header d-flex align-content-center">
 <div class="callout-icon-container">
-<i class="callout-icon"></i>
+<i class="callout-icon no-icon"></i>
 </div>
 <div class="callout-title-container flex-fill">
-Looking ahead to solid and fluid mechanics
+Why am I showing you this?
 </div>
 </div>
 <div class="callout-body-container callout-body">
-<p>In heat conduction each node has <strong>one</strong> unknown (temperature). In 2D elasticity each node has <strong>two</strong> (displacement in <span class="math inline">\(x\)</span> and <span class="math inline">\(y\)</span>), and in 2D flow each node can have velocities and a pressure. The arrays stay the same in spirit but gain one more index: <span class="math inline">\(\mathrm{ID}(i,A)\)</span> is the equation number of unknown <span class="math inline">\(i\)</span> at node <span class="math inline">\(A\)</span>, and <span class="math inline">\(\mathrm{LM}(i,a,e)=\mathrm{ID}(i,\mathrm{IEN}(a,e))\)</span>. A support that fixes only the <span class="math inline">\(x\)</span> displacement puts a 0 in <span class="math inline">\(\mathrm{ID}(1,A)\)</span> but not in <span class="math inline">\(\mathrm{ID}(2,A)\)</span>, which is exactly how a roller is modeled.</p>
+<p>This is the math behind “singular matrix” and “zero pivot” errors. It tells you what a model <strong>must</strong> have to be solvable.</p>
 </div>
 </div>
+<p>Hughes proves two things about <span class="math inline">\(\boldsymbol{K}\)</span>:</p>
+<ul>
+<li><strong>Symmetric</strong> (<span class="math inline">\(K_{PQ}=K_{QP}\)</span>), because <span class="math inline">\(a(N_A,N_B)=a(N_B,N_A)\)</span>. Practical effect: codes store only half of it.</li>
+<li><strong>Positive definite</strong>: for any nonzero list of nodal temperatures <span class="math inline">\(\boldsymbol{c}\)</span>, the number <span class="math inline">\(\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}\)</span> is positive. Practical effect: <span class="math inline">\(\boldsymbol{K}\)</span> can always be inverted.</li>
+</ul>
+<p><strong>The argument in three lines.</strong> Let <span class="math inline">\(w\)</span> be the temperature field with nodal values <span class="math inline">\(\boldsymbol{c}\)</span>. Then</p>
+<ol type="1">
+<li><p>It equals the energy of that field, a sum of squares, so it is never negative:</p>
+<p><span class="math display">\[\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}=a(w,w)=\int_\Omega\kappa\,(w_{,x}^2+w_{,y}^2)\,d\Omega\ \ge 0\]</span></p></li>
+<li><p>It is zero only if <span class="math inline">\(w_{,x}=w_{,y}=0\)</span> everywhere, meaning <span class="math inline">\(w\)</span> is a constant.</p></li>
+<li><p><span class="math inline">\(w\)</span> is zero at the fixed nodes, so that constant is 0, so <span class="math inline">\(\boldsymbol{c}=\boldsymbol{0}\)</span>.</p></li>
+</ol>
+<p><strong>Takeaway:</strong> step 3 needs <strong>at least one fixed temperature</strong>. Without one, a uniform temperature shift costs nothing, and <span class="math inline">\(\boldsymbol{K}\)</span> is singular. In structures, the same failure is a model without enough supports to stop it sliding or spinning. You saw this warning in the Section 3 widget.</p>
 </section>
 <section id="check-yourself" class="level1">
 <h1>Check yourself</h1>
 <ol type="1">
-<li>In Example 1, suppose node 12 is also prescribed. What are <span class="math inline">\(n_{eq}\)</span>, <span class="math inline">\(\mathrm{ID}(11)\)</span> and <span class="math inline">\(\mathrm{ID}(12)\)</span>, and which LM entries change?</li>
+<li>In Example 1, node 12 is also fixed. What is <span class="math inline">\(n_{eq}\)</span>, and which LM entry changes?</li>
 </ol>
 <div class="callout callout-style-simple callout-note callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-6-contents" aria-controls="callout-6" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-15-contents" aria-controls="callout-15" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
@@ -6375,17 +5896,17 @@ Answer
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-6" class="callout-6-contents callout-collapse collapse">
+<div id="callout-15" class="callout-15-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
-<p><span class="math inline">\(n_{eq}=7\)</span>, <span class="math inline">\(\mathrm{ID}(11)=7\)</span>, and <span class="math inline">\(\mathrm{ID}(12)=0\)</span>. Node 12 appears in IEN only as <span class="math inline">\(\mathrm{IEN}(3,6)\)</span>, so only <span class="math inline">\(\mathrm{LM}(3,6)\)</span> changes, from 8 to 0. No other numbers shift, because node 12 was the last unknown node.</p>
+<p><span class="math inline">\(n_{eq}=7\)</span>. Node 12 appears only as <span class="math inline">\(\mathrm{IEN}(3,6)\)</span>, so only <span class="math inline">\(\mathrm{LM}(3,6)\)</span> changes, from 8 to 0. Nothing else shifts, because node 12 was the last unknown node.</p>
 </div>
 </div>
 </div>
 <ol start="2" type="1">
-<li>Element 4 of Example 1 has <span class="math inline">\(\mathrm{LM}=(3,4,6,5)\)</span>. Which entry of <span class="math inline">\(\boldsymbol{K}\)</span> receives <span class="math inline">\(k^4_{23}\)</span>? Which receives <span class="math inline">\(k^4_{32}\)</span>?</li>
+<li>Element 4 has <span class="math inline">\(\mathrm{LM}=(3,4,6,5)\)</span>. Where does <span class="math inline">\(k^4_{23}\)</span> go?</li>
 </ol>
 <div class="callout callout-style-simple callout-note callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-7-contents" aria-controls="callout-7" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-16-contents" aria-controls="callout-16" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
@@ -6394,17 +5915,17 @@ Answer
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-7" class="callout-7-contents callout-collapse collapse">
+<div id="callout-16" class="callout-16-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
-<p><span class="math inline">\(k^4_{23}\)</span> goes to row <span class="math inline">\(\mathrm{LM}(2,4)=4\)</span>, column <span class="math inline">\(\mathrm{LM}(3,4)=6\)</span>, so <span class="math inline">\(K_{46}\)</span>. <span class="math inline">\(k^4_{32}\)</span> goes to <span class="math inline">\(K_{64}\)</span>. Because <span class="math inline">\(\boldsymbol{k}^4\)</span> is symmetric, they are the same number, which is why codes often assemble only one of them.</p>
+<p>Row <span class="math inline">\(\mathrm{LM}(2,4)=4\)</span>, column <span class="math inline">\(\mathrm{LM}(3,4)=6\)</span>: <span class="math inline">\(K_{46}\)</span>.</p>
 </div>
 </div>
 </div>
 <ol start="3" type="1">
-<li>In Example 2, why does <span class="math inline">\(f^e_1\)</span> get <span class="math inline">\(-k^e_{12}g^e_2\)</span> but <strong>not</strong> a <span class="math inline">\(-k^e_{14}g^e_4\)</span> term?</li>
+<li>A 1D bar has 3 elements with both ends fixed. Write ID and LM.</li>
 </ol>
 <div class="callout callout-style-simple callout-note callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-8-contents" aria-controls="callout-8" aria-expanded="false" aria-label="Toggle callout">
+<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-17-contents" aria-controls="callout-17" aria-expanded="false" aria-label="Toggle callout">
 <div class="callout-icon-container">
 <i class="callout-icon"></i>
 </div>
@@ -6413,47 +5934,9 @@ Answer
 </div>
 <div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
 </div>
-<div id="callout-8" class="callout-8-contents callout-collapse collapse">
+<div id="callout-17" class="callout-17-contents callout-collapse collapse">
 <div class="callout-body-container callout-body">
-<p>Corner 4 is not prescribed (<span class="math inline">\(\mathrm{LM}(4,e)=9\neq0\)</span>), so <span class="math inline">\(g^e_4=0\)</span> by (2.6.3). Its temperature <span class="math inline">\(d_9\)</span> is an unknown, and its coupling <span class="math inline">\(k^e_{14}\)</span> goes into <span class="math inline">\(K_{59}\)</span> on the left side of the equations instead.</p>
-</div>
-</div>
-</div>
-<ol start="4" type="1">
-<li>A 1D bar has three linear elements and both ends prescribed. Write ID and LM.</li>
-</ol>
-<div class="callout callout-style-simple callout-note callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-9-contents" aria-controls="callout-9" aria-expanded="false" aria-label="Toggle callout">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Answer
-</div>
-<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
-</div>
-<div id="callout-9" class="callout-9-contents callout-collapse collapse">
-<div class="callout-body-container callout-body">
-<p>Nodes 1 to 4, with nodes 1 and 4 prescribed: <span class="math inline">\(\mathrm{ID}=(0,1,2,0)\)</span> and <span class="math inline">\(n_{eq}=2\)</span>. IEN columns are <span class="math inline">\((1,2)\)</span>, <span class="math inline">\((2,3)\)</span>, <span class="math inline">\((3,4)\)</span>, so LM columns are <span class="math inline">\((0,1)\)</span>, <span class="math inline">\((1,2)\)</span>, <span class="math inline">\((2,0)\)</span>. Elements 1 and 3 each put a single number into <span class="math inline">\(\boldsymbol{K}\)</span>; element 2 puts all four. You can check this in the 1D widget with “Both ends prescribed” and 3 elements.</p>
-</div>
-</div>
-</div>
-<ol start="5" type="1">
-<li>A colleague’s 2D thermal model has convection-free heat-flux boundaries all the way around and no prescribed temperature anywhere. The solver stops with “zero pivot.” Explain in one or two sentences, using the theorem.</li>
-</ol>
-<div class="callout callout-style-simple callout-note callout-titled">
-<div class="callout-header d-flex align-content-center" data-bs-toggle="collapse" data-bs-target=".callout-10-contents" aria-controls="callout-10" aria-expanded="false" aria-label="Toggle callout">
-<div class="callout-icon-container">
-<i class="callout-icon"></i>
-</div>
-<div class="callout-title-container flex-fill">
-Answer
-</div>
-<div class="callout-btn-toggle d-inline-block border-0 py-1 ps-1 pe-0 float-end"><i class="callout-toggle"></i></div>
-</div>
-<div id="callout-10" class="callout-10-contents callout-collapse collapse">
-<div class="callout-body-container callout-body">
-<p>With no prescribed temperature, <span class="math inline">\(\eta_g\)</span> is empty, so a uniform temperature everywhere (all <span class="math inline">\(c_P\)</span> equal and nonzero) gives <span class="math inline">\(\nabla w^h=0\)</span> and <span class="math inline">\(\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}=0\)</span>. <span class="math inline">\(\boldsymbol{K}\)</span> is therefore not positive definite but singular, and elimination hits a zero pivot. Physically, flux conditions alone fix how much heat flows but not the temperature level; the model needs at least one temperature (or a convection boundary) to pin it.</p>
+<p><span class="math inline">\(\mathrm{ID}=(0,1,2,0)\)</span>, <span class="math inline">\(n_{eq}=2\)</span>. LM columns: <span class="math inline">\((0,1)\)</span>, <span class="math inline">\((1,2)\)</span>, <span class="math inline">\((2,0)\)</span>. Check it in the Section 5 widget.</p>
 </div>
 </div>
 </div>

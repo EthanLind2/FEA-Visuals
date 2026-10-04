@@ -1,6 +1,6 @@
 ---
-title: "The bookkeeping arrays: ID, IEN and LM"
-subtitle: "Hughes, Sections 2.4 (Galerkin form and the ID array), 2.6 (IEN and LM, Examples 1 and 2), and 1.14 (the 1D version), plus the layout of a finite element program"
+title: "ID, IEN and LM: where does each number go?"
+subtitle: "Hughes 2.4 (the ID array), 2.6 (IEN, LM, Examples 1 and 2), and 1.14 (the 1D version)"
 format:
   html:
     theme:
@@ -8,7 +8,7 @@ format:
       dark: darkly
     respect-user-color-scheme: true
     toc: true
-    toc-depth: 2
+    toc-depth: 1
     toc-location: left
     embed-resources: true
     html-math-method: mathjax
@@ -17,10 +17,6 @@ format:
 execute:
   echo: false
 ---
-
-::: {.callout-note appearance="minimal"}
-**How to use this page.** Each part opens with its goal, and every equation is followed by a short *where* list that defines its symbols. The gray boxes are live: click nodes and elements in the mesh, type numbers into the LM boxes, and drag the sliders. The interactive pieces work offline; the equations need an internet connection to typeset. Related pages: [Section 3.3](hughes-3-3-isoparametric.html) and [Section 3.9](hughes-3-9-shape-function-derivatives.html).
-:::
 
 ```{=html}
 <style>
@@ -107,374 +103,114 @@ window.FE=(function(){
 </script>
 ```
 
-# The big picture: what is the goal of these sections?
-
-Up to now, the finite element method has been mostly **math**: pick shape functions, plug them into the weak form, and get a matrix equation $\boldsymbol{K}\boldsymbol{d}=\boldsymbol{F}$. These sections answer a very practical question:
-
-> **When a program adds element $e$'s little matrix into the big matrix $\boldsymbol{K}$, how does it know which rows and columns to put each number in?**
-
-The answer is three lookup tables. Each one translates between two of the **three numbering systems** that every finite element program juggles:
-
-| Numbering system | Symbol | Example | Who uses it |
-|---|:---:|---|---|
-| **Local** node number: which corner of *this* element | $a$, $b$ | "node 3 of element 2" | the element routine that computes $\boldsymbol{k}^e$ and $\boldsymbol{f}^e$ |
-| **Global** node number: which node of the whole mesh | $A$, $B$ | "node 6" | the mesh, the input file, the plots |
-| **Global equation** number: which row of $\boldsymbol{K}$ | $P$, $Q$ | "row 4" | the equation solver |
-
-```{mermaid}
-%%| fig-cap: "The three numbering systems and the three tables that connect them. LM is just IEN followed by ID, stored once so the program does not have to do two lookups every time."
-flowchart LR
-  L["Local node a of element e<br>(a = 1, ..., n_en)"] -- "IEN(a, e)" --> G["Global node A<br>(A = 1, ..., n_np)"]
-  G -- "ID(A)" --> P["Equation number P<br>(P = 1, ..., n_eq, or 0 if prescribed)"]
-  L -. "LM(a, e) = ID(IEN(a, e))" .-> P
-```
-
-Why are there three systems instead of one?
-
-- **Elements are all alike.** The routine that computes an element stiffness matrix should not care where the element sits in the mesh. So it numbers the element's corners $1,2,3,4$ every time.
-- **Nodes are numbered once for the whole mesh.** That is what your mesh generator or input file does.
-- **Not every node gets an equation.** At a node where the temperature (or displacement) is *prescribed*, the value is already known, so there is nothing to solve for. Those nodes are skipped when equations are numbered, which is why node numbers and equation numbers stop lining up as soon as you have boundary conditions anywhere other than the last node.
-
-**Why this matters to you as a practitioner.** Every commercial code (ANSYS, Abaqus, COMSOL) builds exactly these tables behind the scenes. When a model has a missing support, a duplicated node, an element with its corners listed in the wrong order, or a load that seems to vanish, the bug lives in these tables. Knowing them is also what lets you read a solver's "DOF numbering," "connectivity," and "reaction force" output and understand it. And your class code is about to be rebuilt around them.
-
-## Notation used on this page
-
-| Symbol | Read as | Meaning |
-|:---:|---|---|
-| $n_{np}$ | "n n p" | **n**umber of **n**odal **p**oints (all nodes in the mesh) |
-| $n_{el}$ | "n e l" | **n**umber of **el**ements |
-| $n_{en}$ | "n e n" | **n**umber of **e**lement **n**odes (4 for the four-node rectangle, 2 for a 1D linear element) |
-| $n_{eq}$ | "n e q" | **n**umber of **eq**uations = number of unknowns = size of $\boldsymbol{K}$ |
-| $\eta$ | "eta" | the **set** of all global node numbers, $\{1,2,\dots,n_{np}\}$ |
-| $\eta_g$ | "eta sub g" | the set of **g-nodes**: nodes where the value is prescribed |
-| $\eta-\eta_g$ | "eta minus eta g" | the nodes left over after removing the g-nodes: the **unknown** nodes |
-| $\mathrm{ID}(A)$ | "I D of A" | equation number of node $A$ (0 if $A$ is a g-node) |
-| $\mathrm{IEN}(a,e)$ | "I E N of a, e" | global node number of local node $a$ of element $e$ |
-| $\mathrm{LM}(a,e)$ | "L M of a, e" | equation number of local node $a$ of element $e$ (0 if prescribed) |
-| $\boldsymbol{k}^e,\ \boldsymbol{f}^e$ | "k e, f e" | element stiffness matrix ($n_{en}\times n_{en}$) and element force vector ($n_{en}\times 1$) |
-| $\leftarrow$ | "is replaced by" | the update in code: `K[P,Q] += ...` |
-
-**Set notation, quickly.** Curly brackets list the members of a set: $\eta_g=\{1,4,7,10\}$. The symbol $\in$ means "is a member of," so $A\in\eta_g$ reads "node $A$ is a g-node." $\eta_g\subset\eta$ means "$\eta_g$ is part of $\eta$." Subtracting sets removes members: $\{1,2,3,4\}-\{1,4\}=\{2,3\}$.
-
-::: {.callout-warning}
-## Script letters in your ebook
-
-The ebook does not render Hughes's script letters well. On this page:
-
-- $g$ is the **prescribed temperature** (the book's script *g*). In your screenshots it often shows as a tiny squiggle, as in "$u=$ ⸱ on $\Gamma_g$".
-- $h$ is the **prescribed heat flux** and $\ell$ is the **heat source** (both script letters in the book).
-- $\mathcal{S}^h$ and $\mathcal{V}^h$ are the collections of trial and weighting functions. They may show up as a small *s* and *v*.
+::: {.callout-note appearance="minimal"}
+Every section starts with a **Why am I showing you this?** box. If a section doesn't deliver on its box, it's padding: skip it and tell me.
 :::
 
-# Part 1. Section 2.4: the Galerkin equations in 2D and 3D, and the ID array
+# The one question this reading answers
 
-**Goal of this part.** Redo the 1D recipe from Sections 1.5 and 1.6 for a heat-conduction problem in 2D or 3D, arrive at one equation per unknown node (2.4.6), and then see why a translation table from nodes to equations (the ID array) is needed.
+::: {.callout-tip icon=false}
+## Why am I showing you this?
+Your Project 1 code most likely drops element $e$ into rows $e$ and $e+1$. That only works for 1D linear elements with the fixed node at the end. Change the element order, the boundary conditions, or the dimension, and it breaks. The three tables on this page are the version that always works, and your code is about to be rebuilt around them.
+:::
 
-## Step 1.1: the problem being solved
+Your element routine hands you a small matrix $\boldsymbol{k}^e$. For a four-node element it is $4\times4$, and its rows and columns are numbered by **corner of the element**: 1, 2, 3, 4.
 
-In 2D or 3D, the domain is a region $\Omega$ (Greek capital omega), for example a plate or a heat-sink cross section. Its boundary $\Gamma$ (capital gamma) is split in two:
+The global $\boldsymbol{K}$ has rows numbered by **equation**: 1 to $n_{eq}$.
 
-- $\Gamma_g$: where the **temperature is prescribed**, $u=g$. This is an **essential** boundary condition.
-- $\Gamma_h$: where the **heat flux is prescribed**, $h$. This is a **natural** boundary condition.
+**Where in $\boldsymbol{K}$ does each of those 16 numbers go?**
 
-The weak form uses three integrals. The first is (2.3.17):
+Three lookup tables answer that:
 
-$$
-a(w,u)=\int_\Omega (\nabla w)^T\,\boldsymbol{\kappa}\,(\nabla u)\,d\Omega \tag{2.3.17}
-$$
+| Table | You give it | It gives back | Example from Fig. 2.6.1 |
+|---|---|---|---|
+| $\mathrm{IEN}(a,e)$ | corner $a$ of element $e$ | global node number $A$ | $\mathrm{IEN}(3,1)=5$ |
+| $\mathrm{ID}(A)$ | global node $A$ | equation number $P$, or 0 if that node's temperature is fixed | $\mathrm{ID}(5)=3$ |
+| $\mathrm{LM}(a,e)$ | corner $a$ of element $e$ | equation number $P$ (it is ID applied to IEN) | $\mathrm{LM}(3,1)=3$ |
 
-where:
+The answer to the question, in one line:
 
-- $u(\boldsymbol{x})$ is the **temperature** at a point $\boldsymbol{x}=(x,y)$, and $w(\boldsymbol{x})$ is a **weighting function** (the mathematical probe from Section 1.4).
-- $\nabla w$ ("grad $w$") is the **gradient**: the column of slopes $\begin{Bmatrix}w_{,x}\\ w_{,y}\end{Bmatrix}$. It points uphill, toward increasing $w$.
-- $\boldsymbol{\kappa}$ (kappa) is the **conductivity matrix**. For an ordinary isotropic material it is just $\kappa\boldsymbol{I}$ (the same conductivity in every direction). It becomes a full matrix for materials like composites or wood that conduct better along the grain.
-- The superscript $T$ is the **transpose**: it turns a column into a row so the product is a single number.
-- $d\Omega$ is a tiny piece of area (or volume in 3D).
+> $k^e_{ab}$ is added to $\boldsymbol{K}$ at **row $\mathrm{LM}(a,e)$, column $\mathrm{LM}(b,e)$**. If either one is 0, it does not go into $\boldsymbol{K}$.
 
-For an isotropic material, multiply it out:
-
-$$
-(\nabla w)^T\,\kappa\boldsymbol{I}\,(\nabla u)
-=\kappa\begin{bmatrix}w_{,x} & w_{,y}\end{bmatrix}\begin{Bmatrix}u_{,x}\\ u_{,y}\end{Bmatrix}
-=\kappa\,(w_{,x}u_{,x}+w_{,y}u_{,y})
-$$
-
-This is the 2D version of the 1D integrand $w_{,x}u_{,x}$. The other two integrals are
-
-$$
-(w,\ell)=\int_\Omega w\,\ell\,d\Omega,\qquad (w,h)_\Gamma=\int_{\Gamma_h} w\,h\,d\Gamma
-$$
-
-where $\ell$ is the heat generated per unit volume and $d\Gamma$ is a tiny piece of boundary length (or area in 3D).
-
-## Step 1.2: split the approximate solution into "unknown" and "known" parts (2.4.1, 2.4.2)
-
-Exactly as in Section 1.5:
-
-$$
-u^h=v^h+g^h \tag{2.4.1}
-$$
-
-where:
-
-- $u^h$ is the finite element temperature field. The superscript $h$ means "built on a mesh," not a power.
-- $v^h$ is the part we solve for. It belongs to $\mathcal{V}^h$, so it is zero (or nearly zero) on $\Gamma_g$.
-- $g^h$ is a known function that carries the prescribed temperature on $\Gamma_g$.
-
-The Galerkin problem (G) is: given $\ell$, $g$ and $h$, find $u^h=v^h+g^h$ such that **for every** $w^h$ in $\mathcal{V}^h$,
-
-$$
-a(w^h,v^h)=(w^h,\ell)+(w^h,h)_\Gamma-a(w^h,g^h) \tag{2.4.2}
-$$
-
-The last term, $-a(w^h,g^h)$, moved to the right side because $g^h$ is known. You saw the same move in 1D.
-
-## Step 1.3: nodes, g-nodes and equations
-
-Now the domain is chopped into elements $\Omega^e$, $e=1,\dots,n_{el}$ (Fig. 2.4.1). The book defines:
-
-- $\eta=\{1,2,\dots,n_{np}\}$: every node number.
-- $\eta_g$: the **g-nodes**, where $u^h=g$ is prescribed.
-- $\eta-\eta_g$: the nodes where $u^h$ is **unknown**.
-- $n_{eq}$: how many nodes are in $\eta-\eta_g$. That is the number of equations.
-
-**Example (the mesh of Section 2.6, Fig. 2.6.1).** Twelve nodes, with the left edge held at a known temperature:
-
-$$
-\eta=\{1,2,\dots,12\},\quad \eta_g=\{1,4,7,10\},\quad \eta-\eta_g=\{2,3,5,6,8,9,11,12\},\quad n_{eq}=12-4=8
-$$
-
-## Step 1.4: write each function as a sum over nodes (2.4.3 to 2.4.5)
-
-$$
-w^h(\boldsymbol{x})=\sum_{A\in\eta-\eta_g}N_A(\boldsymbol{x})\,c_A \tag{2.4.3}
-$$
-
-$$
-v^h(\boldsymbol{x})=\sum_{A\in\eta-\eta_g}N_A(\boldsymbol{x})\,d_A \tag{2.4.4}
-$$
-
-$$
-g^h(\boldsymbol{x})=\sum_{A\in\eta_g}N_A(\boldsymbol{x})\,g_A,\qquad g_A=g(\boldsymbol{x}_A) \tag{2.4.5}
-$$
-
-where:
-
-- $\sum_{A\in\eta-\eta_g}$ means "add up one term for each unknown node $A$."
-- $N_A$ is the **shape function of node $A$**: 1 at node $A$, 0 at every other node, and nonzero only on the elements that touch node $A$.
-- $c_A$ are **arbitrary** constants (any values at all). They describe a generic weighting function.
-- $d_A$ is the **unknown temperature at node $A$**: what the solver computes.
-- $g_A$ is the **prescribed temperature at g-node $A$**, found by evaluating the given boundary function $g$ at that node's coordinates $\boldsymbol{x}_A$.
-
-Notice that $w^h$ and $v^h$ only use the unknown nodes, and $g^h$ only uses the g-nodes.
-
-**An error source hiding in (2.4.5).** $g^h$ matches the true boundary temperature $g$ only **at the nodes**. Between nodes it follows whatever shape the shape functions have: straight lines for linear elements. Hughes calls this the boundary data being "straightened out" (Fig. 2.4.2). Drag the slider to see how much error a coarse boundary mesh introduces:
-
-```{=html}
-<div class="fe-widget">
-<div class="fe-ctrl"><label for="gb-n">nodes on Γ_g</label><input type="range" id="gb-n" min="2" max="12" step="1" value="4"><output id="gb-n-v"></output></div>
-<div id="gb-plot"></div>
-<p class="fe-out" id="gb-out"></p>
-</div>
-<script>
-FE.bind(['gb-n'],function(){
-  const n=FE.val('gb-n'),g=s=>40+25*Math.sin(2.6*s)+8*Math.sin(7*s);
-  const ex=[];for(let i=0;i<=200;i++){const s=i/200;ex.push([s,g(s)]);}
-  const nod=[];for(let i=0;i<n;i++){const s=i/(n-1);nod.push([s,g(s)]);}
-  let emax=0,smax=0;for(let i=0;i<=400;i++){const s=i/400;const k=Math.min(n-2,Math.floor(s*(n-1)));const t=s*(n-1)-k;const gh=(1-t)*nod[k][1]+t*nod[k+1][1];const er=Math.abs(gh-g(s));if(er>emax){emax=er;smax=s;}}
-  FE.plot('gb-plot',{x:[0,1],y:[20,80],height:260,label:'prescribed boundary temperature versus its nodal interpolate',xlabel:'distance along the boundary Γ_g',ylabel:'temperature',
-    lines:[{pts:ex,color:FE.C.gray,dash:true},{pts:nod,color:FE.C.orange,width:2.5}],
-    dots:nod.map(q=>({x:q[0],y:q[1],color:FE.C.orange,r:4})),
-    legend:[{label:'true g (what you meant to prescribe)',color:FE.C.gray,dash:true},{label:'gʰ (what the model actually uses)',color:FE.C.orange}]});
-  document.getElementById('gb-out').innerHTML='With '+n+' boundary nodes, the largest difference between g and gʰ is <b>'+emax.toFixed(1)+'°</b>, at '+smax.toFixed(2)+' of the way along. It is exactly zero at every node.';
-});
-</script>
+```{mermaid}
+%%| fig-cap: "Corner → node → equation. LM does both steps at once."
+flowchart LR
+  L["corner a of element e"] -- "IEN" --> G["global node A"]
+  G -- "ID" --> P["row P of K<br>(0 = fixed, no row)"]
+  L -. "LM = ID(IEN)" .-> P
 ```
 
-Hughes lists two more error sources of the same kind: replacing $\ell$ and $h$ by approximations $\ell^h$ and $h^h$, and element edges that do not exactly follow a curved boundary. **None of these errors goes away by refining the interior of the mesh.** You have to refine where the data or the geometry is curved.
 
-## Step 1.5: derive one equation per unknown node (2.4.6)
+# 1. ID: why node numbers ≠ equation numbers (Section 2.4)
 
-This is the same argument as Section 1.6, line by line.
+::: {.callout-tip icon=false}
+## Why am I showing you this?
+You only solve for temperatures you **don't** know. A node with a fixed temperature gets no row in $\boldsymbol{K}$. So the rows of $\boldsymbol{K}$ can't just be the node numbers: there would be gaps. ID is the list that closes the gaps.
+:::
 
-**(a) Move everything in (2.4.2) to one side.**
+**The example used all through Section 2.6 (Fig. 2.6.1):** 12 nodes, 6 square elements, left edge held at a known temperature.
 
-$$
-0=a(w^h,v^h)-(w^h,\ell)-(w^h,h)_\Gamma+a(w^h,g^h)
-$$
+Hughes's notation for this:
 
-**(b) Substitute $w^h=\sum_A N_A c_A$.** Each of the four terms is linear in its first slot (this is the bilinearity from Section 1.4, Exercise 1). That means a sum and a constant can be pulled out of the first slot: $a\big(\sum_A N_A c_A,\,u\big)=\sum_A c_A\,a(N_A,u)$. Do this to all four terms:
+- $n_{np}=12$: **n**umber of **n**odal **p**oints.
+- $\eta=\{1,2,\dots,12\}$: the set of all node numbers ($\eta$ is "eta").
+- $\eta_g=\{1,4,7,10\}$: the **g-nodes**, where the temperature $g$ is prescribed.
+- $\eta-\eta_g=\{2,3,5,6,8,9,11,12\}$: the nodes left over, where temperature is unknown.
+- $n_{eq}=12-4=8$: the number of unknowns, so $\boldsymbol{K}$ is $8\times8$.
 
-$$
-0=\sum_{A\in\eta-\eta_g}c_A\underbrace{\Big[a(N_A,v^h)-(N_A,\ell)-(N_A,h)_\Gamma+a(N_A,g^h)\Big]}_{G_A}
-$$
-
-where $G_A$ is a single number for each unknown node $A$ (the book's bookkeeping quantity from Section 1.6).
-
-**(c) Use "for every $w^h$."** The equation $0=\sum_A c_A G_A$ must hold for **every** choice of the constants $c_A$. Choose $c_A=1$ for one node and $0$ for all the others; the sum collapses to that single $G_A$, so it must be zero. Repeat for every node:
-
-$$
-G_A=0\quad\text{for each } A\in\eta-\eta_g
-\qquad\Longrightarrow\qquad
-a(N_A,v^h)=(N_A,\ell)+(N_A,h)_\Gamma-a(N_A,g^h)
-$$
-
-**(d) Substitute $v^h$ and $g^h$.** Now use linearity in the **second** slot, $a\big(u,\sum_B N_B d_B\big)=\sum_B a(u,N_B)\,d_B$:
-
-$$
-\boxed{\sum_{B\in\eta-\eta_g}a(N_A,N_B)\,d_B=(N_A,\ell)+(N_A,h)_\Gamma-\sum_{B\in\eta_g}a(N_A,N_B)\,g_B,\qquad A\in\eta-\eta_g} \tag{2.4.6}
-$$
-
-where:
-
-- $A$ labels **which equation** this is (one per unknown node). $B$ is the **summation** index, running over nodes.
-- $a(N_A,N_B)$ measures how strongly node $A$ and node $B$ are coupled. It is **zero unless the two nodes share an element**, because otherwise $N_A$ and $N_B$ are never nonzero at the same place.
-- The left side multiplies the **unknowns** $d_B$. The right side is all **known**: heat source, boundary flux, and the effect of the prescribed temperatures $g_B$ on neighboring nodes.
-
-**Concrete look.** In the Fig. 2.6.1 mesh, take node $A=5$, the interior node in the second row. It touches elements 1 to 4, which contain nodes 1 to 9. So the equation for node 5 contains
-
-- unknowns $d_2,d_3,d_5,d_6,d_8,d_9$ on the left (its unknown neighbors, and itself);
-- known terms $g_1,g_4,g_7$ on the right (its prescribed neighbors).
-
-## Step 1.6: why the ID array is needed (2.4.7)
-
-Equation (2.4.6) labels rows by **node** numbers, and those skip the g-nodes: the unknown nodes are $2,3,5,6,8,9,11,12$. A matrix needs rows numbered $1,2,\dots,n_{eq}$ with no gaps. In Section 1.9 (1D) node numbers and equation numbers happened to coincide, because the only g-node was the last one. In 2D and 3D, requiring that would force you to number nodes in an awkward order. So Hughes introduces a translation table:
-
-$$
-\mathrm{ID}(A)=\begin{cases}P & \text{if } A\in\eta-\eta_g\\[2pt] 0 & \text{if } A\in\eta_g\end{cases} \tag{2.4.7}
-$$
-
-where:
-
-- $P$ is the **global equation number** of node $A$, with $1\le P\le n_{eq}$.
-- **0 is a flag** meaning "this node is prescribed, so it has no equation."
-- ID has $n_{np}$ entries, one per node. The book also calls it the **destination array**: it tells each node where its equation goes.
-
-**How to build it.** Walk through the nodes in ascending order with a counter. Skip g-nodes (give them 0); give every other node the next counter value. For Fig. 2.6.1:
+**Build ID:** go through the nodes in order with a counter. Fixed node → 0. Unknown node → next count.
 
 | node $A$ | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
 |---|---|---|---|---|---|---|---|---|---|---|---|---|
-| g-node? | yes | | | yes | | | yes | | | yes | | |
 | $\mathrm{ID}(A)$ | **0** | 1 | 2 | **0** | 3 | 4 | **0** | 5 | 6 | **0** | 7 | 8 |
 
-So the equation for node 5 becomes **row 3**, and its unknown neighbors $d_2,d_3,d_5,d_6,d_8,d_9$ become **columns** $1,2,3,4,5,6$.
-
-## Step 1.7: the matrix form (2.4.8 to 2.4.11)
-
-With ID, (2.4.6) becomes an ordinary matrix equation:
+That is Hughes's definition (2.4.7):
 
 $$
-\boldsymbol{K}\boldsymbol{d}=\boldsymbol{F} \tag{2.4.8}
+\mathrm{ID}(A)=\begin{cases}P & \text{if node } A \text{ is unknown}\\ 0 & \text{if node } A \text{ is fixed}\end{cases}
 $$
 
-$$
-\boldsymbol{K}=[K_{PQ}],\qquad \boldsymbol{d}=\{d_Q\},\qquad \boldsymbol{F}=\{F_P\},\qquad 1\le P,Q\le n_{eq} \tag{2.4.9}
-$$
+**What it buys you** (2.4.10): the coupling between node $A$ and node $B$ goes in row $\mathrm{ID}(A)$, column $\mathrm{ID}(B)$:
 
 $$
-K_{PQ}=a(N_A,N_B),\qquad P=\mathrm{ID}(A),\qquad Q=\mathrm{ID}(B) \tag{2.4.10}
+K_{PQ}=a(N_A,N_B),\qquad P=\mathrm{ID}(A),\quad Q=\mathrm{ID}(B)
 $$
 
-$$
-F_P=(N_A,\ell)+(N_A,h)_\Gamma-\sum_{B\in\eta_g}a(N_A,N_B)\,g_B \tag{2.4.11}
-$$
+where $a(N_A,N_B)=\int_\Omega \kappa\,(N_{A,x}N_{B,x}+N_{A,y}N_{B,y})\,d\Omega$ is the 2D version of the 1D stiffness integral $\int N_{A,x}N_{B,x}\,dx$. It is zero unless nodes $A$ and $B$ share an element.
 
-where square brackets $[\;]$ mean "the matrix whose entries are" and curly brackets $\{\;\}$ mean "the column vector whose entries are." Read (2.4.10) as: **the coupling between node $A$ and node $B$ goes in row $\mathrm{ID}(A)$, column $\mathrm{ID}(B)$.**
-
-## Step 1.8: the theorem: $\boldsymbol{K}$ is symmetric and positive definite
-
-These two properties are what make $\boldsymbol{K}\boldsymbol{d}=\boldsymbol{F}$ solvable and cheap to solve, so it is worth seeing where they come from.
-
-**Part 1: symmetric** means $K_{PQ}=K_{QP}$ (the matrix is a mirror image across its diagonal):
-
-$$
-K_{PQ}=a(N_A,N_B)=a(N_B,N_A)=K_{QP}
-$$
-
-The middle step uses the symmetry of $a(\cdot,\cdot)$: swapping $w$ and $u$ in $(\nabla w)^T\boldsymbol{\kappa}(\nabla u)$ gives the same number as long as $\boldsymbol{\kappa}$ is itself symmetric.
-
-**Part 2: positive definite.** A matrix is positive definite when
-
-- (i) $\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}\ge 0$ for every vector $\boldsymbol{c}$, and
-- (ii) $\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}=0$ only when $\boldsymbol{c}=\boldsymbol{0}$.
-
-Here $\boldsymbol{c}$ is any list of $n_{eq}$ numbers, and $\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}=\sum_{P}\sum_{Q}c_P K_{PQ} c_Q$ is a single number (called a **quadratic form**). Physically it is an **energy**: think "$\tfrac12 kx^2$" for a spring, with $\boldsymbol{c}$ playing the role of $x$. Positive definite means every nonzero temperature pattern costs positive "energy," so the matrix can be inverted.
-
-**Proof of (i), one step at a time.** Pair each equation number $P$ with its node $A$ through $P=\mathrm{ID}(A)$, and write $\bar c_A=c_P$ (the same number, labeled by node instead of equation). Then build the weighting function $w^h=\sum_A N_A\bar c_A$.
-
-$$
-\begin{aligned}
-\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}
-&=\sum_{P,Q=1}^{n_{eq}}c_P\,K_{PQ}\,c_Q &&\text{(matrix multiplication written out)}\\
-&=\sum_{A,B\in\eta-\eta_g}\bar c_A\,a(N_A,N_B)\,\bar c_B &&\text{(relabel with ID, use (2.4.10))}\\
-&=a\Big(\sum_A N_A\bar c_A,\ \sum_B N_B\bar c_B\Big) &&\text{(bilinearity, run backward)}\\
-&=a(w^h,w^h) &&\text{(definition of } w^h\text{)}\\
-&=\int_\Omega w^h_{,i}\,\kappa_{ij}\,w^h_{,j}\,d\Omega\ \ge 0 &&\text{(conductivity is positive definite)}
-\end{aligned}
-$$
-
-The last line is (2.3.17) in index notation: $w_{,i}\kappa_{ij}w_{,j}$ means $\sum_i\sum_j$ (repeated indices are summed). It is never negative because heat always flows from hot to cold: there is no direction with zero or negative conductivity. For an isotropic material it is just $\kappa\,(w_{,x}^2+w_{,y}^2)\ge0$, a sum of squares.
-
-**Proof of (ii).** Suppose $\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}=0$. Then the integral of a never-negative quantity is zero, so the quantity is zero everywhere: $\nabla w^h=\boldsymbol{0}$. A function with zero slope everywhere is a **constant**. But $w^h=0$ on $\Gamma_g$, so that constant is 0. So $w^h=0$ everywhere, which forces every $\bar c_A$, and hence every $c_P$, to be 0. ∎
-
-**Remark 1 in practice.** The proof used two things: positive conductivity, **and** a non-empty $\Gamma_g$ (somewhere the temperature is fixed). Remove all prescribed temperatures and a uniform temperature shift costs zero energy, so $\boldsymbol{K}$ is **singular**. This is the reason a thermal model with only prescribed-flux boundaries (no fixed temperature anywhere), or a structural model without enough supports, fails with "singular matrix" or "zero pivot."
-
-**Remark 2 in practice.** Because $a(N_A,N_B)=0$ unless nodes $A$ and $B$ share an element, $\boldsymbol{K}$ is **sparse and banded**: its nonzeros cluster near the diagonal. How tightly they cluster depends on how the nodes are numbered. You can see this in the mesh explorer in Part 2.
+**Takeaway:** $n_{eq}$ = (number of nodes) − (number of fixed values). If your $\boldsymbol{K}$ is the wrong size, recount this first.
 
 ::: {.callout-note collapse="true"}
-## What Section 2.4's Exercise 1 is about (no solution)
+## Where Hughes's equation (2.4.6) comes from (same algebra you did in Section 1.6)
 
-It asks you to redo the weak-form-to-strong-form argument of Section 1.4 when $u$ and $w$ are smooth **inside** each element but may have kinks across element edges, which is exactly what $C^0$ finite element functions look like. The result is three statements: the heat equation holds inside each element, the flux condition holds on $\Gamma_h$, and the **jump** in normal heat flux across every interior element edge is zero. The notation $[q_n]$ is that jump: flux leaving one side minus flux arriving on the other.
+Start from the Galerkin equation (2.4.2):
 
-**Why you care:** the exact solution has continuous flux across element edges, but a finite element solution generally does **not**. Its flux jumps from element to element. Those jumps are what you see when a post-processor shows "unaveraged" stress or heat-flux contours, and their size is a common error indicator.
+$$a(w^h,v^h)=(w^h,\ell)+(w^h,h)_\Gamma-a(w^h,g^h)$$
+
+where $v^h$ is the unknown part of the temperature, $g^h$ the known (fixed) part, $\ell$ the heat source and $h$ the boundary heat flux.
+
+1. Write each function as a sum over nodes: $w^h=\sum_A N_A c_A$ and $v^h=\sum_B N_B d_B$ over unknown nodes; $g^h=\sum_B N_B g_B$ over fixed nodes. Here $c_A$ are arbitrary numbers, $d_B$ the unknown nodal temperatures, $g_B$ the fixed ones.
+2. Pull the sum over $A$ out of the first slot (bilinearity): $\sum_A c_A\,[\text{stuff}_A]=0$.
+3. This must hold for **every** set of $c_A$. Pick $c_A=1$ for one node and 0 for the rest: that node's $[\text{stuff}_A]$ must be 0. One equation per unknown node.
+4. Pull the sums over $B$ out of the second slot:
+
+$$
+\sum_{B\ \text{unknown}}a(N_A,N_B)\,d_B=(N_A,\ell)+(N_A,h)_\Gamma-\sum_{B\ \text{fixed}}a(N_A,N_B)\,g_B
+$$
+
+Left side: unknowns. Right side: known source, flux, and fixed temperatures of neighbors. The rows are labeled by node $A$, which skips the fixed nodes. That is the gap ID closes.
 :::
 
-# Part 2. Section 2.6: the IEN and LM arrays
+# 2. IEN: the mesh (Section 2.6)
 
-**Goal of this part.** Add the other two tables: IEN, which describes the mesh, and LM, which drives assembly. Then work through both of Hughes's examples.
+::: {.callout-tip icon=false}
+## Why am I showing you this?
+The element routine only knows "corner 1, 2, 3, 4." IEN says which real nodes those corners are. It is the **connectivity table** that every mesh file contains (in ANSYS, the node list on each element; in Abaqus, the `*ELEMENT` lines).
+:::
 
-## Step 2.1: IEN, the element nodes array (2.6.1)
+**Rule in Hughes:** start at the element's **lower-left** corner and go **counterclockwise**.
 
-$$
-\mathrm{IEN}(a,e)=A \tag{2.6.1}
-$$
-
-where:
-
-- $a$ is the **local** node number inside element $e$: $a=1,\dots,n_{en}$.
-- $e$ is the **element** number: $e=1,\dots,n_{el}$.
-- $A$ is the **global** node number at that corner.
-
-IEN is the mesh's **connectivity**: column $e$ lists element $e$'s nodes. Every mesh file has this table in some form (in ANSYS it is the element definition `E,n1,n2,n3,n4`; in Abaqus, the `*ELEMENT` lines).
-
-**The local numbering convention matters.** For the four-node rectangle, Hughes starts at the **lower-left** corner and goes **counterclockwise**. That order must match the element's parent square (Section 3.3), or the Jacobian becomes negative.
-
-## Step 2.2: LM, the location matrix (2.6.2)
-
-$$
-\mathrm{LM}(a,e)=\mathrm{ID}\big(\mathrm{IEN}(a,e)\big) \tag{2.6.2}
-$$
-
-This is a **composition of functions**: do one lookup, then feed its answer into the next. Read it inside out:
-
-1. $\mathrm{IEN}(a,e)$ answers "which global node is corner $a$ of element $e$?" Call the answer $A$.
-2. $\mathrm{ID}(A)$ answers "which equation does node $A$ own?" Call the answer $P$.
-
-So $\mathrm{LM}(a,e)=P$ answers the question that assembly actually needs: **which row of $\boldsymbol{K}$ does corner $a$ of element $e$ feed into?** A 0 means "prescribed, no row." Hughes calls LM the element "localization" of ID. Strictly, LM is redundant (it can always be recomputed from IEN and ID), but programs build it once because assembly asks this question millions of times.
-
-In practice, **IEN and ID are built from input data** (mesh connectivity and boundary conditions), and **LM is computed from them**.
-
-## Step 2.3: Example 1, built by hand (Figs. 2.6.1 and 2.6.2)
-
-**The mesh.** Six four-node rectangles, two across and three up. Global nodes are numbered left to right, then bottom to top: 1, 2, 3 on the bottom row; 4, 5, 6 on the next; and so on to 12. The left edge (nodes 1, 4, 7, 10) has a prescribed temperature, so $n_{eq}=8$.
-
-**ID** (from Step 1.6):
-
-| $A$ | 1 | 2 | 3 | 4 | 5 | 6 | 7 | 8 | 9 | 10 | 11 | 12 |
-|---|---|---|---|---|---|---|---|---|---|---|---|---|
-| $\mathrm{ID}(A)$ | 0 | 1 | 2 | 0 | 3 | 4 | 0 | 5 | 6 | 0 | 7 | 8 |
-
-**IEN.** For each element, start at its lower-left node and go counterclockwise: lower-left, lower-right, upper-right, upper-left. Element 1 sits between nodes 1, 2, 5, 4, so its column is $(1,2,5,4)$. Every element follows the same pattern: if its lower-left node is $A$, its corners are $A$, $A+1$, $A+4$, $A+3$ (the row above is 3 nodes later).
+Element 1 sits on nodes 1, 2, 5, 4, so its column is (1, 2, 5, 4). Every element in this mesh follows the same pattern: if its lower-left node is $A$, its corners are $A,\ A+1,\ A+4,\ A+3$ (the next row up starts 3 nodes later).
 
 | | $e=1$ | 2 | 3 | 4 | 5 | 6 |
 |---|---|---|---|---|---|---|
@@ -483,18 +219,29 @@ In practice, **IEN and ID are built from input data** (mesh connectivity and bou
 | $a=3$ (upper-right) | 5 | 6 | 8 | 9 | 11 | 12 |
 | $a=4$ (upper-left) | 4 | 5 | 7 | 8 | 10 | 11 |
 
-**LM.** Replace every entry of IEN by its ID value. Element 1 is worked fully:
+**Takeaway:** the corner order is not cosmetic. List a quad's corners clockwise and the element maps inside-out, which is the "negative Jacobian" error from the [Section 3.3 page](hughes-3-3-isoparametric.html).
+
+# 3. LM: the only table assembly uses
+
+::: {.callout-tip icon=false}
+## Why am I showing you this?
+Assembly needs one answer: "corner $a$ of element $e$ → which row of $\boldsymbol{K}$?" LM is that answer, made by looking up IEN and then ID. Programs compute it once and reuse it.
+:::
 
 $$
-\begin{aligned}
-\mathrm{LM}(1,1)&=\mathrm{ID}(\mathrm{IEN}(1,1))=\mathrm{ID}(1)=0\\
-\mathrm{LM}(2,1)&=\mathrm{ID}(\mathrm{IEN}(2,1))=\mathrm{ID}(2)=1\\
-\mathrm{LM}(3,1)&=\mathrm{ID}(\mathrm{IEN}(3,1))=\mathrm{ID}(5)=3\\
-\mathrm{LM}(4,1)&=\mathrm{ID}(\mathrm{IEN}(4,1))=\mathrm{ID}(4)=0
-\end{aligned}
+\mathrm{LM}(a,e)=\mathrm{ID}\big(\mathrm{IEN}(a,e)\big) \tag{2.6.2}
 $$
 
-Doing the same for every column gives Fig. 2.6.2:
+Read inside out: first find the node, then find its row.
+
+**Element 1 by hand:**
+
+- corner 1 → node $\mathrm{IEN}(1,1)=1$ → $\mathrm{ID}(1)=0$
+- corner 2 → node 2 → $\mathrm{ID}(2)=1$
+- corner 3 → node 5 → $\mathrm{ID}(5)=3$
+- corner 4 → node 4 → $\mathrm{ID}(4)=0$
+
+So $\mathrm{LM}(\cdot,1)=(0,1,3,0)$. Doing every element gives Hughes's Fig. 2.6.2:
 
 | | $e=1$ | 2 | 3 | 4 | 5 | 6 |
 |---|---|---|---|---|---|---|
@@ -503,15 +250,12 @@ Doing the same for every column gives Fig. 2.6.2:
 | $a=3$ | 3 | 4 | 5 | 6 | 7 | 8 |
 | $a=4$ | 0 | 3 | 0 | 5 | 0 | 7 |
 
-The zeros appear in every element that touches the left wall (elements 1, 3, 5), at its two left corners.
+The zeros sit in elements 1, 3, 5: the ones touching the fixed left wall.
 
-## Step 2.4: explore it
-
-This is the Example 1 mesh, live. You can:
-
-- **click an element** to follow its corners through IEN and ID to LM, and see which entries of $\boldsymbol{K}$ it fills;
-- **click a node** to prescribe or release its temperature, and watch ID, LM and $n_{eq}$ renumber themselves;
-- **change the mesh size** and the **node numbering direction**, and watch how far the nonzeros spread from the diagonal of $\boldsymbol{K}$.
+::: {.callout-tip icon=false}
+## Why this widget?
+To show that the tables are **mechanical**: change which nodes are fixed and every number updates on its own. That's why nobody types LM by hand, and why one wrong boundary flag quietly shifts every equation number after it.
+:::
 
 ```{=html}
 <div class="fe-widget" id="mx">
@@ -582,7 +326,7 @@ This is the Example 1 mesh, live. You can:
       k+='</svg>';
       $('mx-k').innerHTML='<p class="fe-cap"><b>Nonzero pattern of K</b> ('+n+' × '+n+'). Shaded = nonzero; the number is how many elements add into that cell. Orange outline = cells element '+e+' fills.</p>'+k+'<p class="fe-out">Nonzero entries: <b>'+nnz+'</b> of '+(n*n)+'. Half-bandwidth (largest |P − Q| among nonzeros): <b>'+bw+'</b>.</p>';}
     const fx=M.nnp-M.neq;
-    $('mx-status').innerHTML=fx===0?'<div class="fe-status fe-bad"><b>No prescribed temperatures.</b> Part 2 of the theorem fails: a uniform temperature shift costs no energy, so K is singular and cannot be solved.</div>'
+    $('mx-status').innerHTML=fx===0?'<div class="fe-status fe-bad"><b>No prescribed temperatures.</b> A uniform temperature shift costs no energy, so K is singular and cannot be solved (Section 7).</div>'
       :'<div class="fe-status fe-ok">n<sub>np</sub> = '+M.nnp+' nodes − '+fx+' prescribed = <b>n<sub>eq</sub> = '+M.neq+'</b> equations. K is '+M.neq+' × '+M.neq+'.</div>';
     const A=[];for(let q=1;q<=M.nnp;q++)A.push(q);
     const E=[];for(let q=1;q<=M.nel;q++)E.push(q);
@@ -610,101 +354,65 @@ This is the Example 1 mesh, live. You can:
 </script>
 ```
 
-Things to try:
+**Try these, in order:**
 
-1. Click **element 4**. Its corners are nodes 5, 6, 9, 8, which become equations 3, 4, 6, 5. It is the only element here with **no** zeros in its LM column, so all 16 of its stiffness numbers land in $\boldsymbol{K}$.
-2. Click **element 1**. Only local nodes 2 and 3 have equations (1 and 3), so only 4 of its 16 numbers go into $\boldsymbol{K}$. The rest involve the wall. That is Example 2's situation.
-3. Click **node 12** to prescribe it too. $n_{eq}$ drops to 7, and every LM entry that pointed at equation 8 becomes 0. Nothing else changes, because node 12 is last.
-4. Now release node 12 and prescribe **node 2** instead. **Every** equation number after node 2 shifts down by one. This is why you never type LM in by hand: you compute it.
-5. Press **Number along y first**. The mesh is identical, but the half-bandwidth grows from 3 to 5, because each row of nodes now holds 4 nodes instead of 3, and a node's neighbors in the next column are further away in the numbering. Numbering across the **short** direction keeps the nonzeros closer to the diagonal. Older direct solvers were very sensitive to this; modern codes reorder the equations automatically, but the idea behind their "reordering" step is exactly this picture.
+1. **Click element 4.** No zeros in its LM column, so all 16 of its numbers land in $\boldsymbol{K}$.
+2. **Click element 1.** Only corners 2 and 3 have rows, so only 4 of its 16 numbers land in $\boldsymbol{K}$. Section 4 is about the other 12.
+3. **Click node 2** to fix it. Watch every equation number after node 2 drop by one.
+4. **Press "Release all nodes."** The warning that appears is Section 7 in one sentence.
+5. **Press "Number along y first."** Same mesh, but the nonzeros in $\boldsymbol{K}$ spread further from the diagonal (half-bandwidth 3 → 5). Node numbering affects solver cost, which is why solvers reorder equations.
 
-## Step 2.5: the element's own copy of the prescribed values (2.6.3)
+::: {.callout-note collapse="true"}
+## Section 2.6, Exercise 1: how to approach it (no answer)
+1. Find the fixed nodes (on the hatched line). $n_{eq}$ = 12 − that count.
+2. ID: go through nodes in **number order**, not page position. The numbers in that mesh jump around on purpose.
+3. IEN: for each element find its **lower-left** corner, go counterclockwise.
+4. LM: replace each IEN entry with its ID value. Then type each LM column into the Section 4 widget to see where it lands.
+:::
 
-The element routine needs to know which of its corners have known temperatures, and what they are. Hughes defines
+# 4. Assembling one element: Example 2
 
-$$
-g^e_a=\begin{cases}0 & \text{if } \mathrm{LM}(a,e)\neq 0\\[2pt] g_A & \text{if } \mathrm{LM}(a,e)=0,\quad\text{where } A=\mathrm{IEN}(a,e)\end{cases} \tag{2.6.3}
-$$
+::: {.callout-tip icon=false}
+## Why am I showing you this?
+Element 1 had 12 numbers that didn't go into $\boldsymbol{K}$. They don't all disappear: some carry the **fixed temperatures** into the force vector. This is the only place a prescribed temperature enters the solution, so if a code gets it wrong, every nonzero boundary temperature is silently treated as zero.
+:::
 
-where:
+**Hughes's data (2.6.4):** an element with $\mathrm{LM}=(5,0,0,9)$. Corners 1 and 4 own rows 5 and 9. Corners 2 and 3 are fixed.
 
-- $g^e_a$ is the prescribed temperature at local corner $a$ of element $e$, or 0 if that corner is unknown.
-- $g_A$ is the prescribed value at global node $A$ (from the input).
+**Rule for each number $k^e_{ab}$** (row $P=\mathrm{LM}(a,e)$, column $Q=\mathrm{LM}(b,e)$):
 
-**Example 1, element 1.** LM is $(0,1,3,0)$ and IEN is $(1,2,5,4)$, so $g^1_1=g_1$, $g^1_2=0$, $g^1_3=0$, $g^1_4=g_4$.
+| $P$ | $Q$ | What happens to $k^e_{ab}$ |
+|---|---|---|
+| nonzero | nonzero | added to $K_{PQ}$ |
+| nonzero | 0 | multiplies a **known** temperature, so it moves to the force side |
+| 0 | anything | no equation for this corner; skipped |
 
-These values are used in the element force vector. Its full form is equation (2.5.8) from Section 2.5 (not in your screenshots, but it is the 2D version of (1.13.12) that you already know):
-
-$$
-f^e_a=\int_{\Omega^e}N_a\,\ell\,d\Omega+\int_{\Gamma^e_h}N_a\,h\,d\Gamma-\sum_{b=1}^{n_{en}}k^e_{ab}\,g^e_b
-$$
-
-where:
-
-- the first term spreads the heat source over the element's nodes;
-- the second adds any prescribed flux on the part of the element's edge that lies on $\Gamma_h$;
-- the last term moves the **known** corner temperatures to the right side, exactly like $-k^e_{a2}g$ in 1D. Since $g^e_b=0$ at unknown corners, only prescribed corners contribute.
-
-"This definition may be easily programmed": it is one `if` statement per corner.
-
-## Step 2.6: Example 2: assembling one element with prescribed corners (2.6.4 to 2.6.8)
-
-**The data.** A typical four-node element $e$ has
+For $\mathrm{LM}=(5,0,0,9)$ that gives (2.6.5, 2.6.6):
 
 $$
-\mathrm{LM}(1,e)=5,\quad \mathrm{LM}(2,e)=0,\quad \mathrm{LM}(3,e)=0,\quad \mathrm{LM}(4,e)=9 \tag{2.6.4}
+K_{55}\mathrel{+}=k^e_{11},\quad K_{59}\mathrel{+}=k^e_{14},\quad K_{95}\mathrel{+}=k^e_{41},\quad K_{99}\mathrel{+}=k^e_{44},\qquad F_5\mathrel{+}=f^e_1,\quad F_9\mathrel{+}=f^e_4
 $$
 
-So corners 1 and 4 own equations 5 and 9, and corners 2 and 3 are prescribed.
-
-**The rule.** For every pair of corners $(a,b)$: if both $\mathrm{LM}(a,e)=P$ and $\mathrm{LM}(b,e)=Q$ are nonzero, then $k^e_{ab}$ is added into $K_{PQ}$. Go through all 16 pairs:
-
-| | $b=1$ ($Q=5$) | $b=2$ ($Q=0$) | $b=3$ ($Q=0$) | $b=4$ ($Q=9$) |
-|---|---|---|---|---|
-| $a=1$ ($P=5$) | $K_{55}$ | to $f^e_1$ via $g^e_2$ | to $f^e_1$ via $g^e_3$ | $K_{59}$ |
-| $a=2$ ($P=0$) | dropped | dropped | dropped | dropped |
-| $a=3$ ($P=0$) | dropped | dropped | dropped | dropped |
-| $a=4$ ($P=9$) | $K_{95}$ | to $f^e_4$ via $g^e_2$ | to $f^e_4$ via $g^e_3$ | $K_{99}$ |
-
-That gives the four stiffness updates and two force updates:
+**Where "moves to the force side" comes from.** Row 1 of the element's equations is
 
 $$
-\begin{aligned}
-K_{55}&\leftarrow K_{55}+k^e_{11}, & K_{59}&\leftarrow K_{59}+k^e_{14},\\
-K_{95}&\leftarrow K_{95}+k^e_{41}, & K_{99}&\leftarrow K_{99}+k^e_{44}
-\end{aligned}
-\tag{2.6.5}
+k^e_{11}d_1+k^e_{12}d_2+k^e_{13}d_3+k^e_{14}d_4=(\text{heat source and flux on corner 1})
 $$
 
-$$
-F_5\leftarrow F_5+f^e_1,\qquad F_9\leftarrow F_9+f^e_4 \tag{2.6.6}
-$$
-
-**Where the circled terms go (2.6.7, 2.6.8).** Write out row 1 of the element's equations, $\sum_b k^e_{1b}d^e_b=(\text{loads})$:
+where $d_a$ is the temperature at corner $a$. Corners 2 and 3 are fixed, so $d_2=g_2$ and $d_3=g_3$ are known numbers. Move them right:
 
 $$
-k^e_{11}d^e_1+k^e_{12}d^e_2+k^e_{13}d^e_3+k^e_{14}d^e_4=(\text{loads on corner }1)
+k^e_{11}d_1+k^e_{14}d_4=(\text{source and flux})\;\underbrace{-\,k^e_{12}g_2-k^e_{13}g_3}_{\text{(2.6.7)}}
 $$
 
-Corners 2 and 3 are prescribed, so $d^e_2=g^e_2$ and $d^e_3=g^e_3$ are **known numbers**. Move them to the right side:
+Row 4 works the same way (2.6.8). Rows 2 and 3 aren't equations at all, because those temperatures are already known.
 
-$$
-k^e_{11}d^e_1+k^e_{14}d^e_4=(\text{loads on corner }1)-k^e_{12}g^e_2-k^e_{13}g^e_3
-$$
+**How code does all of that in one line.** Hughes's (2.6.3) builds a vector $\boldsymbol{g}^e$: the fixed temperature at each fixed corner, 0 at the others. Then $\boldsymbol{f}^e \leftarrow \boldsymbol{f}^e-\boldsymbol{k}^e\boldsymbol{g}^e$ produces every "circle" term at once.
 
-The right side is $f^e_1$:
-
-$$
-f^e_1=\cdots-k^e_{12}g^e_2-k^e_{13}g^e_3 \tag{2.6.7}
-$$
-
-$$
-f^e_4=\cdots-k^e_{42}g^e_2-k^e_{43}g^e_3 \tag{2.6.8}
-$$
-
-where "$\cdots$" is the heat-source and flux terms. Rows 2 and 3 are not equations at all, because those temperatures are already known. Hughes's Figure 2.6.3 is a picture of the table above: squares go to $\boldsymbol{K}$, circles go to $\boldsymbol{f}^e$, angle brackets go to $\boldsymbol{F}$.
-
-**The book's last sentence is the key idea: all the information assembly needs is in the LM array.** Type any LM values below to see it. The default is the book's Example 2.
+::: {.callout-tip icon=false}
+## Why this widget?
+So you can check any element yourself, including your Exercise 1 answers: type an LM column and see which numbers go to $\boldsymbol{K}$ (squares), which go to $\boldsymbol{f}^e$ (circles), and which are dropped. This is Hughes's Fig. 2.6.3, made live.
+:::
 
 ```{=html}
 <div class="fe-widget">
@@ -756,87 +464,29 @@ where "$\cdots$" is the heat-source and flux terms. Rows 2 and 3 are not equatio
 </script>
 ```
 
-**About the dropped rows.** A program skips rows 2 and 3 when it solves, but they are not useless. After the solve, plugging the now-known temperatures into those rows gives the **heat flow needed to hold those nodes at their prescribed temperatures**. In structural analysis the same calculation gives the **reaction forces** at the supports. When ANSYS or Abaqus prints reactions, this is where they come from, and checking that they balance the applied load is one of the best sanity checks you have.
+**Takeaway:** the dropped rows aren't useless. After solving, plugging the known temperatures into them gives the **heat flow needed to hold those nodes fixed**. In structures, that's the **reaction force**. Checking that reactions balance the applied load is one of the best sanity checks on any model.
 
-## Step 2.7: Section 2.6, Exercise 1: how to approach it
+# 5. The 1D version (Section 1.14): your Project 1 code
 
-The exercise gives an irregular U-shaped mesh and asks for ID, IEN and LM. The answer is yours to work out, but the procedure is the one above:
+::: {.callout-tip icon=false}
+## Why am I showing you this?
+This is the version you'll code next. Section 1.14's LM formula isn't a new idea: it's ID(IEN) for a row of two-node elements. Seeing that tells you exactly what to change in your code.
+:::
 
-1. Read off $\eta_g$: the nodes on the hatched line along the bottom. Then $n_{eq}=n_{np}-(\text{number of g-nodes})$.
-2. **ID:** walk through the nodes **in ascending node number** (not by position on the page), giving 0 to g-nodes and a running count to the rest. The node numbers in this mesh jump around on purpose.
-3. **IEN:** for each element, find its **lower-left** corner and go counterclockwise. Be careful: in elements 1 and 5 the numbers are not arranged left to right.
-4. **LM:** replace each IEN entry by its ID value.
-5. **Check:** every nonzero equation number $1,\dots,n_{eq}$ should appear somewhere in LM, and each element's LM column should have no repeated nonzero values. You can type your LM columns into the Example 2 box above to see which entries of $\boldsymbol{K}$ each element fills.
+Bar on $[0,1]$, $n_{el}$ linear elements, nodes $1,\dots,n_{el}+1$ left to right, temperature fixed at the last node ($u(1)=g$).
 
-# Part 3. Section 1.14: the same arrays in one dimension
+- **ID:** only the last node is fixed, so $\mathrm{ID}(A)=A$ for every node except the last, which gets 0.
+- **IEN:** element $e$ runs from node $e$ to node $e+1$: $\mathrm{IEN}(1,e)=e$, $\mathrm{IEN}(2,e)=e+1$.
+- **LM:** $\mathrm{LM}(1,e)=\mathrm{ID}(e)=e$, and $\mathrm{LM}(2,e)=\mathrm{ID}(e+1)=e+1$, except 0 for the last element.
 
-**Goal of this part.** See that the 1D assembly rules of Section 1.14 are not a special trick: they are just ID, IEN and LM for a row of two-node elements. This is the version you will build into your Project 1 code.
+That last line is Hughes's (1.14.1). The assembly rules (1.14.2 to 1.14.9) are just the Section 4 rule applied to it.
 
-## Step 3.1: the 1D model problem's three arrays
+**Where the shortcut breaks:** fix the temperature at the **left** end too, and node 1 gets ID = 0. Now node 2 is equation 1, node 3 is equation 2, and so on. A code that assumed "row = node number" puts every number one row off.
 
-Recall the setup: $n_{el}=n$ linear elements on $[0,1]$, nodes $A=1,\dots,n+1$ from left to right, flux $h$ given at $x=0$, and temperature $u(1)=g$ prescribed at the **last** node $n+1$.
-
-**ID.** Only node $n+1$ is prescribed, and it is last, so the counter never skips until the end:
-
-$$
-\mathrm{ID}(A)=\begin{cases}A & A=1,\dots,n\\ 0 & A=n+1\end{cases}
-$$
-
-**IEN.** Element $e$ runs from node $e$ to node $e+1$, with local node 1 on the left:
-
-$$
-\mathrm{IEN}(1,e)=e,\qquad \mathrm{IEN}(2,e)=e+1
-$$
-
-**LM** by composition:
-
-$$
-\begin{aligned}
-\mathrm{LM}(1,e)&=\mathrm{ID}(\mathrm{IEN}(1,e))=\mathrm{ID}(e)=e\\
-\mathrm{LM}(2,e)&=\mathrm{ID}(\mathrm{IEN}(2,e))=\mathrm{ID}(e+1)=\begin{cases}e+1 & e<n_{el}\\ 0 & e=n_{el}\end{cases}
-\end{aligned}
-$$
-
-That is exactly the LM array of Section 1.14 (1.14.1). In 1D it looked like a formula; in 2D it is a table, because there is no simple formula for an arbitrary mesh.
-
-For $n_{el}=4$:
-
-| | $e=1$ | 2 | 3 | 4 |
-|---|---|---|---|---|
-| $\mathrm{IEN}(1,e)$ | 1 | 2 | 3 | 4 |
-| $\mathrm{IEN}(2,e)$ | 2 | 3 | 4 | 5 |
-| $\mathrm{LM}(1,e)$ | 1 | 2 | 3 | 4 |
-| $\mathrm{LM}(2,e)$ | 2 | 3 | 4 | **0** |
-
-## Step 3.2: the assembly rules are the LM rule
-
-Apply the Example 2 rule ("$k^e_{ab}$ goes to $K_{PQ}$ when both $P=\mathrm{LM}(a,e)$ and $Q=\mathrm{LM}(b,e)$ are nonzero") to a 1D element:
-
-- **Interior element** ($e<n_{el}$, LM $=(e,\,e+1)$): all four numbers land,
-
-$$
-\begin{aligned}
-K_{e,e}&\leftarrow K_{e,e}+k^e_{11}, & K_{e,e+1}&\leftarrow K_{e,e+1}+k^e_{12},\\
-K_{e+1,e}&\leftarrow K_{e+1,e}+k^e_{21}, & K_{e+1,e+1}&\leftarrow K_{e+1,e+1}+k^e_{22},\\
-F_e&\leftarrow F_e+f^e_1, & F_{e+1}&\leftarrow F_{e+1}+f^e_2.
-\end{aligned}
-$$
-
-- **Last element** ($e=n_{el}$, LM $=(n,\,0)$): only $K_{nn}\leftarrow K_{nn}+k^{n_{el}}_{11}$ and $F_n\leftarrow F_n+f^{n_{el}}_1$ survive, and $f^{n_{el}}_1$ contains $-k^{n_{el}}_{12}\,g$. That is the 1D version of the circles in Fig. 2.6.3, and it is the term $-k^e_{a2}g$ in (1.13.12).
-
-The book packs the whole loop into the **assembly operator**:
-
-$$
-\boldsymbol{K}=\mathop{\mathbf{A}}_{e=1}^{n_{el}}\big(\boldsymbol{k}^e\big),\qquad \boldsymbol{F}=\mathop{\mathbf{A}}_{e=1}^{n_{el}}\big(\boldsymbol{f}^e\big) \tag{1.14.10}
-$$
-
-Read the bold $\mathbf{A}$ as "a sum that uses LM to put each element's numbers in the right place." It is not a matrix.
-
-## Step 3.3: watch assembly happen
-
-Drag **elements assembled** from 0 upward to add one element at a time. Green cells are the ones the newest element just changed. Switch the boundary conditions to see ID gain a second zero at the **first** node, which shifts every equation number by one. That is the case where the 1D shortcut "equation number = node number" breaks, and the reason your code should use ID instead.
-
-Units are dimensionless here, with conductivity $\kappa=1$; the element matrices are $\boldsymbol{k}^e=\frac{1}{h^e}\begin{bmatrix}1&-1\\-1&1\end{bmatrix}$ and $\boldsymbol{f}^e=\frac{\ell h^e}{2}\begin{Bmatrix}1\\1\end{Bmatrix}$ from Section 1.15.
+::: {.callout-tip icon=false}
+## Why this widget?
+To watch assembly happen one element at a time, and to see the equation numbers shift when you change the boundary conditions. Drag "elements assembled" from 0 upward. Green cells are what the newest element just changed.
+:::
 
 ```{=html}
 <div class="fe-widget">
@@ -900,128 +550,102 @@ Units are dimensionless here, with conductivity $\kappa=1$; the element matrices
 </script>
 ```
 
-Things to notice:
+**Notice:**
 
-- **Each element touches only its own two rows and columns**, so $\boldsymbol{K}$ comes out tridiagonal. The middle diagonal entries get contributions from two elements (that is why they are twice as large).
-- **The last element changes only one cell of $\boldsymbol{K}$**, but it also changes $F_n$ through $-k_{12}\,g$. Set $g$ to 0 and that contribution disappears; set it back and watch $F_n$ change.
-- **With both ends prescribed**, node 1 gets ID $=0$ and node 2 becomes equation 1. If your code assumed equation number = node number, it would now put every number one row too low.
-- **The nodal values sit exactly on the exact solution.** As in Section 1.10, that is special to this 1D problem.
+- Each element only touches 2 rows, so $\boldsymbol{K}$ is tridiagonal.
+- The last element adds one number to $\boldsymbol{K}$, but also $-k_{12}\,g$ to $F$. Set $g=0$ and watch that piece vanish.
+- Switch to "both ends prescribed": ID gets a second 0, and every row shifts.
 
-# Part 4. The layout of a finite element program
+# 6. Where these tables go in your code
 
-**Goal of this part.** Put every piece from this page, and from the basis-function and quadrature pages, in the order a program runs them. This is the structure your Project 1 code is about to take on.
-
-::: {.callout-important}
-## About Figure 1.14.2
-
-The Figure 1.14.2 screenshot did not come through, so the flowchart below is built from the order described in Sections 1.14 and 2.6 (input → ID and IEN → LM → element loop with assembly → solve). Once you add that figure to the project, this part will be redrawn to match it.
+::: {.callout-tip icon=false}
+## Why am I showing you this?
+So you know which part of your code changes when you add basis functions and quadrature, and which part never changes again.
 :::
 
+*Figure 1.14.2 didn't come through in the screenshots, so this flowchart follows the order described in Sections 1.14 and 2.6. Send the figure and I'll match it.*
+
 ```{mermaid}
-%%| fig-cap: "The order of operations in a linear static finite element program. The orange boxes are this page; the element loop is where the basis-function and quadrature machinery lives."
 flowchart TD
-  A["Step 1: Input<br>node coordinates, IEN (connectivity),<br>which nodes are prescribed and their g values,<br>loads ℓ and h, material κ"] --> B["Step 2: Build ID<br>loop over nodes with a counter; prescribed nodes get 0"]
-  B --> C["Step 3: Build LM<br>LM(a,e) = ID(IEN(a,e))"]
-  C --> D["Step 4: Allocate and zero K (n_eq × n_eq) and F (n_eq)"]
-  D --> E["Step 5: For each element e = 1, ..., n_el"]
-  E --> E1["Step 5a: Gather element data<br>x_a = x(IEN(a,e)); g^e_a from (2.6.3)"]
-  E1 --> E2["Step 5b: For each quadrature point:<br>N_a and N_a,ξ (basis functions),<br>Jacobian x,ξ, then N_a,x;<br>add weight × integrand into k^e and f^e"]
-  E2 --> E3["Step 5c: f^e ← f^e − k^e g^e, plus flux terms"]
-  E3 --> E4["Step 5d: Assemble with LM:<br>K[P,Q] += k^e[a,b], F[P] += f^e[a]"]
-  E4 --> E
-  E4 --> G["Step 6: Solve K d = F"]
-  G --> H["Step 7: Post-process<br>u_A = d[ID(A)] or g_A;<br>gradients and fluxes per element;<br>reactions from the dropped rows"]
-  style B fill:#d4572a22,stroke:#d4572a
-  style C fill:#d4572a22,stroke:#d4572a
-  style E4 fill:#d4572a22,stroke:#d4572a
-  style H fill:#d4572a22,stroke:#d4572a
+  A["Input: node coordinates, IEN,<br>fixed nodes and values, loads"] --> B["Build ID, then LM = ID(IEN)"]
+  B --> C["Zero K and F"]
+  C --> D["Loop over elements:<br>compute k^e, f^e with basis functions + quadrature;<br>f^e -= k^e g^e;<br>add into K, F using LM"]
+  D --> E["Solve K d = F"]
+  E --> F["Put d back on the nodes using ID;<br>fixed nodes get their g values"]
 ```
 
-## Step 4.1: why this structure, instead of building $\boldsymbol{K}$ directly
+| Part of the code | Changes when you change... |
+|---|---|
+| Input, ID, LM | the mesh or the boundary conditions |
+| Element routine ($\boldsymbol{k}^e$, $\boldsymbol{f}^e$) | the element type, polynomial degree, or physics |
+| Assembly with LM, and the solve | never (identical in 1D, 2D, 3D) |
 
-A first 1D code often fills $\boldsymbol{K}$ row by row with the known tridiagonal pattern ($2/h$ on the diagonal, $-1/h$ next to it). That works for one problem and breaks for every other one. The structure above separates the code into pieces that each do one job:
+**Bugs to avoid in your version:**
 
-| Piece | Changes when you change... | Stays the same when you change... |
-|---|---|---|
-| Steps 1 to 3 (input, ID, IEN, LM) | the mesh or the boundary conditions | the element type, the physics |
-| Step 5b (element routine) | the element type, polynomial degree, physics | the mesh, the boundary conditions |
-| Step 5d (assembly) | nothing | everything: it is identical in 1D, 2D and 3D |
-| Step 6 (solver) | nothing | everything |
-
-So upgrading from linear to quadratic elements only touches step 5b. Moving a boundary condition only touches the input. Going from 1D to 2D changes the element routine and the mesh, but assembly does not change at all.
-
-## Step 4.2: a reference implementation
-
-Below is a short Python version of the whole flowchart for the 1D model problem, with Lagrange shape functions of any degree $p$ and Gauss quadrature. It uses the same names as the book so you can compare it with your own Project 1 code. Python counts from 0, so "prescribed" is marked with $-1$ instead of 0. I ran it for $p=1,2,3$ with 1 to 4 elements and nonzero $g$ and $h$; the nodal error was at round-off level ($10^{-15}$) every time.
+1. Building ID in some order other than ascending node number.
+2. Skipping a 0 row but not a 0 column (or the reverse) during assembly.
+3. Forgetting $\boldsymbol{f}^e\leftarrow\boldsymbol{f}^e-\boldsymbol{k}^e\boldsymbol{g}^e$. Then every fixed temperature acts like zero.
+4. Plotting only $\boldsymbol{d}$. You have to map it back to nodes with ID and add the fixed values, or your plot is missing points.
 
 ::: {.callout-note collapse="true"}
-## Show the code
+## Reference code (Python, any polynomial degree). I ran it for degrees 1 to 3; nodal error was ~1e-15.
 
 ```python
 import numpy as np
 
-# ---------- 1. Input data ----------
-n_el, p = 4, 1                 # number of elements, polynomial degree (1 = linear)
-kappa, ell = 1.0, 2.0          # conductivity, constant source per length
-g, h = 0.0, 0.5                # u(1) = g (essential), -kappa*u_x(0) = h (natural)
-
+# Input
+n_el, p = 4, 1                 # elements, polynomial degree
+kappa, ell = 1.0, 2.0          # conductivity, constant source
+g, h = 0.0, 0.5                # u(1) = g, flux h at x = 0
 n_en = p + 1                   # nodes per element
-n_np = n_el * p + 1            # total number of nodes
+n_np = n_el * p + 1            # total nodes
 x_nodes = np.linspace(0.0, 1.0, n_np)
 
-# ---------- 2-3. Data-processing arrays ----------
-# IEN[a, e] = global node number of local node a of element e (0-based here)
+# IEN[a, e]: global node of local node a in element e (Python counts from 0)
 IEN = np.array([[e * p + a for e in range(n_el)] for a in range(n_en)])
 
-# ID[A] = equation number of node A, or -1 if A is prescribed
-prescribed = {n_np - 1: g}     # node -> prescribed value
+# ID[A]: equation number, or -1 if fixed (Python's stand-in for Hughes's 0)
+prescribed = {n_np - 1: g}
 ID = -np.ones(n_np, dtype=int)
 n_eq = 0
-for A in range(n_np):          # ascending node order -> ascending equation order
+for A in range(n_np):
     if A not in prescribed:
         ID[A] = n_eq
         n_eq += 1
+LM = ID[IEN]
 
-LM = ID[IEN]                   # LM(a, e) = ID(IEN(a, e))
-
-# ---------- basis-function and quadrature machinery ----------
+# Basis functions and quadrature
 xi_nodes = np.linspace(-1.0, 1.0, n_en)
-
 def shape(xi):
-    """Lagrange shape functions N_a(xi) and derivatives N_a,xi on [-1, 1]."""
-    N = np.ones(n_en)
-    dN = np.zeros(n_en)
+    N, dN = np.ones(n_en), np.zeros(n_en)
     for a in range(n_en):
         others = [b for b in range(n_en) if b != a]
         for b in others:
             N[a] *= (xi - xi_nodes[b]) / (xi_nodes[a] - xi_nodes[b])
-        for c in others:                       # product rule
+        for c in others:
             term = 1.0 / (xi_nodes[a] - xi_nodes[c])
             for b in others:
                 if b != c:
                     term *= (xi - xi_nodes[b]) / (xi_nodes[a] - xi_nodes[b])
             dN[a] += term
     return N, dN
+xi_q, w_q = np.polynomial.legendre.leggauss(n_en)
 
-xi_q, w_q = np.polynomial.legendre.leggauss(n_en)   # Gauss points and weights
-
-# ---------- 4-5. Element loop and assembly ----------
-K = np.zeros((n_eq, n_eq))
-F = np.zeros(n_eq)
+# Element loop and assembly
+K, F = np.zeros((n_eq, n_eq)), np.zeros(n_eq)
 for e in range(n_el):
-    xe = x_nodes[IEN[:, e]]                  # 5a. element nodal coordinates
-    ke = np.zeros((n_en, n_en))
-    fe = np.zeros(n_en)
-    for xi, w in zip(xi_q, w_q):             # 5b. quadrature loop
+    xe = x_nodes[IEN[:, e]]
+    ke, fe = np.zeros((n_en, n_en)), np.zeros(n_en)
+    for xi, w in zip(xi_q, w_q):
         N, dN_dxi = shape(xi)
-        jac = dN_dxi @ xe                    # dx/dxi (the 1D Jacobian)
-        dN_dx = dN_dxi / jac                 # chain rule
+        jac = dN_dxi @ xe
+        dN_dx = dN_dxi / jac
         ke += kappa * np.outer(dN_dx, dN_dx) * jac * w
         fe += N * ell * jac * w
     ge = np.array([prescribed.get(IEN[a, e], 0.0) if LM[a, e] < 0 else 0.0
-                   for a in range(n_en)])    # g^e_a, equation (2.6.3)
-    fe -= ke @ ge                            # 5c. known values to the right side
-    for a in range(n_en):                    # 5d. assemble with LM
+                   for a in range(n_en)])
+    fe -= ke @ ge
+    for a in range(n_en):
         P = LM[a, e]
         if P < 0:
             continue
@@ -1030,83 +654,59 @@ for e in range(n_el):
             Q = LM[b, e]
             if Q >= 0:
                 K[P, Q] += ke[a, b]
-
-if ID[0] >= 0:                               # natural BC: flux h at x = 0
+if ID[0] >= 0:
     F[ID[0]] += h
 
-# ---------- 6-7. Solve and post-process ----------
+# Solve, then map back to nodes
 d = np.linalg.solve(K, F)
 u_nodes = np.array([d[ID[A]] if ID[A] >= 0 else prescribed[A] for A in range(n_np)])
-
 exact = g + h / kappa * (1 - x_nodes) + ell / (2 * kappa) * (1 - x_nodes**2)
 print("max nodal error =", np.abs(u_nodes - exact).max())
 ```
 :::
 
-Four details in that code are easy to get wrong in your own version:
+# 7. Why K can be solved at all (the theorem in Section 2.4)
 
-1. **`ID` is built in ascending node order.** That is the "usual convention" Hughes mentions in Example 1.
-2. **`ge` is nonzero only at prescribed corners**, so `fe -= ke @ ge` is exactly $-\sum_b k^e_{ab}g^e_b$.
-3. **Rows with `P < 0` are skipped**, both for `F` and for `K`. Forgetting the column check (`Q >= 0`) writes known values into the wrong place.
-4. **Post-processing uses `ID` in reverse** to rebuild the full nodal vector, including the prescribed nodes. Plots and flux calculations need all the nodes, not just the unknowns.
-
-# Practitioner checklist from these sections
-
-| What to check in any model | Why it follows from this page |
-|---|---|
-| Number of equations = number of nodes × unknowns per node − number of prescribed values | Definition of $n_{eq}$ and the ID array |
-| At least one prescribed temperature (thermal) or enough supports to stop rigid motion (structural) | Theorem part 2 needs $\Gamma_g$ non-empty; otherwise $\boldsymbol{K}$ is singular |
-| Element connectivity lists corners in the element's standard order | IEN order must match the parent element, or the Jacobian goes negative |
-| No duplicate or unconnected nodes | A duplicate node shows up as two equation numbers where there should be one, and the mesh splits apart there |
-| Nonzero prescribed values actually change the answer | They enter only through $-\boldsymbol{k}^e\boldsymbol{g}^e$; a code that skips it silently treats every prescribed value as zero |
-| Reactions (or boundary heat flows) balance the applied load | Reactions come from the rows that were dropped during assembly |
-| Boundary data is resolved where it curves | $g^h$ only matches $g$ at nodes (Fig. 2.4.2) |
-| Fluxes and stresses are discontinuous between elements | Exercise 1 of Section 2.4: the FE flux jumps across element edges; the size of the jumps indicates error |
-
-::: {.callout-tip}
-## Looking ahead to solid and fluid mechanics
-
-In heat conduction each node has **one** unknown (temperature). In 2D elasticity each node has **two** (displacement in $x$ and $y$), and in 2D flow each node can have velocities and a pressure. The arrays stay the same in spirit but gain one more index: $\mathrm{ID}(i,A)$ is the equation number of unknown $i$ at node $A$, and $\mathrm{LM}(i,a,e)=\mathrm{ID}(i,\mathrm{IEN}(a,e))$. A support that fixes only the $x$ displacement puts a 0 in $\mathrm{ID}(1,A)$ but not in $\mathrm{ID}(2,A)$, which is exactly how a roller is modeled.
+::: {.callout-tip icon=false}
+## Why am I showing you this?
+This is the math behind "singular matrix" and "zero pivot" errors. It tells you what a model **must** have to be solvable.
 :::
+
+Hughes proves two things about $\boldsymbol{K}$:
+
+- **Symmetric** ($K_{PQ}=K_{QP}$), because $a(N_A,N_B)=a(N_B,N_A)$. Practical effect: codes store only half of it.
+- **Positive definite**: for any nonzero list of nodal temperatures $\boldsymbol{c}$, the number $\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}$ is positive. Practical effect: $\boldsymbol{K}$ can always be inverted.
+
+**The argument in three lines.** Let $w$ be the temperature field with nodal values $\boldsymbol{c}$. Then
+
+1. It equals the energy of that field, a sum of squares, so it is never negative:
+
+   $$\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}=a(w,w)=\int_\Omega\kappa\,(w_{,x}^2+w_{,y}^2)\,d\Omega\ \ge 0$$
+
+2. It is zero only if $w_{,x}=w_{,y}=0$ everywhere, meaning $w$ is a constant.
+3. $w$ is zero at the fixed nodes, so that constant is 0, so $\boldsymbol{c}=\boldsymbol{0}$.
+
+**Takeaway:** step 3 needs **at least one fixed temperature**. Without one, a uniform temperature shift costs nothing, and $\boldsymbol{K}$ is singular. In structures, the same failure is a model without enough supports to stop it sliding or spinning. You saw this warning in the Section 3 widget.
 
 # Check yourself
 
-1. In Example 1, suppose node 12 is also prescribed. What are $n_{eq}$, $\mathrm{ID}(11)$ and $\mathrm{ID}(12)$, and which LM entries change?
+1. In Example 1, node 12 is also fixed. What is $n_{eq}$, and which LM entry changes?
 
 ::: {.callout-note collapse="true"}
 ## Answer
-
-$n_{eq}=7$, $\mathrm{ID}(11)=7$, and $\mathrm{ID}(12)=0$. Node 12 appears in IEN only as $\mathrm{IEN}(3,6)$, so only $\mathrm{LM}(3,6)$ changes, from 8 to 0. No other numbers shift, because node 12 was the last unknown node.
+$n_{eq}=7$. Node 12 appears only as $\mathrm{IEN}(3,6)$, so only $\mathrm{LM}(3,6)$ changes, from 8 to 0. Nothing else shifts, because node 12 was the last unknown node.
 :::
 
-2. Element 4 of Example 1 has $\mathrm{LM}=(3,4,6,5)$. Which entry of $\boldsymbol{K}$ receives $k^4_{23}$? Which receives $k^4_{32}$?
+2. Element 4 has $\mathrm{LM}=(3,4,6,5)$. Where does $k^4_{23}$ go?
 
 ::: {.callout-note collapse="true"}
 ## Answer
-
-$k^4_{23}$ goes to row $\mathrm{LM}(2,4)=4$, column $\mathrm{LM}(3,4)=6$, so $K_{46}$. $k^4_{32}$ goes to $K_{64}$. Because $\boldsymbol{k}^4$ is symmetric, they are the same number, which is why codes often assemble only one of them.
+Row $\mathrm{LM}(2,4)=4$, column $\mathrm{LM}(3,4)=6$: $K_{46}$.
 :::
 
-3. In Example 2, why does $f^e_1$ get $-k^e_{12}g^e_2$ but **not** a $-k^e_{14}g^e_4$ term?
+3. A 1D bar has 3 elements with both ends fixed. Write ID and LM.
 
 ::: {.callout-note collapse="true"}
 ## Answer
-
-Corner 4 is not prescribed ($\mathrm{LM}(4,e)=9\neq0$), so $g^e_4=0$ by (2.6.3). Its temperature $d_9$ is an unknown, and its coupling $k^e_{14}$ goes into $K_{59}$ on the left side of the equations instead.
-:::
-
-4. A 1D bar has three linear elements and both ends prescribed. Write ID and LM.
-
-::: {.callout-note collapse="true"}
-## Answer
-
-Nodes 1 to 4, with nodes 1 and 4 prescribed: $\mathrm{ID}=(0,1,2,0)$ and $n_{eq}=2$. IEN columns are $(1,2)$, $(2,3)$, $(3,4)$, so LM columns are $(0,1)$, $(1,2)$, $(2,0)$. Elements 1 and 3 each put a single number into $\boldsymbol{K}$; element 2 puts all four. You can check this in the 1D widget with "Both ends prescribed" and 3 elements.
-:::
-
-5. A colleague's 2D thermal model has convection-free heat-flux boundaries all the way around and no prescribed temperature anywhere. The solver stops with "zero pivot." Explain in one or two sentences, using the theorem.
-
-::: {.callout-note collapse="true"}
-## Answer
-
-With no prescribed temperature, $\eta_g$ is empty, so a uniform temperature everywhere (all $c_P$ equal and nonzero) gives $\nabla w^h=0$ and $\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}=0$. $\boldsymbol{K}$ is therefore not positive definite but singular, and elimination hits a zero pivot. Physically, flux conditions alone fix how much heat flows but not the temperature level; the model needs at least one temperature (or a convection boundary) to pin it.
+$\mathrm{ID}=(0,1,2,0)$, $n_{eq}=2$. LM columns: $(0,1)$, $(1,2)$, $(2,0)$. Check it in the Section 5 widget.
 :::
