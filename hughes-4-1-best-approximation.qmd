@@ -1,0 +1,1030 @@
+---
+title: "Why the FE answer is the best your mesh can do (and when that isn't good enough)"
+subtitle: "Hughes 4.1: best approximation, error estimates, quadrature, and the warning about constrained problems"
+format:
+  html:
+    theme:
+      light: cosmo
+      dark: darkly
+    respect-user-color-scheme: true
+    toc: true
+    toc-depth: 1
+    toc-location: left
+    embed-resources: true
+    html-math-method: mathjax
+    fontsize: 1.05em
+    callout-appearance: simple
+execute:
+  echo: false
+---
+
+```{=html}
+<style>
+.fe-widget{border:1px solid rgba(128,128,128,.35);border-radius:8px;padding:12px 14px;margin:1.2rem 0}
+.fe-ctrl{display:grid;grid-template-columns:minmax(110px,max-content) minmax(0,1fr) 4em;gap:6px 12px;align-items:center;margin-bottom:8px}
+.fe-ctrl output{text-align:right;font-variant-numeric:tabular-nums}
+.fe-legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.85em;margin:4px 0}
+.fe-legend i{display:inline-block;width:18px;height:0;border-top:3px solid;vertical-align:middle;margin-right:6px}
+.fe-out{margin:.5rem 0 0;font-variant-numeric:tabular-nums}
+.fe-table{border-collapse:collapse;font-variant-numeric:tabular-nums;margin:.3rem 0 .6rem}
+.fe-table td,.fe-table th{padding:2px 9px;text-align:center;border:1px solid rgba(128,128,128,.25)}
+.fe-table th{font-weight:600;background:rgba(128,128,128,.10)}
+.fe-table td.new{background:rgba(29,158,117,.28);font-weight:600}
+.fe-table td.zero{color:#d62828;font-weight:600}
+.fe-btns{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.fe-btns button{font:inherit;font-size:.85em;padding:3px 10px;border-radius:14px;border:1px solid rgba(128,128,128,.5);background:transparent;color:inherit;cursor:pointer}
+.fe-btns button:hover{border-color:#d4572a}
+.fe-btns button.on{background:#d4572a;border-color:#d4572a;color:#fff}
+.fe-row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+.fe-row>div{flex:1 1 280px;min-width:0}
+.scroll-x{overflow-x:auto;max-width:100%}
+.fe-cap{font-size:.85em;opacity:.8;margin:.2rem 0 .1rem}
+.fe-status{margin-top:.6rem;padding:8px 12px;border-radius:6px;border-left:4px solid}
+.fe-ok{border-color:#1d9e75;background:rgba(29,158,117,.10)}
+.fe-bad{border-color:#d62828;background:rgba(214,40,40,.10)}
+.fe-warn{border-color:#d4572a;background:rgba(212,87,42,.10)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:.3rem 0 .6rem}
+.chips span{padding:2px 9px;border-radius:12px;border:1px solid rgba(128,128,128,.45);font-size:.9em}
+.chips span.on{background:rgba(212,87,42,.22);border-color:#d4572a}
+.chips span small{opacity:.7;margin-left:4px}
+main table.table{display:block;max-width:100%;overflow-x:auto}
+.math.display,mjx-container[display="true"]{display:block;max-width:100%;overflow-x:auto;overflow-y:hidden}
+</style>
+<script>
+window.FE=(function(){
+  const C={orange:'#d4572a',purple:'#6c5ce7',teal:'#1d9e75',gray:'#8a8a8a',pink:'#c2185b',blue:'#2e86c1',red:'#d62828'};
+  function niceStep(raw){const p=Math.pow(10,Math.floor(Math.log10(raw)));const r=raw/p;return (r<1.5?1:r<3?2:r<7?5:10)*p;}
+  function ticks(a,b,n){const st=niceStep((b-a)/n);const out=[];for(let v=Math.ceil(a/st-1e-9)*st;v<=b+1e-9;v+=st)out.push(Math.abs(v)<st*1e-6?0:v);return out;}
+  function fmt(v){return Math.abs(v)<1e-9?'0':String(+v.toPrecision(3));}
+  let clipN=0;
+  /* o: x,y ranges; lines [{pts,color,width,dash}]; dots; hlines [{y,color,dash}]; xtk/ytk custom ticks [[value,label]] */
+  function plot(id,o){
+    const W=o.w||640,H=o.height||280,m={l:o.ml||58,r:20,t:22,b:o.xlabel?46:28};
+    const x0=o.x[0],x1=o.x[1],y0=o.y[0],y1=o.y[1];
+    const sx=v=>m.l+(v-x0)/(x1-x0)*(W-m.l-m.r), sy=v=>H-m.b-(v-y0)/(y1-y0)*(H-m.t-m.b);
+    const cid='clip'+(++clipN);
+    let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block;font-size:13px" role="img" aria-label="${o.label||'plot'}">`;
+    s+=`<defs><clipPath id="${cid}"><rect x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${H-m.t-m.b}"/></clipPath></defs>`;
+    const grid='stroke="currentColor" stroke-opacity="0.12"';
+    (o.xtk||ticks(x0,x1,o.xt||6).map(t=>[t,fmt(t)])).forEach(([t,lab])=>{s+=`<line x1="${sx(t)}" x2="${sx(t)}" y1="${m.t}" y2="${H-m.b}" ${grid}/><text x="${sx(t)}" y="${H-m.b+16}" text-anchor="middle" fill="currentColor">${lab}</text>`;});
+    (o.ytk||ticks(y0,y1,o.yt||5).map(t=>[t,fmt(t)])).forEach(([t,lab])=>{s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(t)}" y2="${sy(t)}" ${grid}/><text x="${m.l-8}" y="${sy(t)+4}" text-anchor="end" fill="currentColor">${lab}</text>`;});
+    if(y0<0&&y1>0)s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(0)}" y2="${sy(0)}" stroke="currentColor" stroke-opacity="0.45"/>`;
+    s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${H-m.b}" y2="${H-m.b}" stroke="currentColor" stroke-opacity="0.5"/>`;
+    if(o.xlabel) s+=`<text x="${(m.l+W-m.r)/2}" y="${H-6}" text-anchor="middle" fill="currentColor" opacity="0.8">${o.xlabel}</text>`;
+    if(o.ylabel) s+=`<text x="${m.l}" y="${m.t-8}" text-anchor="start" fill="currentColor" opacity="0.8">${o.ylabel}</text>`;
+    s+=`<g clip-path="url(#${cid})">`;
+    (o.hlines||[]).forEach(l=>{s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(l.y)}" y2="${sy(l.y)}" stroke="${l.color}" stroke-width="1.6" ${l.dash?'stroke-dasharray="6 4"':''}/>`;});
+    (o.lines||[]).forEach(l=>{s+=`<polyline fill="none" stroke="${l.color}" stroke-width="${l.width||2}" ${l.dash?'stroke-dasharray="6 4"':''} stroke-linejoin="round" points="${l.pts.filter(q=>isFinite(q[1])).map(q=>sx(q[0]).toFixed(1)+','+sy(q[1]).toFixed(1)).join(' ')}"/>`;});
+    (o.dots||[]).forEach(d=>{s+=`<circle cx="${sx(d.x)}" cy="${sy(d.y)}" r="${d.r||5}" fill="${d.color}"/>`;});
+    s+='</g></svg>';
+    if(o.legend) s+='<div class="fe-legend">'+o.legend.map(l=>`<span><i style="border-color:${l.color};${l.dash?'border-top-style:dashed;':''}"></i>${l.label}</span>`).join('')+'</div>';
+    document.getElementById(id).innerHTML=s;
+  }
+  function val(id){return +document.getElementById(id).value;}
+  function show(id){const e=document.getElementById(id),st=String(e.step||'1');const d=st.includes('.')?st.split('.')[1].length:0;const o=document.getElementById(id+'-v');if(o)o.textContent=(+e.value).toFixed(d);}
+  function bind(ids,fn){ids.forEach(id=>{document.getElementById(id).addEventListener('input',()=>{show(id);fn();});show(id);});fn();}
+  function span(vals,pad){let a=Math.min(...vals),b=Math.max(...vals);if(b-a<1e-12){a-=1;b+=1;}const p=(b-a)*(pad||0.12);return [a-p,b+p];}
+  /* table builder; the '<'+'table' split keeps Quarto from treating it as a markdown table */
+  function TB(head,rows){let s='<'+'table class="fe-table">';
+    if(head)s+='<tr>'+head.map(h=>'<th>'+h+'</th>').join('')+'</tr>';
+    rows.forEach(r=>{s+='<tr>'+r.map((c,i)=>{if(i===0)return '<th>'+c+'</th>';let cls='';
+      if(typeof c==='object'&&c){cls=c.cls||'';c=c.v;}
+      return '<td'+(cls?' class="'+cls+'"':'')+'>'+c+'</td>';}).join('')+'</tr>';});
+    return s+'</table>';}
+  function solve(K,F){const n=F.length;const M=K.map((r,i)=>r.concat([F[i]]));
+    for(let i=0;i<n;i++){let p=i;for(let r=i+1;r<n;r++)if(Math.abs(M[r][i])>Math.abs(M[p][i]))p=r;[M[i],M[p]]=[M[p],M[i]];
+      for(let r=i+1;r<n;r++){const m=M[r][i]/M[i][i];if(!m)continue;for(let c=i;c<=n;c++)M[r][c]-=m*M[i][c];}}
+    const d=new Array(n).fill(0);for(let i=n-1;i>=0;i--){let s=M[i][n];for(let c=i+1;c<n;c++)s-=M[i][c]*d[c];d[i]=s/M[i][i];}return d;}
+  /* banded symmetric positive-definite solve (no pivoting needed), half-bandwidth bw */
+  function band(K,F,bw){const n=F.length,A=K.map(r=>r.slice()),b=F.slice();
+    for(let i=0;i<n;i++)for(let r=i+1;r<=Math.min(n-1,i+bw);r++){const m=A[r][i]/A[i][i];if(!m)continue;
+      for(let c=i;c<=Math.min(n-1,i+bw);c++)A[r][c]-=m*A[i][c];b[r]-=m*b[i];}
+    const d=new Array(n).fill(0);for(let i=n-1;i>=0;i--){let s=b[i];for(let c=i+1;c<=Math.min(n-1,i+bw);c++)s-=A[i][c]*d[c];d[i]=s/A[i][i];}return d;}
+  /* Gauss-Legendre points and weights on [-1,1] */
+  function gauss(n){const x=[],w=[];for(let i=1;i<=n;i++){let z=Math.cos(Math.PI*(i-0.25)/(n+0.5)),pp=1;
+      for(let it=0;it<100;it++){let p1=1,p2=0;for(let j=1;j<=n;j++){const p3=p2;p2=p1;p1=((2*j-1)*z*p2-(j-1)*p3)/j;}
+        pp=n*(z*p1-p2)/(z*z-1);const z1=z;z=z1-p1/pp;if(Math.abs(z-z1)<1e-15)break;}
+      x.push(z);w.push(2/((1-z*z)*pp*pp));}return {x,w};}
+  const SUP={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+  function sup(n){return String(n).split('').map(c=>SUP[c]||c).join('');}
+  function fmtE(v){if(!isFinite(v))return '—';if(Math.abs(v)<1e-300)return '0';const e=Math.floor(Math.log10(Math.abs(v)));
+    if(e>=-2&&e<=3)return String(+v.toPrecision(4));return (v/Math.pow(10,e)).toFixed(3)+'×10'+sup(e);}
+  return {C,plot,val,bind,show,span,TB,solve,band,gauss,sup,fmtE};
+})();
+</script>
+```
+
+::: {.callout-note appearance="minimal"}
+Every section starts with a **Why am I showing you this?** box. If a section doesn't deliver on its box, it's padding: skip it and tell me.
+:::
+
+# The goal of this section
+
+::: {.callout-tip icon=false}
+## Why am I showing you this?
+Chapters 1 to 3 built a machine: weak form → shape functions → $\boldsymbol{K}\boldsymbol{d}=\boldsymbol{F}$. Nothing so far said the answer coming out of it is **right**. Section 4.1 is the warranty: what FE promises, how fast it gets better as you refine, which shortcuts void the warranty, and where it fails even when you follow the rules. Judging an FE result is mostly checking these promises.
+:::
+
+Section 4.1 answers four questions:
+
+| Question | Hughes's answer |
+|---|---|
+| 1. Is $u^h$ the best answer my mesh could give? | **Yes**, in one specific sense ("energy"). Sections 2 and 3. |
+| 2. How fast does the error shrink as elements get smaller? | Like $h^{\text{power}}$, where the power depends on element order and what you measure. Sections 4 and 5. |
+| 3. Can I use Gauss quadrature instead of exact integrals and keep that? | Yes, if the rule is accurate enough. Section 6. |
+| 4. When does it fail? | When even the *best* mesh function is bad: nearly incompressible materials, thin structures. Section 7, and the rest of Chapter 4. |
+
+This is how the boxed results connect:
+
+```{mermaid}
+%%| fig-cap: "The logic of Section 4.1. Each arrow is one short proof."
+flowchart TD
+  A["Exact weak form (4.1.1)"] --> C["(a) Galerkin orthogonality<br>a(wʰ, e) = 0"]
+  B["FE weak form (4.1.2)"] --> C
+  C --> D["(b) Best approximation<br>no mesh function beats uʰ in energy"]
+  E["(4.1.6) Interpolation estimate<br>how well any mesh can fit u"] --> F["Fundamental error estimate<br>‖e‖ₘ ≤ c̄ h^α ‖u‖ᵣ"]
+  N["(4.1.3) Equivalent norms<br>energy ruler ↔ Sobolev ruler"] --> F
+  D --> F
+  F --> G["Convergence rates<br>values ~ h^(k+1), gradients ~ h^k"]
+  G --> H["Quadrature rules that keep the rate"]
+  F --> I["When c̄ is huge or the best fit is poor:<br>locking (Sections 4.2+)"]
+```
+
+**The boxed equations, in plain words.** Your reading instructions say to focus on these. Each row says what the box means and when you'd use it.
+
+| Boxed result | Plain English | When you use it |
+|---|---|---|
+| $a(\boldsymbol{w}^h,\boldsymbol{e})=0$ | The error is "perpendicular" to everything the mesh can represent | It's why FE picks the best candidate |
+| $a(\boldsymbol{e},\boldsymbol{e})\le a(\boldsymbol{U}^h-\boldsymbol{u},\,\boldsymbol{U}^h-\boldsymbol{u})$ | No function your mesh can make has a smaller energy error than $\boldsymbol{u}^h$ | Remaining error is the **mesh's** fault, not the solver's. Fix it by refining or changing elements |
+| $\lVert\boldsymbol{u}-\boldsymbol{U}^h\rVert_m\le c\,h^\alpha\lVert\boldsymbol{u}\rVert_r$ | How closely piecewise polynomials can fit $\boldsymbol{u}$ at all | Explains what $h$, element order and solution smoothness each do |
+| $\lVert\boldsymbol{e}\rVert_m\le \bar c\,h^\alpha\lVert\boldsymbol{u}\rVert_r$ | FE error shrinks as fast as the best fit does | The convergence guarantee |
+| $\lVert\boldsymbol{e}\rVert_m\le c\,h^{k+1-m}\lVert\boldsymbol{u}\rVert_{k+1}$ | For smooth solutions the rate is $k+1-m$ | Expected slope for **gradients** (strain, stress, heat flux) |
+| $\lVert\boldsymbol{e}\rVert_s\le c\,h^{\beta}\lVert\boldsymbol{u}\rVert_{k+1}$ | Lower derivatives converge faster | Expected slope for **values** (displacement, temperature) |
+| $\lVert\boldsymbol{e}\rVert_0\le c\,h^2\lVert\boldsymbol{u}\rVert_2$, $\ \lVert\boldsymbol{e}\rVert_1\le c\,h\lVert\boldsymbol{u}\rVert_2$ | Linear elements: values like $h^2$, gradients like $h$ | Halve the element size: displacement error ÷4, stress error ÷2 |
+
+::: {.callout-warning appearance="simple"}
+One page didn't come through in the screenshots: the jump from Remark 2 ("It is a direct consequence of the corollary that...") to the end of the potential-energy exercise. Section 3 below fills that gap with what follows directly from the visible equations. Send the page if you want me to match the book's wording.
+:::
+
+# 1. Decoding the notation
+
+::: {.callout-tip icon=false}
+## Why am I showing you this?
+Section 4.1 packs a lot into small symbols, and Hughes uses **$h$ for two different things**. Every symbol in the boxes is defined here once. Each is redefined again where it's first used.
+:::
+
+**The two problems being compared.** The exact problem (4.1.1) and the FE problem (4.1.2) are the *same equation*, written over different sets of functions:
+
+$$
+\text{exact: find } \boldsymbol{u}\in\mathcal{S} \text{ such that } a(\boldsymbol{w},\boldsymbol{u})=(\boldsymbol{w},\ell)+(\boldsymbol{w},\boldsymbol{h})_\Gamma \ \text{ for all } \boldsymbol{w}\in\mathcal{V} \tag{4.1.1}
+$$
+
+$$
+\text{FE: find } \boldsymbol{u}^h\in\mathcal{S}^h \text{ such that } a(\boldsymbol{w}^h,\boldsymbol{u}^h)=(\boldsymbol{w}^h,\ell)+(\boldsymbol{w}^h,\boldsymbol{h})_\Gamma \ \text{ for all } \boldsymbol{w}^h\in\mathcal{V}^h \tag{4.1.2}
+$$
+
+| Symbol | Read it as | What it is |
+|---|---|---|
+| $\boldsymbol{u}$ | "u" | The exact solution: temperature, displacement, or velocity. Bold because in elasticity it's a vector. |
+| $\boldsymbol{w}$ | "w" | A weighting function: any "test" field you multiply the equation by (Ch. 1) |
+| $\mathcal{S}$ | "script S", trial space | Every function that takes the prescribed values where $\boldsymbol{u}$ is fixed ($\boldsymbol{u}=\boldsymbol{g}$ on that boundary). These are the **essential** BCs. |
+| $\mathcal{V}$ | "script V", weighting space | Same kind of functions, but **zero** wherever $\boldsymbol{u}$ is prescribed ("homogeneous" essential BCs) |
+| superscript $h$ | "built from the mesh" | $\boldsymbol{u}^h,\boldsymbol{w}^h,\mathcal{S}^h,\mathcal{V}^h$: the versions made only from your shape functions |
+| $\boldsymbol{U}^h$ | "capital U-h" | **Any other** function your mesh can make: a competitor to $\boldsymbol{u}^h$ |
+| $\boldsymbol{e}=\boldsymbol{u}^h-\boldsymbol{u}$ | "the error" | A whole function of position, not one number |
+| $a(\boldsymbol{w},\boldsymbol{u})$ | "a of w, u" | The integral that becomes $\boldsymbol{K}$. 1D heat: $\int_0^L\kappa\,w_{,x}u_{,x}\,dx$. Elasticity: $\int_\Omega \boldsymbol{\varepsilon}(\boldsymbol{w}):\boldsymbol{C}:\boldsymbol{\varepsilon}(\boldsymbol{u})\,d\Omega$ |
+| $(\boldsymbol{w},\ell)$ | | $\int_\Omega \boldsymbol{w}\cdot\ell\,d\Omega$: heat source or body force. Prints as a script letter; same role as $f$ in Ch. 1 |
+| $(\boldsymbol{w},\boldsymbol{h})_\Gamma$ | | $\int_{\Gamma_h}\boldsymbol{w}\cdot\boldsymbol{h}\,d\Gamma$: prescribed boundary **flux or traction** $\boldsymbol{h}$. **Not** the mesh size. |
+| $\in$, $\subset$ | "is one of", "is contained in" | $\mathcal{S}^h\subset\mathcal{S}$: every mesh function is also a legal candidate for the exact problem |
+
+**Hughes's three assumptions** (everything in 4.1 depends on them):
+
+i. $\mathcal{S}^h\subset\mathcal{S}$ and $\mathcal{V}^h\subset\mathcal{V}$. The mesh functions are legal: continuous across elements, and they satisfy the essential BCs exactly. Elements that do this are called **conforming**. Breaking this is one of the "variational crimes" in the chapter title.
+
+ii. $a(\cdot,\cdot)$, $(\cdot,\cdot)$, $(\cdot,\cdot)_\Gamma$ are **symmetric** and **bilinear**. The dots are empty slots for two functions.
+
+- *Symmetric:* swapping the slots changes nothing. $a(\boldsymbol{w},\boldsymbol{u})=a(\boldsymbol{u},\boldsymbol{w})$. For 1D heat, $\int\kappa\,w_{,x}u_{,x}\,dx=\int\kappa\,u_{,x}w_{,x}\,dx$ because multiplication commutes. This is why $\boldsymbol{K}$ is symmetric.
+- *Bilinear:* linear in each slot separately. $a(\alpha\boldsymbol{w}_1+\beta\boldsymbol{w}_2,\boldsymbol{u})=\alpha\,a(\boldsymbol{w}_1,\boldsymbol{u})+\beta\,a(\boldsymbol{w}_2,\boldsymbol{u})$, and the same for the second slot. It's what lets you pull sums and constants out, as you did deriving $\boldsymbol{K}$.
+
+iii. $a(\cdot,\cdot)$ and $\lVert\cdot\rVert_m$ are **equivalent norms** on $\mathcal{V}$ (4.1.3). Explained just below.
+
+::: {.callout-note collapse="true"}
+## Refresher: thinking of functions as vectors (open this if "norm" and "orthogonal" are fuzzy)
+
+For ordinary vectors $\boldsymbol{x},\boldsymbol{y}$ in 3D:
+
+- **dot product** $\boldsymbol{x}\cdot\boldsymbol{y}=x_1y_1+x_2y_2+x_3y_3$
+- **length** (norm) $\lVert\boldsymbol{x}\rVert=\sqrt{\boldsymbol{x}\cdot\boldsymbol{x}}$
+- **perpendicular** (orthogonal) means $\boldsymbol{x}\cdot\boldsymbol{y}=0$
+
+A function $w(x)$ is like a vector with one component per point $x$. Replace the sum over components with an integral and you get a dot product for functions. $a(\cdot,\cdot)$ is exactly that kind of dot product, except it multiplies **slopes** and weights them by $\kappa$:
+
+$$
+a(w,u)=\int_0^L \kappa\,w_{,x}\,u_{,x}\,dx\qquad\longleftrightarrow\qquad \boldsymbol{x}\cdot\boldsymbol{y}=\sum_i x_iy_i
+$$
+
+So in 4.1:
+
+- the "length" of a function is $a(w,w)^{1/2}$, the **energy norm**
+- "$a(\boldsymbol{w}^h,\boldsymbol{e})=0$" means "$\boldsymbol{e}$ is perpendicular to $\boldsymbol{w}^h$" in this energy sense
+
+**The matrix version.** For mesh functions $w^h=\sum_A N_Ac_A$ and $u^h=\sum_B N_Bd_B$, bilinearity pulls the sums out:
+
+$$
+a(w^h,u^h)=\sum_A\sum_B c_A\,a(N_A,N_B)\,d_B=\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{d}
+$$
+
+So $\boldsymbol{K}$ **is** the energy dot product written in nodal coordinates. "$a(w^h,w^h)\ge0$" is the same statement as "$\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}\ge0$" from the [Section 2.6 page](hughes-2-6-id-ien-lm.html).
+:::
+
+**Measuring the size of a function: the Sobolev norm (4.1.4).** $\lVert\boldsymbol{w}\rVert_m$ ("H-m norm of w") adds up the squares of $\boldsymbol{w}$ **and all its derivatives up to order $m$**, then takes a square root:
+
+$$
+\lVert \boldsymbol{w}\rVert_m=\Big[\int_\Omega\big(w_iw_i+w_{i,j}w_{i,j}+\cdots+\underbrace{w_{i,jk\ldots l}w_{i,jk\ldots l}}_{m\text{ derivative indices}}\big)\,d\Omega\Big]^{1/2} \tag{4.1.4}
+$$
+
+Index notation reminder: a **repeated index is summed** ($w_iw_i=w_1^2+w_2^2+w_3^2$), and a **comma means derivative** ($w_{i,j}=\partial w_i/\partial x_j$). So $w_{i,j}w_{i,j}$ is the sum of the squares of all 9 first derivatives.
+
+In 1D, for a scalar $w(x)$:
+
+| Norm | Formula | Measures | Mechanics name |
+|---|---|---|---|
+| $\lVert w\rVert_0$ (also $L_2$, $H^0$) | $\big(\int w^2dx\big)^{1/2}$ | values | displacement / temperature error |
+| $\lVert w\rVert_1$ ($H^1$) | $\big(\int (w^2+w_{,x}^2)dx\big)^{1/2}$ | values + slopes | strain / stress / heat-flux error |
+| $\lVert w\rVert_2$ ($H^2$) | $\big(\int (w^2+w_{,x}^2+w_{,xx}^2)dx\big)^{1/2}$ | + curvature | needed for beams |
+| $a(w,w)^{1/2}$ | $\big(\int\kappa\,w_{,x}^2dx\big)^{1/2}$ | weighted slopes | **energy norm** |
+
+**$m$** is the highest derivative inside $a(\cdot,\cdot)$: $m=1$ for heat conduction, elasticity and Stokes flow; $m=2$ for Bernoulli–Euler beams (curvature $w_{,xx}$).
+
+**Equivalent norms (4.1.3)** says the energy ruler and the Sobolev ruler always agree, up to fixed factors $c_1,c_2>0$ that don't depend on $\boldsymbol{w}$:
+
+$$
+c_1\lVert\boldsymbol{w}\rVert_m\ \le\ a(\boldsymbol{w},\boldsymbol{w})^{1/2}\ \le\ c_2\lVert\boldsymbol{w}\rVert_m \qquad\text{for every } \boldsymbol{w}\in\mathcal{V} \tag{4.1.3}
+$$
+
+::: {.callout-note collapse="true"}
+## Where $c_1$ and $c_2$ come from (1D heat, step by step), and why it matters
+Take 1D heat on $[0,1]$ with $w(0)=0$ (temperature fixed at the left end) and $\kappa_{\min}\le\kappa(x)\le\kappa_{\max}$.
+
+**Upper bound ($c_2$).** Replace $\kappa$ by its largest value, then add the nonnegative term $\int w^2$:
+$$a(w,w)=\int\kappa w_{,x}^2\,dx\le\kappa_{\max}\int w_{,x}^2\,dx\le\kappa_{\max}\int(w^2+w_{,x}^2)\,dx=\kappa_{\max}\lVert w\rVert_1^2$$
+Take square roots: $c_2=\sqrt{\kappa_{\max}}$.
+
+**Lower bound ($c_1$).** First, a function pinned to zero at $x=0$ can't be large without having slope. Write $w(x)=\int_0^x w_{,x}\,ds$ and apply the Cauchy–Schwarz inequality $\big(\int fg\big)^2\le\int f^2\int g^2$ with $f=1$, $g=w_{,x}$:
+$$w(x)^2\le x\int_0^1 w_{,x}^2\,ds\quad\Rightarrow\quad\int_0^1w^2\,dx\le\tfrac12\int_0^1w_{,x}^2\,dx$$
+Then
+$$\lVert w\rVert_1^2=\int w^2+\int w_{,x}^2\le\tfrac32\int w_{,x}^2\le\frac{3}{2\kappa_{\min}}\,a(w,w)$$
+so $c_1=\sqrt{2\kappa_{\min}/3}$.
+
+**Why it matters.**
+
+- The lower bound used $w(0)=0$. With no fixed temperature anywhere, $w=$ constant has $a(w,w)=0$ but $\lVert w\rVert_1>0$, so no $c_1>0$ exists. That's the singular-$\boldsymbol{K}$ problem from the 2.6 page, seen from the theory side.
+- The ratio $c_2/c_1$ grows like $\sqrt{\kappa_{\max}/\kappa_{\min}}$. It shows up in the error constant in Section 5. Large material contrast, and in Section 7 near-incompressibility, make it big.
+:::
+
+**The rest of the symbols** are introduced where they're used: $k$, $\bar k$ (polynomial degrees of the shape functions), $r$ (smoothness of the exact solution), $h$ (mesh size), $\alpha,\beta$ (convergence rates), $c,\bar c$ (constants that don't depend on $h$).
+
+# 2. The boxed theorem: FE picks the best candidate
+
+::: {.callout-tip icon=false}
+## Why am I showing you this?
+This is the most important fact about Galerkin FE. Out of every function your mesh can represent, FE automatically finds the best one, without knowing the exact answer. "Best" has a specific meaning, and that meaning tells you which outputs (values or gradients) the method is really optimizing.
+:::
+
+$$
+\boxed{\begin{aligned}
+&\text{(a)}\quad a(\boldsymbol{w}^h,\boldsymbol{e})=0 &&\text{for all }\boldsymbol{w}^h\in\mathcal{V}^h\\
+&\text{(b)}\quad a(\boldsymbol{e},\boldsymbol{e})\le a(\boldsymbol{U}^h-\boldsymbol{u},\,\boldsymbol{U}^h-\boldsymbol{u}) &&\text{for all }\boldsymbol{U}^h\in\mathcal{S}^h
+\end{aligned}}
+$$
+
+## Proof of (a): Galerkin orthogonality
+
+**Step 1.** The exact equation holds for **every** $\boldsymbol{w}\in\mathcal{V}$. Every mesh weighting function $\boldsymbol{w}^h$ is in $\mathcal{V}$ (assumption i), so it holds for each $\boldsymbol{w}^h$ too:
+$$a(\boldsymbol{w}^h,\boldsymbol{u})=(\boldsymbol{w}^h,\ell)+(\boldsymbol{w}^h,\boldsymbol{h})_\Gamma$$
+
+**Step 2.** The FE equation (4.1.2), for the same $\boldsymbol{w}^h$:
+$$a(\boldsymbol{w}^h,\boldsymbol{u}^h)=(\boldsymbol{w}^h,\ell)+(\boldsymbol{w}^h,\boldsymbol{h})_\Gamma$$
+
+**Step 3.** Subtract Step 1 from Step 2. The right sides are identical, so they cancel:
+$$a(\boldsymbol{w}^h,\boldsymbol{u}^h)-a(\boldsymbol{w}^h,\boldsymbol{u})=0$$
+
+**Step 4.** Bilinearity in the second slot combines the two terms:
+$$a(\boldsymbol{w}^h,\boldsymbol{u}^h-\boldsymbol{u})=a(\boldsymbol{w}^h,\boldsymbol{e})=0 \qquad\blacksquare$$
+
+**What could break it:** Step 3 needs the right sides to be *identical*, and Step 1 needs $\boldsymbol{w}^h\in\mathcal{V}$. Load integrals done inexactly, or nonconforming elements, spoil this. That's why Hughes calls them "crimes" against the variational structure.
+
+## Proof of (b): best approximation
+
+**Step 1.** Pick any $\boldsymbol{w}^h\in\mathcal{V}^h$. Expand $a(\boldsymbol{e}+\boldsymbol{w}^h,\ \boldsymbol{e}+\boldsymbol{w}^h)$ using bilinearity in each slot (like FOIL-ing $(x+y)(x+y)$):
+$$a(\boldsymbol{e}+\boldsymbol{w}^h,\boldsymbol{e}+\boldsymbol{w}^h)=a(\boldsymbol{e},\boldsymbol{e})+a(\boldsymbol{e},\boldsymbol{w}^h)+a(\boldsymbol{w}^h,\boldsymbol{e})+a(\boldsymbol{w}^h,\boldsymbol{w}^h)$$
+
+**Step 2.** Symmetry makes the two middle terms equal, so together they are $2a(\boldsymbol{w}^h,\boldsymbol{e})$, which is $0$ by part (a):
+$$a(\boldsymbol{e}+\boldsymbol{w}^h,\boldsymbol{e}+\boldsymbol{w}^h)=a(\boldsymbol{e},\boldsymbol{e})+a(\boldsymbol{w}^h,\boldsymbol{w}^h)$$
+
+**Step 3.** $a(\boldsymbol{w}^h,\boldsymbol{w}^h)\ge0$ (an energy; in matrix form $\boldsymbol{c}^T\boldsymbol{K}\boldsymbol{c}\ge0$). Dropping it can only make the right side smaller:
+$$a(\boldsymbol{e},\boldsymbol{e})\le a(\boldsymbol{e}+\boldsymbol{w}^h,\boldsymbol{e}+\boldsymbol{w}^h)$$
+
+**Step 4.** Now take any competitor $\boldsymbol{U}^h\in\mathcal{S}^h$ and set $\boldsymbol{w}^h=\boldsymbol{U}^h-\boldsymbol{u}^h$. This is in $\mathcal{V}^h$: both functions take the same prescribed values on the boundary, so their difference is zero there. Then
+$$\boldsymbol{e}+\boldsymbol{w}^h=(\boldsymbol{u}^h-\boldsymbol{u})+(\boldsymbol{U}^h-\boldsymbol{u}^h)=\boldsymbol{U}^h-\boldsymbol{u}$$
+
+**Step 5.** Substitute into Step 3:
+$$a(\boldsymbol{e},\boldsymbol{e})\le a(\boldsymbol{U}^h-\boldsymbol{u},\,\boldsymbol{U}^h-\boldsymbol{u})\qquad\blacksquare$$
+
+**In words:** the energy of the FE error is no larger than the energy of **any** competitor's error.
+
+## The picture
+
+Hughes says "$\boldsymbol{u}^h$ is the projection of $\boldsymbol{u}$ onto $\mathcal{S}^h$." Here is what that means. Step 2 above is the Pythagorean theorem.
+
+```{=html}
+<svg viewBox="0 0 560 300" width="100%" style="max-width:560px;display:block;margin:0.6rem auto;font-size:14px" role="img" aria-label="projection picture: the exact solution sits above the plane of mesh functions; the FE solution is the foot of the perpendicular">
+  <polygon points="40,240 340,240 500,150 200,150" fill="rgba(46,134,193,.12)" stroke="#2e86c1" stroke-opacity=".6"/>
+  <text x="58" y="265" fill="#2e86c1"><tspan font-family="serif" font-style="italic">S</tspan><tspan baseline-shift="super" font-size="70%">h</tspan>: every function your mesh can make</text>
+  <line x1="260" y1="45" x2="260" y2="200" stroke="#d62828" stroke-width="2.5" stroke-dasharray="6 4"/>
+  <line x1="260" y1="45" x2="400" y2="215" stroke="#6c5ce7" stroke-width="2.5"/>
+  <line x1="260" y1="200" x2="400" y2="215" stroke="#1d9e75" stroke-width="2.5"/>
+  <polyline points="260,186 273,187.4 273,201.4" fill="none" stroke="currentColor" stroke-opacity=".7"/>
+  <circle cx="260" cy="45" r="6" fill="currentColor"/>
+  <circle cx="260" cy="200" r="6" fill="#d4572a"/>
+  <circle cx="400" cy="215" r="6" fill="#6c5ce7"/>
+  <text x="272" y="42" fill="currentColor">u (exact, not on the plane)</text>
+  <text x="200" y="215" fill="#d4572a" text-anchor="end">u<tspan baseline-shift="super" font-size="70%">h</tspan> (FE)</text>
+  <text x="412" y="228" fill="#6c5ce7">U<tspan baseline-shift="super" font-size="70%">h</tspan> (any competitor)</text>
+  <text x="248" y="125" fill="#d62828" text-anchor="end">e</text>
+  <text x="345" y="120" fill="#6c5ce7">U<tspan baseline-shift="super" font-size="70%">h</tspan> − u</text>
+  <text x="318" y="236" fill="#1d9e75" font-size="12">w<tspan baseline-shift="super" font-size="70%">h</tspan> = U<tspan baseline-shift="super" font-size="70%">h</tspan> − u<tspan baseline-shift="super" font-size="70%">h</tspan></text>
+</svg>
+```
+
+- The plane is $\mathcal{S}^h$. The exact $\boldsymbol{u}$ is generally **not** on it (no mesh can represent it exactly).
+- Part (a) says $\boldsymbol{e}$ is perpendicular to the plane. So $\boldsymbol{u}^h$ is the foot of the perpendicular dropped from $\boldsymbol{u}$.
+- For any other point $\boldsymbol{U}^h$ on the plane, the triangle is a right triangle: $a(\boldsymbol{U}^h-\boldsymbol{u},\cdot)=a(\boldsymbol{e},\boldsymbol{e})+a(\boldsymbol{w}^h,\boldsymbol{w}^h)$. The hypotenuse is always the longest side.
+- "Distance" here is measured with the energy ruler, and nothing else. That's the catch, and the widget shows it.
+
+**What "best in energy" means physically.** For heat conduction,
+$$a(\boldsymbol{e},\boldsymbol{e})=\int\kappa\,(u^h_{,x}-u_{,x})^2\,dx,$$
+a $\kappa$-weighted **least-squares fit of the slopes**. In elasticity it's a $\boldsymbol{C}$-weighted fit of the **strains**. FE optimizes gradients (heat flux, strain, stress), not values. It doesn't promise to get the nodal temperatures or displacements exactly right.
+
+::: {.callout-tip icon=false}
+## Why this widget?
+To see "best" with your own eyes. Try to beat the FE solution by nudging one nodal value: you can't, in energy. Then compare with the **interpolant**, which is exact at every node. It loses in energy but wins in plain values. That's the "FE optimizes gradients" point, made concrete.
+:::
+
+**The problem in the widget:** steady heat conduction in a bar $0\le x\le1$, both ends held at $u=0$, uniform heat generation $\ell=1$, and conductivity growing linearly from $\kappa(0)=1$ to $\kappa(1)$ (slider). The same equation describes a **tapered elastic bar** under a uniform axial load: $\kappa\to EA$, temperature $\to$ displacement. Linear elements, equal spacing.
+
+- **$u$** (gray dashed): exact solution.
+- **$u^h$** (orange): the FE solution.
+- **$U^h=u^h+t\,N_j$** (purple): a competitor. It's the FE solution with node $j$ nudged by $t$ (the hat function $N_j$ is 1 at node $j$ and 0 at every other node).
+- **Interpolant** (teal): straight lines through the exact nodal values. Also a mesh function, so also a competitor.
+
+```{=html}
+<div class="fe-widget" id="ba">
+<div class="fe-ctrl">
+<label for="ba-n">elements</label><input type="range" id="ba-n" min="2" max="10" step="1" value="4"><output id="ba-n-v"></output>
+<label for="ba-r">κ(1) / κ(0)</label><input type="range" id="ba-r" min="1" max="20" step="1" value="12"><output id="ba-r-v"></output>
+<label for="ba-j">node j to nudge</label><input type="range" id="ba-j" min="1" max="3" step="1" value="2"><output id="ba-j-v"></output>
+<label for="ba-t">nudge t</label><input type="range" id="ba-t" min="-0.03" max="0.03" step="0.001" value="0.012"><output id="ba-t-v"></output>
+</div>
+<div class="fe-btns"><button id="ba-int" class="on">Show the interpolant</button></div>
+<div class="fe-row">
+  <div><p class="fe-cap"><b>Values</b>: temperature u(x)</p><div id="ba-u"></div></div>
+  <div><p class="fe-cap"><b>Slopes</b>: u′(x). FE slopes are constant on each element.</p><div id="ba-du"></div></div>
+</div>
+<p class="fe-cap"><b>Energy error of the competitor vs. nudge t</b>, a(U<sup>h</sup>−u, U<sup>h</sup>−u)</p><div id="ba-par"></div>
+<div id="ba-orth" class="fe-out"></div>
+<div class="scroll-x" id="ba-tab"></div>
+<div id="ba-py"></div>
+</div>
+<script>
+(function(){
+  const $=id=>document.getElementById(id),G=FE.gauss(8);let showI=true;
+  function model(n,ratio){const q=1,beta=ratio-1,kap=x=>1+beta*x;let u,up;
+    if(beta===0){up=x=>q*(0.5-x);u=x=>q*x*(1-x)/2;}
+    else{const L=Math.log(1+beta),C=q/L-q/beta;up=x=>(C-q*x)/(1+beta*x);u=x=>-q*x/beta+(C+q/beta)*Math.log(1+beta*x)/beta;}
+    const h=1/n,X=[];for(let i=0;i<=n;i++)X.push(i*h);
+    const N=n-1,K=[],F=[];for(let i=0;i<N;i++){K.push(new Array(N).fill(0));F.push(0);}
+    for(let e=0;e<n;e++){const ke=kap((X[e]+X[e+1])/2)/h,P=[e-1,e];
+      for(let a=0;a<2;a++){if(P[a]<0||P[a]>=N)continue;F[P[a]]+=q*h/2;
+        for(let b=0;b<2;b++){if(P[b]<0||P[b]>=N)continue;K[P[a]][P[b]]+=(a===b?1:-1)*ke;}}}
+    const d=FE.solve(K,F);return {X,u,up,kap,h,n,uh:[0].concat(d,[0]),ui:X.map(u)};}
+  /* energy error, value error, energy of V, energy of u, worst nodal error */
+  function norms(M,V){let E=0,L2=0,Ev=0,Eu=0;
+    for(let e=0;e<M.n;e++){const xa=M.X[e],s=(V[e+1]-V[e])/M.h;
+      for(let g=0;g<8;g++){const x=xa+(G.x[g]+1)*M.h/2,w=G.w[g]*M.h/2,v=V[e]+(x-xa)*s,k=M.kap(x),du=M.up(x);
+        E+=w*k*(s-du)**2;L2+=w*(v-M.u(x))**2;Ev+=w*k*s*s;Eu+=w*k*du*du;}}
+    const nod=Math.max(...V.map((v,i)=>Math.abs(v-M.u(M.X[i]))));return {E,L2:Math.sqrt(L2),Ev,Eu,nod:nod<1e-13?0:nod};}
+  /* a(N_j, e) by quadrature: N_j' = +1/h on element j-1, -1/h on element j */
+  function aNe(M,j){let s=0;[[j-1,1],[j,-1]].forEach(([e,sg])=>{const xa=M.X[e],se=(M.uh[e+1]-M.uh[e])/M.h;
+      for(let g=0;g<8;g++){const x=xa+(G.x[g]+1)*M.h/2,w=G.w[g]*M.h/2;s+=w*M.kap(x)*(sg/M.h)*(se-M.up(x));}});return s;}
+  function slopes(M,V){const p=[];for(let e=0;e<M.n;e++){const s=(V[e+1]-V[e])/M.h;p.push([M.X[e],s],[M.X[e+1],s]);}return p;}
+  function run(){
+    const n=FE.val('ba-n'),ratio=FE.val('ba-r'),jEl=$('ba-j');jEl.max=n-1;if(+jEl.value>n-1)jEl.value=n-1;FE.show('ba-j');
+    const j=+jEl.value,t=FE.val('ba-t'),M=model(n,ratio),Uc=M.uh.slice();Uc[j]+=t;
+    const nf=norms(M,M.uh),nc=norms(M,Uc),ni=norms(M,M.ui);
+    const ex=[],dex=[];for(let i=0;i<=200;i++){const x=i/200;ex.push([x,M.u(x)]);dex.push([x,M.up(x)]);}
+    const P=V=>M.X.map((x,i)=>[x,V[i]]);
+    const L=[{pts:ex,color:FE.C.gray,dash:true}];if(showI)L.push({pts:P(M.ui),color:FE.C.teal,width:2});
+    L.push({pts:P(Uc),color:FE.C.purple,width:2},{pts:P(M.uh),color:FE.C.orange,width:2.5});
+    const dots=M.X.map((x,i)=>({x,y:M.uh[i],color:FE.C.orange,r:4})).concat([{x:M.X[j],y:Uc[j],color:FE.C.purple,r:6}]);
+    const leg=[{label:'exact u',color:FE.C.gray,dash:true},{label:'FE uʰ',color:FE.C.orange},{label:'competitor Uʰ',color:FE.C.purple}];
+    if(showI)leg.push({label:'interpolant',color:FE.C.teal});
+    FE.plot('ba-u',{w:420,x:[0,1],y:FE.span(ex.map(q=>q[1]).concat(Uc,M.uh)),height:300,label:'values',xlabel:'x',lines:L,dots,legend:leg});
+    const DL=[{pts:dex,color:FE.C.gray,dash:true}];if(showI)DL.push({pts:slopes(M,M.ui),color:FE.C.teal,width:2});
+    DL.push({pts:slopes(M,Uc),color:FE.C.purple,width:2},{pts:slopes(M,M.uh),color:FE.C.orange,width:2.5});
+    const allS=dex.map(q=>q[1]).concat(slopes(M,Uc).map(q=>q[1]),slopes(M,M.uh).map(q=>q[1]));
+    FE.plot('ba-du',{w:420,x:[0,1],y:FE.span(allS),height:300,label:'slopes',xlabel:'x',lines:DL});
+    /* parabola: energy error of u^h + s N_j */
+    const par=[];for(let i=0;i<=60;i++){const s=-0.03+i*0.001,V=M.uh.slice();V[j]+=s;par.push([s,norms(M,V).E]);}
+    const hl=showI?[{y:ni.E,color:FE.C.teal,dash:true}]:[];
+    const ymax=Math.max(...par.map(q=>q[1]),showI?ni.E:0)*1.08;
+    FE.plot('ba-par',{w:480,x:[-0.03,0.03],y:[0,ymax],height:260,label:'energy error versus nudge',xlabel:'nudge t',ml:72,
+      ytk:[0,ymax*0.25,ymax*0.5,ymax*0.75].map(v=>[v,FE.fmtE(v)]),lines:[{pts:par,color:FE.C.purple,width:2}],hlines:hl,
+      dots:[{x:0,y:nf.E,color:FE.C.orange,r:6},{x:t,y:nc.E,color:FE.C.purple,r:6}],
+      legend:[{label:'competitor',color:FE.C.purple},{label:'t = 0 is the FE solution',color:FE.C.orange}].concat(showI?[{label:'interpolant',color:FE.C.teal,dash:true}]:[])});
+    /* table, marking the smallest entry in each column */
+    const rows=[['FE uʰ',nf],['competitor Uʰ',nc]];if(showI)rows.push(['interpolant',ni]);
+    const best=key=>Math.min(...rows.map(r=>r[1][key]));
+    const cell=(v,key)=>({v:FE.fmtE(v),cls:Math.abs(v-best(key))<=1e-12*Math.max(1,Math.abs(v))?'new':''});
+    $('ba-tab').innerHTML='<p class="fe-cap">Green = smallest in that column.</p>'+FE.TB(['candidate','energy error<br>a(·−u, ·−u)','value error<br>‖·−u‖<sub>0</sub>','worst node<br>error'],
+      rows.map(r=>[r[0],cell(r[1].E,'E'),cell(r[1].L2,'L2'),cell(r[1].nod,'nod')]));
+    $('ba-orth').innerHTML='Slope of the purple curve at t = 0: 2a(N<sub>'+j+'</sub>, e) = '+FE.fmtE(2*aNe(M,j))+' ≈ 0. That is part (a).';
+    const low=100*(1-nf.Ev/nf.Eu);
+    $('ba-py').innerHTML='<div class="fe-status fe-ok"><b>Pythagoras (the corollary in Section 3):</b> a(u,u) = '+FE.fmtE(nf.Eu)+' &nbsp;=&nbsp; a(uʰ,uʰ) '+FE.fmtE(nf.Ev)+' + a(e,e) '+FE.fmtE(nf.E)+'. The FE energy is '+low.toFixed(1)+'% low.</div>';
+  }
+  $('ba-int').addEventListener('click',()=>{showI=!showI;$('ba-int').classList.toggle('on',showI);run();});
+  FE.bind(['ba-n','ba-r','ba-j','ba-t'],run);
+})();
+</script>
+```
+
+**Try these, in order:**
+
+1. **Set κ(1)/κ(0) = 1** (uniform bar). The orange and teal lines coincide: FE hits every node exactly. That's a special 1D property, and it disappears as soon as $\kappa$ varies.
+2. **Set it back to 12.** FE now misses the nodal values (worst node error ≠ 0), yet its **energy error is smallest**. The interpolant wins the other two columns, and a nudged competitor can sometimes beat FE in value error too. Never in energy. "Best" means best in energy only.
+3. **Drag the nudge, then change $j$.** For every node, the energy error is a parabola with its **bottom exactly at $t=0$**. A flat bottom (zero slope) is part (a); the bottom being the lowest point is part (b).
+4. **Look at the slope plot.** On each element, the orange slope is a $\kappa$-weighted average of the gray curve. That's what a "least-squares fit of the slopes" looks like.
+
+::: {.callout-note collapse="true"}
+## Where the exact solution in the widget comes from
+The strong form is $-(\kappa u_{,x})_{,x}=\ell$ with $\ell=1$, $u(0)=u(1)=0$, $\kappa(x)=1+\beta x$ and $\beta=\kappa(1)/\kappa(0)-1$.
+
+1. Integrate once: $\kappa u_{,x}=C-x$, where $C$ is a constant (it equals the heat flux $-\kappa u_{,x}$ at $x=0$, sign flipped).
+2. Divide by $\kappa$: $u_{,x}=\dfrac{C-x}{1+\beta x}=-\dfrac1\beta+\dfrac{C+1/\beta}{1+\beta x}$ (split the fraction).
+3. Integrate from 0, using $u(0)=0$: $u(x)=-\dfrac{x}{\beta}+\Big(C+\dfrac1\beta\Big)\dfrac{\ln(1+\beta x)}{\beta}$.
+4. $u(1)=0$ fixes $C=\dfrac{1}{\ln(1+\beta)}-\dfrac1\beta$.
+
+For $\beta=0$ this becomes $u=x(1-x)/2$. The FE element stiffness is $k^e=\dfrac{\bar\kappa_e}{h}\begin{bmatrix}1&-1\\-1&1\end{bmatrix}$ with $\bar\kappa_e$ the value of $\kappa$ at the element midpoint, which is exact here because $\kappa$ is linear.
+:::
+
+# 3. Energy bookkeeping: FE models are too stiff
+
+::: {.callout-tip icon=false}
+## Why am I showing you this?
+The error has a **predictable direction**. A displacement-based FE model is stiffer than the real thing. Knowing which way the error goes lets you sanity-check results and tell whether a mesh-refinement sequence is behaving.
+:::
+
+## The "Pythagorean theorem" corollary
+
+**Extra assumption:** $\mathcal{S}^h=\mathcal{V}^h$. That means the prescribed boundary values are all **zero** (a support that doesn't move, an edge held at zero temperature). Then $\boldsymbol{u}^h$ itself belongs to $\mathcal{V}^h$.
+
+**Step 1.** Since $\boldsymbol{u}^h\in\mathcal{V}^h$, we're allowed to choose $\boldsymbol{w}^h=\boldsymbol{u}^h$ in part (a):
+$$a(\boldsymbol{u}^h,\boldsymbol{e})=0$$
+
+**Step 2.** Rearrange the error definition: $\boldsymbol{u}=\boldsymbol{u}^h-\boldsymbol{e}$. Expand with bilinearity and symmetry:
+$$a(\boldsymbol{u},\boldsymbol{u})=a(\boldsymbol{u}^h-\boldsymbol{e},\,\boldsymbol{u}^h-\boldsymbol{e})=a(\boldsymbol{u}^h,\boldsymbol{u}^h)-\underbrace{2a(\boldsymbol{u}^h,\boldsymbol{e})}_{0}+a(\boldsymbol{e},\boldsymbol{e})$$
+$$\boxed{a(\boldsymbol{u},\boldsymbol{u})=a(\boldsymbol{u}^h,\boldsymbol{u}^h)+a(\boldsymbol{e},\boldsymbol{e})}$$
+
+The widget above checks this line live (the green box under it).
+
+**Remark 1.** Rearranged: $a(\boldsymbol{e},\boldsymbol{e})=a(\boldsymbol{u},\boldsymbol{u})-a(\boldsymbol{u}^h,\boldsymbol{u}^h)$. "The energy of the error equals (minus) the error of the energy." If you can estimate the exact energy, for example by extrapolating the energies from a sequence of meshes, you get the energy-norm error for free.
+
+**Remark 2.** $a(\boldsymbol{e},\boldsymbol{e})\ge0$, so
+$$a(\boldsymbol{u}^h,\boldsymbol{u}^h)\le a(\boldsymbol{u},\boldsymbol{u}).$$
+**The FE solution underestimates the strain energy.**
+
+**What that means physically.** Set $\boldsymbol{w}=\boldsymbol{u}$ in the exact weak form (allowed, because $\mathcal{S}=\mathcal{V}$ here):
+$$a(\boldsymbol{u},\boldsymbol{u})=(\boldsymbol{u},\ell)+(\boldsymbol{u},\boldsymbol{h})_\Gamma$$
+The right side is the work the loads do moving through the displacements they cause. In elasticity, $a(\boldsymbol{u},\boldsymbol{u})$ is twice the strain energy. FE gets less of it, so **for the same loads, the FE model deflects less**. For a single point load $P$ on a beam, $a=P\,\delta$, so the FE deflection under the load is too small.
+
+## Potential energy: why "best approximation" happens at all
+
+The potential-energy exercise works with
+$$I(\boldsymbol{v})=\tfrac12a(\boldsymbol{v},\boldsymbol{v})-(\boldsymbol{v},\ell)-(\boldsymbol{v},\boldsymbol{h})_\Gamma,$$
+where $\boldsymbol{v}$ is any candidate in $\mathcal{S}$. In elasticity, $I$ is strain energy minus the work of the loads: the **total potential energy**.
+
+**Step 1.** Write any candidate as $\boldsymbol{v}=\boldsymbol{u}+\boldsymbol{w}$, where $\boldsymbol{w}=\boldsymbol{v}-\boldsymbol{u}\in\mathcal{V}$ (same BC values, so the difference is zero there).
+
+**Step 2.** Substitute and expand. Each piece is linear, except the $a$-term which FOILs into four:
+$$I(\boldsymbol{u}+\boldsymbol{w})=\tfrac12a(\boldsymbol{u},\boldsymbol{u})+\tfrac12a(\boldsymbol{u},\boldsymbol{w})+\tfrac12a(\boldsymbol{w},\boldsymbol{u})+\tfrac12a(\boldsymbol{w},\boldsymbol{w})-(\boldsymbol{u},\ell)-(\boldsymbol{w},\ell)-(\boldsymbol{u},\boldsymbol{h})_\Gamma-(\boldsymbol{w},\boldsymbol{h})_\Gamma$$
+
+**Step 3.** **Use symmetry**: $\tfrac12a(\boldsymbol{u},\boldsymbol{w})+\tfrac12a(\boldsymbol{w},\boldsymbol{u})=a(\boldsymbol{w},\boldsymbol{u})$. Regroup:
+$$I(\boldsymbol{u}+\boldsymbol{w})=I(\boldsymbol{u})+\underbrace{\big[a(\boldsymbol{w},\boldsymbol{u})-(\boldsymbol{w},\ell)-(\boldsymbol{w},\boldsymbol{h})_\Gamma\big]}_{=\,0\ \text{by (4.1.1)}}+\tfrac12a(\boldsymbol{w},\boldsymbol{w})$$
+
+**Step 4.** So, for every candidate $\boldsymbol{v}$:
+$$\boxed{I(\boldsymbol{v})=I(\boldsymbol{u})+\tfrac12\,a(\boldsymbol{v}-\boldsymbol{u},\,\boldsymbol{v}-\boldsymbol{u})}$$
+
+Three things fall out of this one line:
+
+1. **The weak form is "the slope of $I$ is zero."** The bracket in Step 3 is the part of $I$ that grows linearly in $\boldsymbol{w}$, i.e. the derivative of $I$ in the direction $\boldsymbol{w}$. The weak form sets it to zero. That's part (a) of the exercise.
+2. **$\boldsymbol{u}$ minimizes $I$**, because $\tfrac12a(\cdot,\cdot)\ge0$. This is the principle of minimum potential energy.
+3. **The FE solution minimizes $I$ over the mesh functions.** Put $\boldsymbol{v}=\boldsymbol{U}^h$: the excess potential energy of any mesh function is **half its energy error**. Minimizing one minimizes the other, which is part (b) of the theorem again. And since $\mathcal{S}^h\subset\mathcal{S}$, the best over a smaller set can't beat the best over the bigger set:
+$$I(\boldsymbol{u}^h)\ge I(\boldsymbol{u})\qquad\text{(the approximate solution overestimates the potential energy, part (c))}$$
+
+**Where symmetry entered:** Step 3, and nowhere else. That's Vainberg's theorem in miniature: a potential $I$ exists exactly when $a(\cdot,\cdot)$ is symmetric. Hughes stresses that FE **doesn't need** a potential. Galerkin works for non-symmetric problems too. What you lose without symmetry is the best-approximation guarantee.
+
+::: {.callout-important icon=false}
+## For your fluids work
+Convection–diffusion and the advection part of Navier–Stokes are **non-symmetric**: $a(w,u)\ne a(u,w)$ because of the $\boldsymbol{v}\cdot\nabla u$ term. So plain Galerkin has no "best" guarantee there, and on coarse meshes with strong flow it produces wiggly, oscillating solutions. Stabilized methods (such as SUPG) exist to fix exactly that.
+:::
+
+**The direction of the error, as a checklist:**
+
+| What drives the model | FE strain energy vs. exact | What you see |
+|---|---|---|
+| Applied loads or fluxes; supports and fixed temperatures at zero | **too low** | displacements too small in the load-weighted sense (e.g. deflection under a single point load) |
+| Prescribed nonzero displacements or temperatures, no loads | **too high** ($I=\tfrac12a$ here, and $I(\boldsymbol{u}^h)\ge I(\boldsymbol{u})$) | reaction forces / heat flows too large |
+| Anything | total potential energy $I(\boldsymbol{u}^h)\ge I(\boldsymbol{u})$ | |
+
+If each mesh contains the previous one (refine by splitting elements, called **nested** meshes), the new $\mathcal{S}^h$ contains the old one, so $I(\boldsymbol{u}^h)$ can only go **down** toward $I(\boldsymbol{u})$. If energy moves the wrong way in a conforming, fully integrated displacement model, something is off.
+
+# 4. How well can a mesh fit $u$ at all? (4.1.6)
+
+::: {.callout-tip icon=false}
+## Why am I showing you this?
+Part (b) says FE = the best mesh function. The obvious next question: **how good is the best mesh function?** That's pure geometry of polynomials, with no FE in it. It's where element size $h$, element order $k$ and the smoothness of the exact solution $r$ each enter.
+:::
+
+$$
+\boxed{\lVert\boldsymbol{u}-\boldsymbol{U}^h\rVert_m\le c\,h^\alpha\,\lVert\boldsymbol{u}\rVert_r},\qquad \alpha=\min(k+1-m,\ r-m) \tag{4.1.6}
+$$
+
+| Symbol | Meaning |
+|---|---|
+| $\boldsymbol{U}^h$ | the **interpolate**: the mesh function that matches $\boldsymbol{u}$ at the nodes (the teal line in the widget) |
+| $m$ | which norm the error is measured in: 0 = values, 1 = slopes |
+| $k$ | the highest degree $k$ such that the shape functions contain **every** polynomial up to degree $k$ ("complete"). Linear elements: $k=1$. Quadratic: $k=2$. |
+| $r$ | how smooth $\boldsymbol{u}$ is: its derivatives up to order $r$ are **square integrable** ($\int(\text{derivative})^2d\Omega<\infty$) |
+| $\lVert\boldsymbol{u}\rVert_r$ | the size of $\boldsymbol{u}$ and its first $r$ derivatives (4.1.4). A wiggly or steep $\boldsymbol{u}$ has a big one. |
+| $h$ | **mesh parameter**: the diameter of the smallest circle that contains the **largest** element (Fig. 4.1.1) |
+| $c$ | a constant that doesn't depend on $h$ or $\boldsymbol{u}$. It **does** depend on element shape. |
+| $\alpha$ | the rate: the power of $h$ |
+
+**Where the exponent comes from: linear elements in 1D, step by step.** Take one element $[0,h]$. Let $E(x)=u(x)-U^h(x)$ be the interpolation error. It's zero at both ends, and since $U^h$ is a straight line, $E_{,xx}=u_{,xx}$.
+
+*Value error.* The standard interpolation-error formula (derivation in the box below) says that for each $x$ there's a point $\xi$ in the element where
+$$E(x)=-\tfrac12\,u_{,xx}(\xi)\,x\,(h-x).$$
+The product $x(h-x)$ is largest at the midpoint, where it's $h^2/4$. So
+$$|E|\le\frac{h^2}{8}\max|u_{,xx}|\qquad\Rightarrow\quad\text{values} \sim h^2=h^{k+1-0}.$$
+
+*Slope error.* $E(0)=E(h)=0$, so $E$ goes up and comes back down. Somewhere in between, at a point $x^*$, its slope is zero (Rolle's theorem). Integrate the slope's derivative from there:
+$$E_{,x}(x)=\int_{x^*}^{x}E_{,xx}\,ds=\int_{x^*}^{x}u_{,xx}\,ds\quad\Rightarrow\quad|E_{,x}|\le h\,\max|u_{,xx}|\qquad\Rightarrow\quad\text{slopes}\sim h^1=h^{k+1-1}.$$
+
+**Each derivative you measure costs one power of $h$.** That's the $k+1-m$ in $\alpha$. Higher-order elements ($k$ up) buy powers back.
+
+::: {.callout-note collapse="true"}
+## Why $E(x)=-\tfrac12u_{,xx}(\xi)\,x(h-x)$
+Fix a point $x$ strictly inside the element. Build the helper function
+$$\phi(t)=E(t)-E(x)\,\frac{t(h-t)}{x(h-x)}.$$
+It is zero at $t=0$, at $t=h$ (both terms vanish), and at $t=x$ (the fraction is 1). Three zeros means $\phi_{,t}$ has two zeros (Rolle's theorem between each pair), and so $\phi_{,tt}$ has one zero, at some $\xi$. Compute $\phi_{,tt}$: the first term gives $E_{,tt}=u_{,tt}$; the fraction's second derivative is $-2/(x(h-x))$. So
+$$0=u_{,xx}(\xi)+\frac{2E(x)}{x(h-x)}\quad\Rightarrow\quad E(x)=-\tfrac12u_{,xx}(\xi)\,x(h-x).$$
+:::
+
+**The second argument of the min, $r-m$:** both bounds above used $\max|u_{,xx}|$. If $u_{,xx}$ is infinite somewhere, the $h^2$ and $h$ aren't available. The rate is then capped by how smooth $\boldsymbol{u}$ is, no matter how high $k$ is.
+
+**Where real models lose smoothness:** re-entrant (inside) corners, crack tips, point loads, point supports, sudden changes in material, and points where a fixed edge meets a free edge. Near the inside corner of an L-shaped plate, the heat-conduction solution behaves like $\rho^{2/3}$ ($\rho$ = distance from the corner), so the energy error on a uniform mesh shrinks like $h^{2/3}$ for **any** $k$. The elasticity version is similar (about $h^{0.54}$). Section 5's widget shows this cap in action.
+
+**Two practical notes about $h$ and $c$:**
+
+- $h$ is set by the **largest** element. The global guarantee is only as good as your coarsest region.
+- The constant $c$ grows when elements are distorted. Hughes calls a family of meshes **$k,m$-regular** when it has the approximation property (4.1.6) as $h$ shrinks; in practice that requires elements that don't get arbitrarily thin or skewed as you refine (Appendix 4.I). Aspect-ratio and Jacobian checks in meshing tools exist to keep $c$ under control.
+
+# 5. The fundamental error estimate and convergence rates
+
+::: {.callout-tip icon=false}
+## Why am I showing you this?
+Combine Section 2 (FE beats the interpolant in energy) with Section 4 (the interpolant's error $\sim h^\alpha$) and you get the convergence guarantee. Its exponent is **the slope you should see in any mesh-convergence study**. That slope is your main tool for judging whether a model is converged.
+:::
+
+$$
+\boxed{\lVert\boldsymbol{e}\rVert_m\le\bar c\,h^\alpha\,\lVert\boldsymbol{u}\rVert_r}
+$$
+
+**Proof, one justification per line:**
+
+$$
+\begin{aligned}
+\lVert\boldsymbol{e}\rVert_m &\le \frac1{c_1}\,a(\boldsymbol{e},\boldsymbol{e})^{1/2} && \text{left side of (4.1.3) with } \boldsymbol{w}=\boldsymbol{e}\text{, divided by } c_1\\
+&\le \frac1{c_1}\,a(\boldsymbol{u}-\boldsymbol{U}^h,\,\boldsymbol{u}-\boldsymbol{U}^h)^{1/2} && \text{part (b), square-rooted}\\
+&\le \frac{c_2}{c_1}\,\lVert\boldsymbol{u}-\boldsymbol{U}^h\rVert_m && \text{right side of (4.1.3) with } \boldsymbol{w}=\boldsymbol{u}-\boldsymbol{U}^h\\
+&\le \underbrace{\frac{c_2}{c_1}\,c}_{\bar c}\;h^\alpha\,\lVert\boldsymbol{u}\rVert_r && \text{(4.1.6), choosing } \boldsymbol{U}^h=\text{the interpolate}
+\end{aligned}
+$$
+
+Notes on the lines:
+
+- Line 1 needs $\boldsymbol{e}\in\mathcal{V}$: $\boldsymbol{u}^h$ and $\boldsymbol{u}$ take the same prescribed boundary values, so their difference is zero there.
+- Line 2 uses $a(\boldsymbol{U}^h-\boldsymbol{u},\cdot)=a(\boldsymbol{u}-\boldsymbol{U}^h,\cdot)$: flipping the sign in both slots multiplies by $(-1)^2=1$.
+- Line 4 is allowed because part (b) holds for **every** competitor, so we pick the one we know the error of.
+
+**Read the constant:** $\bar c=c\cdot c_2/c_1$.
+
+- $c$ comes from element **shape** (Section 4).
+- $c_2/c_1$ comes from the **material and geometry**: conductivity contrast, and, in Section 7, near-incompressibility or thinness.
+
+The theorem promises a **rate**, not a size. If $\bar c$ is huge, "it converges" can mean "on no mesh you can afford."
+
+## The standard rates (Remarks 1 to 3)
+
+If $\boldsymbol{u}$ is smooth ($r\ge k+1$), the min picks $k+1-m$:
+
+$$
+\boxed{\lVert\boldsymbol{e}\rVert_m\le c\,h^{k+1-m}\lVert\boldsymbol{u}\rVert_{k+1}}\qquad\text{(standard error estimate)}
+$$
+
+For lower-order norms $\lVert\cdot\rVert_s$, $0\le s\le m$, the **Aubin–Nitsche** argument (a duality trick; Hughes only cites it) gives a better rate:
+
+$$
+\boxed{\lVert\boldsymbol{e}\rVert_s\le c\,h^{\beta}\lVert\boldsymbol{u}\rVert_{k+1}},\qquad \beta=\min\big(k+1-s,\ 2(k+1-m)\big)
+$$
+
+**Worked example, $k=m=1$** (linear elements, heat or elasticity):
+
+- $s=0$: $\beta=\min(1+1-0,\ 2(1+1-1))$ $=\min(2,2)=2$
+- $s=1$: $\beta=\min(1+1-1,\ 2)$ $=\min(1,2)=1$
+
+$$
+\boxed{\lVert\boldsymbol{e}\rVert_0\le c\,h^2\lVert\boldsymbol{u}\rVert_2,\qquad \lVert\boldsymbol{e}\rVert_1\le c\,h\,\lVert\boldsymbol{u}\rVert_2}
+$$
+
+$\lVert\boldsymbol{e}\rVert_0$ is the **displacement/temperature** error and $\lVert\boldsymbol{e}\rVert_1$ is the **strain/stress/heat-flux** error. Gradients converge one order slower than values. Increasing $k$ raises the rates; increasing $m$ lowers them.
+
+**What a rate means on a plot.** If error $\approx C\,h^p$, then $\log(\text{error})=\log C+p\log h$: a straight line of slope $p$ on log–log axes. Halving $h$ divides the error by $2^p$:
+
+| rate $p$ | halve $h$ → error divided by |
+|---|---|
+| 1 | 2 |
+| 2 | 4 |
+| 3 | 8 |
+
+::: {.callout-tip icon=false}
+## Why this widget?
+This is what a convergence study is supposed to look like, and what it looks like when the exact solution isn't smooth. It also lets you check Exercise 3 (quadratic elements, $k=2$) against real numbers.
+:::
+
+**The problem:** $-u_{,xx}=\ell$ on $[0,1]$ with $u(0)=u(1)=0$ (heat conduction, $\kappa=1$). Pick an exact $u$; the source $\ell$ is computed from it. The widget solves on 2, 4, 8, …, 256 elements with linear ($k=1$) and quadratic ($k=2$) elements and measures the errors exactly.
+
+**How smooth is $x^\gamma$?** Its $j$-th derivative behaves like $x^{\gamma-j}$, so its square behaves like $x^{2\gamma-2j}$. $\int_0 x^p\,dx$ is finite only if $p>-1$. So the derivatives are square integrable for $j<\gamma+\tfrac12$: **$r\approx\gamma+\tfrac12$.** The predicted rates are then $\alpha=\min(k,\ r-1)$ for gradients and one higher, $\min(k+1,\ \alpha+1)$, for values.
+
+```{=html}
+<div class="fe-widget" id="cv">
+<div class="fe-btns" id="cv-btns">
+  <button data-c="sin" class="on">Smooth: sin(πx)</button>
+  <button data-c="p25">x<sup>2.5</sup> − x &nbsp;(r ≈ 3)</button>
+  <button data-c="p15">x<sup>1.5</sup> − x &nbsp;(r ≈ 2)</button>
+  <button data-c="p075">x<sup>0.75</sup> − x &nbsp;(r ≈ 1.25)</button>
+</div>
+<div class="fe-row">
+  <div style="flex:2 1 340px"><p class="fe-cap"><b>Error vs. element size h</b> (log–log). Slope = rate. Finer meshes are to the left.</p><div id="cv-plot"></div></div>
+  <div style="flex:1 1 220px"><p class="fe-cap"><b>The exact solution's derivatives.</b> A curve that shoots off the plot is infinite at x = 0, which limits r.</p><div id="cv-mini"></div></div>
+</div>
+<div class="scroll-x" id="cv-tab"></div>
+<div id="cv-msg"></div>
+</div>
+<script>
+(function(){
+  const $=id=>document.getElementById(id),G3=FE.gauss(3),G12=FE.gauss(12),G20=FE.gauss(20),NS=[2,4,8,16,32,64,128,256];
+  function pw(g){return {u:x=>Math.pow(x,g)-x,up:x=>g*Math.pow(x,g-1)-1,upp:x=>g*(g-1)*Math.pow(x,g-2),f:x=>-g*(g-1)*Math.pow(x,g-2),sing:true,r:g+0.5};}
+  const CASES={sin:{u:x=>Math.sin(Math.PI*x),up:x=>Math.PI*Math.cos(Math.PI*x),upp:x=>-Math.PI*Math.PI*Math.sin(Math.PI*x),f:x=>Math.PI*Math.PI*Math.sin(Math.PI*x),sing:false,r:Infinity},
+    p25:pw(2.5),p15:pw(1.5),p075:pw(0.75)};
+  function shp(k,xi){return k===1?{N:[(1-xi)/2,(1+xi)/2],dN:[-0.5,0.5]}:{N:[xi*(xi-1)/2,1-xi*xi,xi*(xi+1)/2],dN:[xi-0.5,-2*xi,xi+0.5]};}
+  /* integrate fn(x, xi) over [xa, xb]; next to a singular point at x = 0, substitute x = h s^4 so the integrand is smooth in s */
+  function eint(xa,xb,sing,fn){const h=xb-xa;let s=0;
+    if(sing&&xa===0){for(let g=0;g<20;g++){const q=(G20.x[g]+1)/2,x=h*q**4;s+=G20.w[g]/2*4*h*q**3*fn(x,2*x/h-1);}}
+    else for(let g=0;g<12;g++){const xi=G12.x[g];s+=G12.w[g]*h/2*fn((xa+xb)/2+xi*h/2,xi);}return s;}
+  function fe(k,n,cs){const h=1/n,nn=k*n+1,ne=k+1,K=[],F=new Array(nn).fill(0);for(let i=0;i<nn;i++)K.push(new Array(nn).fill(0));
+    for(let e=0;e<n;e++){const xa=e*h,xb=xa+h,dof=[];for(let a=0;a<ne;a++)dof.push(k*e+a);
+      for(let g=0;g<3;g++){const dN=shp(k,G3.x[g]).dN,w=G3.w[g]*h/2;for(let a=0;a<ne;a++)for(let b=0;b<ne;b++)K[dof[a]][dof[b]]+=w*dN[a]*dN[b]*4/(h*h);}
+      for(let a=0;a<ne;a++)F[dof[a]]+=eint(xa,xb,cs.sing,(x,xi)=>shp(k,xi).N[a]*cs.f(x));}
+    const d=FE.band(K.slice(1,nn-1).map(r=>r.slice(1,nn-1)),F.slice(1,nn-1),k),U=[0].concat(d,[0]);let L2=0,S1=0;
+    for(let e=0;e<n;e++){const xa=e*h,xb=xa+h;
+      L2+=eint(xa,xb,cs.sing,(x,xi)=>{const N=shp(k,xi).N;let v=0;for(let a=0;a<ne;a++)v+=N[a]*U[k*e+a];return (v-cs.u(x))**2;});
+      S1+=eint(xa,xb,cs.sing,(x,xi)=>{const dN=shp(k,xi).dN;let v=0;for(let a=0;a<ne;a++)v+=dN[a]*2/h*U[k*e+a];return (v-cs.up(x))**2;});}
+    return {L2:Math.sqrt(L2),H1:Math.sqrt(L2+S1)};}
+  const cache={};
+  function study(key){if(!cache[key]){const cs=CASES[key],o={};[1,2].forEach(k=>o[k]=NS.map(n=>fe(k,n,cs)));cache[key]=o;}return cache[key];}
+  const fr=v=>v===Infinity?'∞':(+v.toFixed(2)).toString();
+  function render(key){
+    const cs=CASES[key],S=study(key),lg=Math.log10,X=NS.map(n=>lg(1/n));
+    const series=[[1,'L2',FE.C.orange,false,'k = 1, values ‖e‖₀'],[1,'H1',FE.C.purple,false,'k = 1, gradients ‖e‖₁'],[2,'L2',FE.C.orange,true,'k = 2, values ‖e‖₀'],[2,'H1',FE.C.purple,true,'k = 2, gradients ‖e‖₁']];
+    const all=[];const lines=series.map(([k,q,c,d])=>{const p=S[k].map((r,i)=>[X[i],lg(r[q])]);p.forEach(z=>all.push(z[1]));return {pts:p,color:c,dash:d,width:2.2};});
+    const dots=[];series.forEach(([k,q,c],si)=>lines[si].pts.forEach(z=>dots.push({x:z[0],y:z[1],color:c,r:3})));
+    const ylo=Math.floor(Math.min(...all)),yhi=Math.ceil(Math.max(...all));const yt=[];const stp=Math.max(1,Math.ceil((yhi-ylo)/6));
+    for(let v=ylo;v<=yhi;v+=stp)yt.push([v,'10'+FE.sup(v)]);
+    FE.plot('cv-plot',{w:500,x:[lg(1/256)-0.1,lg(1/2)+0.1],y:[ylo,yhi],height:340,label:'convergence plot',xlabel:'element size h',ml:62,
+      xtk:[2,8,32,128].map(n=>[lg(1/n),'1/'+n]),ytk:yt,lines,dots,
+      legend:series.map(s=>({label:s[4],color:s[2],dash:s[3]}))});
+    /* derivative mini plot */
+    const pts1=[],pts2=[];for(let i=0;i<=300;i++){const x=Math.max(1e-4,i/300);pts1.push([x,cs.up(x)]);pts2.push([x,cs.upp(x)]);}
+    FE.plot('cv-mini',{w:340,x:[0,1],y:[-10,10],height:280,label:'derivatives of the exact solution',xlabel:'x',
+      lines:[{pts:pts1,color:FE.C.blue,width:2},{pts:pts2,color:FE.C.pink,width:2}],
+      legend:[{label:'u′ (heat flux / strain)',color:FE.C.blue},{label:'u″',color:FE.C.pink}]});
+    /* rate table */
+    const rows=[];[1,2].forEach(k=>{const a=Math.min(k,cs.r-1),b=Math.min(k+1,a+1);
+      [['L2','values ‖e‖₀',b],['H1','gradients ‖e‖₁',a]].forEach(([q,lab,pred])=>{const E=S[k],n=E.length;
+        const meas=Math.log2(E[n-2][q]/E[n-1][q]),gap=Math.abs(meas-pred);
+        rows.push(['k = '+k+', '+lab,(cs.r===Infinity?'':'≈ ')+fr(pred),{v:meas.toFixed(2),cls:gap<0.1?'new':''},FE.fmtE(E[0][q]),FE.fmtE(E[n-1][q]),(E[0][q]/E[n-1][q]).toFixed(0)+'×']);});});
+    $('cv-tab').innerHTML='<p class="fe-cap">Measured rate = log₂(error at 128 elements / error at 256). Green = within 0.1 of the prediction.</p>'
+      +FE.TB(['','predicted rate','measured rate','error, 2 elements','error, 256 elements','improvement'],rows);
+    const msg={sin:'<div class="fe-status fe-ok"><b>Smooth solution:</b> every rate matches the standard estimate. Quadratic elements gain a full power of h over linear ones, for both values and gradients.</div>',
+      p25:'<div class="fe-status fe-ok"><b>Smooth enough:</b> r ≈ 3 doesn\'t cap anything for k ≤ 2. The k = 2 slopes approach 3 and 2 slowly (2.93 and 1.93 at 256 elements) because u‴ is infinite at x = 0.</div>',
+      p15:'<div class="fe-status fe-warn"><b>r ≈ 2 caps the rate:</b> quadratic elements converge at the <b>same rate</b> as linear ones (values 2, gradients 1). The extra polynomial degree is wasted while the mesh is uniform.</div>',
+      p075:'<div class="fe-status fe-bad"><b>Singular gradient:</b> u′ is infinite at x = 0, like stress at a crack tip or an inside corner. Gradient error shrinks like h<sup>0.25</sup>: 128 times more elements buy only a few times less error, for both k. Refining near the singular point (mesh grading) or changing the model is the fix, not uniform refinement.</div>'};
+    $('cv-msg').innerHTML=msg[key];
+    document.querySelectorAll('#cv-btns button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-c')===key));
+  }
+  document.querySelectorAll('#cv-btns button').forEach(b=>b.addEventListener('click',()=>render(b.getAttribute('data-c'))));
+  render('sin');
+})();
+</script>
+```
+
+**Try these, in order:**
+
+1. **Smooth.** $k=1$: slopes 2 (values) and 1 (gradients). That's the boxed $h^2$ and $h$. Then predict the $k=2$ slopes yourself (Exercise 3) before reading them off.
+2. **$x^{1.5}-x$.** Linear and quadratic elements now converge at the same rates. If a refinement study on quadratic elements shows linear-element rates, the solution isn't smooth somewhere.
+3. **$x^{0.75}-x$.** Gradient error barely moves. Look at the mini plot: $u'$ is infinite at $x=0$. In a real model, the **peak stress at that point grows every time you refine**, and never converges. Don't report it.
+
+::: {.callout-note collapse="true"}
+## Running a convergence check on your own model (e.g. in Ansys)
+1. Make at least three meshes, each refined by the same factor (ideally by splitting elements, so they're nested).
+2. Track the quantity you'll report: a deflection, a peak temperature, a stress at a fillet.
+3. With results $f_1$ (coarse), $f_2$ (medium), $f_3$ (fine) and refinement factor $\rho$, the **observed rate** is
+$$p=\frac{\ln\big[(f_1-f_2)/(f_2-f_3)\big]}{\ln\rho}$$
+and an estimate of the converged value (Richardson extrapolation) is $f_3+\dfrac{f_3-f_2}{\rho^{p}-1}$.
+4. Compare $p$ with theory: around $k+1$ for displacement-type quantities and $k$ for stress-type ones. Pointwise quantities don't always follow the norm rates exactly, but they should be in that neighborhood.
+5. $p$ far below theory: a singularity, a locking problem (Section 7), or a bug. $p$ jumping around between mesh pairs: the meshes are still too coarse to show the trend ("not in the asymptotic range").
+:::
+
+::: {.callout-note collapse="true"}
+## Exercises 3 and 4: how to approach them (no answers)
+Both are plug-ins to $\beta=\min\big(k+1-s,\ 2(k+1-m)\big)$, assuming $\boldsymbol{u}$ is smooth.
+
+- **Exercise 3:** $m=1$, $k=2$. Do $s=0$ ($L_2$) and $s=1$ ($H^1$). Check against the widget's $k=2$ rows for the smooth case.
+- **Exercise 4:** $m=2$, $k=3$ (Hermite cubics). Do $s=0,1,2$. Watch which argument of the min wins for each $s$.
+:::
+
+# 6. Quadrature that keeps the convergence rate
+
+::: {.callout-tip icon=false}
+## Why am I showing you this?
+Everything so far assumed **exact integrals**. Real codes use Gauss quadrature (Ch. 3), which usually isn't exact on distorted elements. This tells you the minimum rule that keeps the rate, and warns that the minimum can be dangerously low.
+:::
+
+**Two degrees describe a shape-function set:**
+
+- $k$: the highest degree it contains **completely** (every monomial of that degree and below).
+- $\bar k$: the degree of the **highest** monomial it contains at all.
+
+The bilinear quad has $1,\ \xi,\ \eta,\ \xi\eta$. It's missing $\xi^2$ and $\eta^2$, so it's only complete to degree 1 ($k=1$). But $\xi\eta$ has degree 2, so $\bar k=2$. The widget draws this on Pascal's triangle.
+
+**Hughes's sufficient conditions** (from reference [5]):
+
+| To keep... | the rule must integrate exactly every monomial through degree |
+|---|---|
+| the **full** rate in the energy norm | $\bar k+k-2m$ |
+| at least **first-order** convergence | $\bar k-m$ |
+
+**Converting a degree into a Gauss rule:** an $n$-point Gauss rule in 1D is exact through degree $2n-1$. On quads and bricks, use $n$ points in each direction. So the smallest $n$ with $2n-1\ge d$ is $n=\lceil (d+1)/2\rceil$.
+
+**Hughes's Example 1**, step by step:
+
+- Bilinear quad, heat or elasticity: $\bar k+k-2m=2+1-2=1$. One point gives $2(1)-1=1\ge1$. **1-point Gauss is enough for accuracy.** But see Section 4.6: it's rank deficient (hourglass modes).
+- 8-node serendipity quad: $\bar k+k-2m=3+2-2=3$. Need $2n-1\ge3$, so $n=2$: **2×2 Gauss**. First-order needs $\bar k-m=3-1=2$, which also needs 2×2.
+
+**Example 2:** bars, triangles and tetrahedra use complete polynomials, so $\bar k=k$ and the full-rate degree is $2(k-m)$.
+
+The **Remark**: the same rule can be used for the other element integrals (the load vector, and later mass matrices) without changing these conclusions.
+
+::: {.callout-tip icon=false}
+## Why this widget?
+To make $k$, $\bar k$ and the rule lookup mechanical for the elements you'll meet in Ansys, and to flag when the "accurate enough" rule is below the usual full rule, which is where rank deficiency lives.
+:::
+
+```{=html}
+<div class="fe-widget" id="qd">
+<div class="fe-btns" id="qd-btns"></div>
+<div class="fe-row">
+  <div><div id="qd-mon"></div></div>
+  <div><div id="qd-out"></div></div>
+</div>
+<div id="qd-flag"></div>
+</div>
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  /* monomials as exponent lists; shape: line, tri, quad, tet, hex */
+  const E={
+    bar2:{name:'2-node bar',shape:'line',mons:[[0],[1]],k:1,m:1,full:1,use:'1D heat, axial bar'},
+    bar3:{name:'3-node bar',shape:'line',mons:[[0],[1],[2]],k:2,m:1,full:2,use:'1D heat, axial bar'},
+    beam:{name:'Hermite beam',shape:'line',mons:[[0],[1],[2],[3]],k:3,m:2,full:2,use:'Bernoulli–Euler beam'},
+    t3:{name:'T3 triangle',shape:'tri',mons:[[0,0],[1,0],[0,1]],k:1,m:1,full:1,use:'2D heat, plane elasticity'},
+    t6:{name:'T6 triangle',shape:'tri',mons:[[0,0],[1,0],[0,1],[2,0],[1,1],[0,2]],k:2,m:1,full:3,use:'2D heat, plane elasticity'},
+    q4:{name:'Q4 bilinear quad',shape:'quad',mons:[[0,0],[1,0],[0,1],[1,1]],k:1,m:1,full:2,use:'2D heat, plane elasticity'},
+    q8:{name:'Q8 serendipity',shape:'quad',mons:[[0,0],[1,0],[0,1],[2,0],[1,1],[0,2],[2,1],[1,2]],k:2,m:1,full:3,use:'2D heat, plane elasticity'},
+    q9:{name:'Q9 biquadratic',shape:'quad',mons:[[0,0],[1,0],[0,1],[2,0],[1,1],[0,2],[2,1],[1,2],[2,2]],k:2,m:1,full:3,use:'2D heat, plane elasticity'},
+    tet4:{name:'Tet4',shape:'tet',mons:[[0,0,0],[1,0,0],[0,1,0],[0,0,1]],k:1,m:1,full:1,use:'3D heat, solid elasticity'},
+    tet10:{name:'Tet10',shape:'tet',mons:[[0,0,0],[1,0,0],[0,1,0],[0,0,1],[2,0,0],[0,2,0],[0,0,2],[1,1,0],[0,1,1],[1,0,1]],k:2,m:1,full:4,use:'3D heat, solid elasticity'},
+    h8:{name:'H8 trilinear brick',shape:'hex',mons:[[0,0,0],[1,0,0],[0,1,0],[0,0,1],[1,1,0],[0,1,1],[1,0,1],[1,1,1]],k:1,m:1,full:2,use:'3D heat, solid elasticity'},
+    h20:{name:'H20 serendipity brick',shape:'hex',mons:[[0,0,0],[1,0,0],[0,1,0],[0,0,1],[2,0,0],[0,2,0],[0,0,2],[1,1,0],[0,1,1],[1,0,1],[2,1,0],[2,0,1],[1,2,0],[0,2,1],[1,0,2],[0,1,2],[1,1,1],[2,1,1],[1,2,1],[1,1,2]],k:2,m:1,full:3,use:'3D heat, solid elasticity'}
+  };
+  const VAR=['ξ','η','ζ'];
+  function mono(ex){const s=ex.map((p,i)=>p===0?'':VAR[i]+(p>1?FE.sup(p):'')).join('');return s||'1';}
+  /* the cheapest standard rule exact through degree d; pts = number of points */
+  function rule(shape,d){d=Math.max(d,0);
+    if(shape==='line'||shape==='quad'||shape==='hex'){const n=Math.max(1,Math.ceil((d+1)/2)),dim={line:1,quad:2,hex:3}[shape];
+      return {n,pts:Math.pow(n,dim),label:dim===1?n+'-point Gauss':Array(dim).fill(n).join('×')+' Gauss ('+Math.pow(n,dim)+' points)'};}
+    if(shape==='tri'){const t=[[1,1],[2,3],[3,4],[4,6],[5,7]].find(r=>r[0]>=Math.max(d,1));return {pts:t[1],label:t[1]+'-point triangle rule'};}
+    const t=[[1,1],[2,4],[3,5]].find(r=>r[0]>=Math.max(d,1));return {pts:t[1],label:t[1]+'-point tetrahedron rule'};}
+  function fullRule(el){if(el.shape==='line')return {pts:el.full,label:el.full+'-point Gauss'};
+    if(el.shape==='quad')return {pts:el.full*el.full,label:el.full+'×'+el.full+' Gauss'};
+    if(el.shape==='hex')return {pts:el.full**3,label:el.full+'×'+el.full+'×'+el.full+' Gauss'};
+    return {pts:el.full,label:el.full+'-point '+(el.shape==='tri'?'triangle':'tetrahedron')+' rule'};}
+  let cur='q4';
+  $('qd-btns').innerHTML=Object.keys(E).map(k=>'<button data-e="'+k+'">'+E[k].name+'</button>').join('');
+  function render(){
+    const el=E[cur],deg=el.mons.map(e=>e.reduce((a,b)=>a+b,0)),kb=Math.max(...deg);
+    const dFull=kb+el.k-2*el.m,dFirst=kb-el.m,rF=rule(el.shape,dFull),r1=rule(el.shape,dFirst),fr=fullRule(el);
+    /* monomial display */
+    let s='';
+    if(el.shape==='tri'||el.shape==='quad'){const has=new Set(el.mons.map(e=>e.join(','))),W=360,H=200,dy=40;
+      s='<p class="fe-cap"><b>Pascal\'s triangle.</b> Filled = present in the shape functions. Row k is the last complete row; row k̄ is the highest row used.</p>';
+      s+=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block;font-size:13px" role="img" aria-label="Pascal triangle">`;
+      for(let row=0;row<=4;row++){const y=22+row*dy,lab=row===el.k&&row===kb?'k = k̄':row===el.k?'k':row===kb?'k̄':'';
+        s+=`<text x="8" y="${y+4}" fill="currentColor" opacity=".7">deg ${row}</text>`;
+        if(lab)s+=`<text x="${W-6}" y="${y+4}" text-anchor="end" fill="#d4572a" font-weight="600">${lab}</text>`;
+        for(let j=0;j<=row;j++){const x=W/2+(j-row/2)*58,key=(row-j)+','+j,on=has.has(key);
+          s+=`<rect x="${x-25}" y="${y-12}" width="50" height="24" rx="12" fill="${on?'rgba(212,87,42,.25)':'transparent'}" stroke="${on?'#d4572a':'currentColor'}" stroke-opacity="${on?1:.25}"/>`;
+          s+=`<text x="${x}" y="${y+4}" text-anchor="middle" fill="currentColor" opacity="${on?1:.4}">${mono([row-j,j])}</text>`;}}
+      s+='</svg>';}
+    else{s='<p class="fe-cap"><b>Monomials in the shape functions</b> (small number = degree)</p><div class="chips">'+el.mons.map((e,i)=>'<span class="on">'+mono(e)+'<small>'+deg[i]+'</small></span>').join('')+'</div>';}
+    $('qd-mon').innerHTML=s;
+    $('qd-out').innerHTML=FE.TB(null,[
+      ['used for',el.use],['m (derivative order in a)',el.m],['k (complete degree)',el.k],['k̄ (highest monomial)',kb],
+      ['full rate needs degree','k̄ + k − 2m = '+kb+' + '+el.k+' − '+2*el.m+' = <b>'+dFull+'</b>'],
+      ['→ minimum rule',{v:rF.label,cls:'new'}],
+      ['first-order needs degree','k̄ − m = '+kb+' − '+el.m+' = <b>'+dFirst+'</b>'],
+      ['→ minimum rule',r1.label],
+      ['usual "full" rule',fr.label]]);
+    $('qd-flag').innerHTML=rF.pts<fr.pts
+      ?'<div class="fe-status fe-warn"><b>The accuracy minimum ('+rF.label+') is below the usual full rule ('+fr.label+').</b> Accuracy is fine, but too few points can leave the element with spurious zero-energy modes (rank deficiency, Section 4.6). Codes using reduced rules add hourglass control for this reason.</div>'
+      :'<div class="fe-status fe-ok">The accuracy minimum matches the usual full rule. No rank-deficiency concern from this choice.</div>';
+    document.querySelectorAll('#qd-btns button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-e')===cur));
+  }
+  document.querySelectorAll('#qd-btns button').forEach(b=>b.addEventListener('click',()=>{cur=b.getAttribute('data-e');render();}));
+  render();
+})();
+</script>
+```
+
+**Notice:**
+
+- **Q4 vs. Q8** reproduce Hughes's Example 1.
+- **H8** has $\bar k=3$ (the $\xi\eta\zeta$ term), so its accuracy minimum is already 2×2×2.
+- These are **sufficient** conditions. A rule below them doesn't automatically fail; it just loses the guarantee. Some commercial elements default to reduced rules, so check your element's documentation for which one it uses.
+
+# 7. Why it sometimes doesn't work
+
+::: {.callout-tip icon=false}
+## Why am I showing you this?
+The guarantee has two weak spots: the **constant** $\bar c$, and the **quality of the best mesh function**. Constrained problems hit both. The result can be a smooth-looking, mesh-refined, badly wrong model.
+:::
+
+Hughes's argument: part (b) promises FE is the *best* mesh function. If **no** mesh function is close to $\boldsymbol{u}$, the best one is still bad.
+
+That happens in **constrained media problems**: the exact solution must satisfy an extra condition at every point, and low-order elements can barely satisfy it.
+
+- **Incompressible or nearly incompressible materials** (rubber, $\nu\to0.5$; metal plasticity; incompressible fluids in Stokes flow): the velocity or displacement field must keep volume, $\nabla\!\cdot\boldsymbol{u}\approx0$, everywhere. With low-order elements, few mesh functions do that except ones that barely move. Result: **locking**, a model far too stiff.
+- **Thin structures** modeled with shear-deformable beam, plate or shell elements: the shear strain must be nearly zero. Same story: **shear locking**.
+
+Seen through the constant: $\bar c=c\cdot c_2/c_1$, and $c_2/c_1$ grows without bound as the constraint gets stiffer (bulk modulus ≫ shear modulus, or thickness ≪ length). The rate $h^\alpha$ is still true, but the constant makes it useless.
+
+::: {.callout-tip icon=false}
+## Why this widget?
+A 1D stand-in for locking that you can run in a second. It shows a model that obeys every theorem on this page and still gives the wrong answer on any reasonable mesh, plus the quadrature trick that fixes it.
+:::
+
+**The problem:** a cantilever, length $L=1$, thickness $t$, tip load $P$, modeled with **Timoshenko beam** elements. Each node has a deflection $w$ and a rotation $\theta$. The energy is
+$$a(\cdot,\cdot)=\int_0^L\Big[EI\,\theta_{,x}^2+GA_s\,(w_{,x}-\theta)^2\Big]dx,$$
+where $EI$ is bending stiffness, $GA_s$ is shear stiffness ($A_s=\tfrac56A$), and $w_{,x}-\theta$ is the shear strain. For a thin beam, $GA_s$ is enormous compared with $EI/L^2$ (ratio $\sim(L/t)^2$), so the solution must have $w_{,x}\approx\theta$. That's the constraint, playing the role $\nabla\!\cdot\boldsymbol{u}\approx0$ plays for rubber.
+
+Linear elements ($k=\bar k=1$, $m=1$). **Full** integration of the shear term uses 2 Gauss points (exact). **Reduced** uses 1 point, which Section 6 says is enough for accuracy: $\bar k+k-2m=0$. The exact tip deflection is $\delta=\dfrac{PL^3}{3EI}+\dfrac{PL}{GA_s}$.
+
+```{=html}
+<div class="fe-widget" id="lk">
+<div class="fe-ctrl">
+<label for="lk-s">slenderness L/t</label><input type="range" id="lk-s" min="0" max="8" step="1" value="5"><output id="lk-s-v"></output>
+<label for="lk-n">elements</label><input type="range" id="lk-n" min="0" max="6" step="1" value="3"><output id="lk-n-v"></output>
+</div>
+<div class="fe-row">
+  <div><p class="fe-cap"><b>Deflected shape</b> (divided by the exact tip deflection)</p><div id="lk-shape"></div></div>
+  <div><p class="fe-cap"><b>Tip deflection / exact</b> vs. number of elements</p><div id="lk-conv"></div></div>
+</div>
+<div id="lk-msg"></div>
+</div>
+<script>
+(function(){
+  const $=id=>document.getElementById(id),SL=[2,5,10,20,50,100,200,500,1000],NE=[1,2,4,8,16,32,64];
+  function beam(n,sl,reduced){const L=1,E=1,G=E/2.6,t=L/sl,I=t**3/12,A=t,EI=E*I,GA=5/6*G*A,P=1,he=L/n,nd=2*(n+1);
+    const K=[],F=new Array(nd).fill(0);for(let i=0;i<nd;i++)K.push(new Array(nd).fill(0));
+    const q=reduced?{x:[0],w:[2]}:{x:[-1/Math.sqrt(3),1/Math.sqrt(3)],w:[1,1]};
+    for(let e=0;e<n;e++){const D=[2*e,2*e+1,2*e+2,2*e+3];
+      K[D[1]][D[1]]+=EI/he;K[D[3]][D[3]]+=EI/he;K[D[1]][D[3]]-=EI/he;K[D[3]][D[1]]-=EI/he;
+      q.x.forEach((xi,g)=>{const B=[-1/he,-(1-xi)/2,1/he,-(1+xi)/2],w=q.w[g]*he/2;
+        for(let a=0;a<4;a++)for(let b=0;b<4;b++)K[D[a]][D[b]]+=GA*w*B[a]*B[b];});}
+    F[nd-2]=P;const d=FE.band(K.slice(2).map(r=>r.slice(2)),F.slice(2),3),W=[0];for(let i=0;i<n;i++)W.push(d[2*i]);
+    const ex=P*L**3/(3*EI)+P*L/GA,wex=x=>P/EI*(L*x*x/2-x**3/6)+P*x/GA;return {W,ex,wex,he};}
+  function run(){
+    const sl=SL[FE.val('lk-s')],n=NE[FE.val('lk-n')];$('lk-s-v').textContent=sl;$('lk-n-v').textContent=n;
+    const bf=beam(n,sl,false),br=beam(n,sl,true),ex=[];for(let i=0;i<=100;i++){const x=i/100;ex.push([x,bf.wex(x)/bf.ex]);}
+    const P=b=>b.W.map((w,i)=>[i*b.he,w/b.ex]);
+    FE.plot('lk-shape',{w:420,x:[0,1],y:[-0.05,1.1],height:290,label:'deflected shape',xlabel:'x / L',
+      lines:[{pts:ex,color:FE.C.gray,dash:true},{pts:P(br),color:FE.C.teal,width:2.5},{pts:P(bf),color:FE.C.orange,width:2.5}],
+      dots:P(bf).map(q=>({x:q[0],y:q[1],color:FE.C.orange,r:3.5})).concat(P(br).map(q=>({x:q[0],y:q[1],color:FE.C.teal,r:3.5}))),
+      legend:[{label:'exact',color:FE.C.gray,dash:true},{label:'full integration',color:FE.C.orange},{label:'reduced (1 point)',color:FE.C.teal}]});
+    const cf=NE.map(m=>[Math.log2(m),beam(m,sl,false).W[m]/beam(m,sl,false).ex]),cr=NE.map(m=>[Math.log2(m),beam(m,sl,true).W[m]/beam(m,sl,true).ex]);
+    FE.plot('lk-conv',{w:420,x:[-0.2,6.2],y:[0,1.1],height:290,label:'tip deflection ratio',xlabel:'number of elements',
+      xtk:NE.map(m=>[Math.log2(m),String(m)]),hlines:[{y:1,color:FE.C.gray,dash:true}],
+      lines:[{pts:cf,color:FE.C.orange,width:2.5},{pts:cr,color:FE.C.teal,width:2.5}],
+      dots:[{x:Math.log2(n),y:cf[NE.indexOf(n)][1],color:FE.C.orange,r:6},{x:Math.log2(n),y:cr[NE.indexOf(n)][1],color:FE.C.teal,r:6}]});
+    const rf=cf[NE.indexOf(n)][1],rr=cr[NE.indexOf(n)][1];
+    $('lk-msg').innerHTML='<div class="fe-status '+(rf<0.5?'fe-bad':rf<0.9?'fe-warn':'fe-ok')+'">L/t = '+sl+', '+n+' element'+(n>1?'s':'')+': full integration gives <b>'+(100*rf).toFixed(1)+'%</b> of the exact tip deflection; reduced gives <b>'+(100*rr).toFixed(1)+'%</b>.'
+      +(rf<0.5?' The fully integrated model is <b>locked</b>: it obeys every theorem on this page and is still useless at this mesh.':'')+'</div>';
+  }
+  FE.bind(['lk-s','lk-n'],run);
+})();
+</script>
+```
+
+**Try these, in order:**
+
+1. **L/t = 5** (stubby). Both versions converge; full integration just needs more elements.
+2. **L/t = 100.** With 8 elements, full integration gives about 2% of the right deflection. With 64 it's still only around half. It *does* converge, exactly as the theorems promise; the constant is just enormous.
+3. **Same settings, teal line.** One Gauss point on the shear term fixes it. That's a deliberate "variational crime" (the integral is no longer exact), which is why the rest of Chapter 4 is about **when such crimes are safe**: reduced and selective integration, mixed and penalty methods, and the rank-deficiency checks of Section 4.6.
+
+**What locking looks like in a real model:** displacements much smaller than hand calculations suggest, stresses (especially pressure in nearly incompressible solids) oscillating element to element in a checkerboard pattern, and results that change a lot when you switch element formulation. The test: rerun with a formulation built for the constraint (mixed u–P, enhanced strain, reduced integration with hourglass control) and see whether the answer moves.
+
+# 8. What Section 4.1 lets you check
+
+::: {.callout-tip icon=false}
+## Why am I showing you this?
+This is the practitioner's version of the section: the questions to ask about any linear FE result, each tied to the theorem that justifies it.
+:::
+
+| Check | What theory says | Section |
+|---|---|---|
+| Convergence study | slope ≈ $k+1$ for displacement/temperature, ≈ $k$ for stress/flux, on nested meshes | 5 |
+| Report stresses only once **they** converge | gradients converge one order slower than values; a converged displacement doesn't mean a converged stress | 5 |
+| Energy trend under refinement | load-driven with zero supports: strain energy rises toward exact; potential energy always falls | 3 |
+| Peak stress at inside corners, crack tips, point loads/supports | $r$ is limited there; the peak value never converges. Use a fillet, read away from the point, or use linearized stress | 4, 5 |
+| Element quality | distorted elements inflate the constant $c$ | 4 |
+| Integration rule | reduced rules can be accurate and still rank deficient; look for hourglass patterns | 6 |
+| Near-incompressible or thin parts | the best mesh function may be poor: locking. Compare element formulations | 7 |
+| Convection-dominated flow | non-symmetric $a(\cdot,\cdot)$: no best-approximation guarantee; oscillations mean refine or stabilize | 3 |
+
+# Check yourself
+
+1. A Q4 elasticity model with a smooth solution: you halve every element. Roughly how much should the displacement error and the stress error drop?
+
+::: {.callout-note collapse="true"}
+## Answer
+$k=1$, $m=1$: values $\sim h^2$ and gradients $\sim h$. Displacement error drops about 4×, stress error about 2×.
+:::
+
+2. A loaded structure with fixed supports, conforming fully integrated elements, nested refinement. The strain energies come out 1.92, 1.97, 1.95. What does the third number tell you?
+
+::: {.callout-note collapse="true"}
+## Answer
+It should not happen. With nested meshes, $\mathcal{S}^h$ only grows, so the FE strain energy can only increase toward the exact value (Section 3). Something breaks the assumptions: reduced integration or incompatible-mode elements, meshes that aren't really nested, a constraint or load that changed between meshes, or a bug.
+:::
+
+3. Why doesn't the FE solution generally equal the exact solution at the nodes?
+
+::: {.callout-note collapse="true"}
+## Answer
+FE minimizes the **energy** of the error, a weighted fit of the gradients, not the nodal values. The interpolant matches the nodes and has a larger energy error (the Section 2 widget). Uniform 1D bars are a special exception.
+:::
+
+4. Q9 elements for 2D heat conduction: what's the smallest Gauss rule that keeps the full rate?
+
+::: {.callout-note collapse="true"}
+## Answer
+$\bar k=4$ ($\xi^2\eta^2$), $k=2$, $m=1$: degree $4+2-2=4$. Need $2n-1\ge4$, so $n=3$: 3×3 Gauss. Check it in the Section 6 widget.
+:::
+
+5. An L-shaped bracket: the peak von Mises stress at the inside corner keeps rising every time you refine. Is the mesh still too coarse?
+
+::: {.callout-note collapse="true"}
+## Answer
+No: refining will never settle it. The linear-elastic stress at a sharp inside corner is infinite ($r$ is limited, Section 4), so the peak value grows without bound. Model the real fillet radius, or judge stresses away from the corner.
+:::
