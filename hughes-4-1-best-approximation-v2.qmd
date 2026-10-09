@@ -1,0 +1,1526 @@
+---
+title: "How do we know the FE answer is any good?"
+subtitle: "Hughes 4.1, version 2: one tiny example, one small step at a time"
+format:
+  html:
+    theme:
+      light: cosmo
+      dark: darkly
+    respect-user-color-scheme: true
+    toc: true
+    toc-depth: 2
+    toc-expand: 1
+    toc-location: left
+    embed-resources: true
+    html-math-method: mathjax
+    fontsize: 1.08em
+    linestretch: 1.7
+    callout-appearance: simple
+execute:
+  echo: false
+---
+
+```{=html}
+<style>
+.eng{border-left:4px solid #1d9e75;background:rgba(29,158,117,.08);padding:.55rem .95rem;border-radius:4px;margin:1.1rem 0}
+.eng>p:last-child{margin-bottom:0}
+.aha{border-left:4px solid #d4572a;background:rgba(212,87,42,.08);padding:.55rem .95rem;border-radius:4px;margin:1.1rem 0}
+.aha>p:last-child{margin-bottom:0}
+main h2{margin-top:2.6rem}
+main h1{margin-top:3.2rem}
+.fe-widget{border:1px solid rgba(128,128,128,.35);border-radius:8px;padding:12px 14px;margin:1.4rem 0}
+.fe-ctrl{display:grid;grid-template-columns:minmax(110px,max-content) minmax(0,1fr) 4.5em;gap:6px 12px;align-items:center;margin-bottom:8px}
+.fe-ctrl output{text-align:right;font-variant-numeric:tabular-nums}
+.fe-legend{display:flex;flex-wrap:wrap;gap:4px 16px;font-size:.85em;margin:4px 0}
+.fe-legend i{display:inline-block;width:18px;height:0;border-top:3px solid;vertical-align:middle;margin-right:6px}
+.fe-out{margin:.5rem 0 0;font-variant-numeric:tabular-nums;line-height:1.6}
+.fe-table{border-collapse:collapse;font-variant-numeric:tabular-nums;margin:.3rem 0 .6rem;line-height:1.35}
+.fe-table td,.fe-table th{padding:3px 10px;text-align:center;border:1px solid rgba(128,128,128,.25)}
+.fe-table th{font-weight:600;background:rgba(128,128,128,.10)}
+.fe-table td.new{background:rgba(29,158,117,.28);font-weight:600}
+.fe-btns{display:flex;flex-wrap:wrap;gap:6px;margin:0 0 10px}
+.fe-btns button{font:inherit;font-size:.85em;padding:3px 10px;border-radius:14px;border:1px solid rgba(128,128,128,.5);background:transparent;color:inherit;cursor:pointer}
+.fe-btns button:hover{border-color:#d4572a}
+.fe-btns button.on{background:#d4572a;border-color:#d4572a;color:#fff}
+.fe-row{display:flex;flex-wrap:wrap;gap:14px;align-items:flex-start}
+.fe-row>div{flex:1 1 280px;min-width:0}
+.scroll-x{overflow-x:auto;max-width:100%}
+.fe-cap{font-size:.85em;opacity:.8;margin:.2rem 0 .1rem;line-height:1.4}
+.fe-status{margin-top:.6rem;padding:8px 12px;border-radius:6px;border-left:4px solid;line-height:1.5}
+.fe-ok{border-color:#1d9e75;background:rgba(29,158,117,.10)}
+.fe-bad{border-color:#d62828;background:rgba(214,40,40,.10)}
+.fe-warn{border-color:#d4572a;background:rgba(212,87,42,.10)}
+.chips{display:flex;flex-wrap:wrap;gap:6px;margin:.3rem 0 .6rem}
+.chips span{padding:2px 9px;border-radius:12px;border:1px solid rgba(128,128,128,.45);font-size:.9em}
+.chips span.on{background:rgba(212,87,42,.22);border-color:#d4572a}
+.chips span small{opacity:.7;margin-left:4px}
+main table.table{display:block;max-width:100%;overflow-x:auto}
+.math.display,mjx-container[display="true"]{display:block;max-width:100%;overflow-x:auto;overflow-y:hidden}
+pre.ascii{line-height:1.3;font-size:.9em}
+</style>
+<script>
+window.FE=(function(){
+  const C={orange:'#d4572a',purple:'#6c5ce7',teal:'#1d9e75',gray:'#8a8a8a',pink:'#c2185b',blue:'#2e86c1',red:'#d62828'};
+  function niceStep(raw){const p=Math.pow(10,Math.floor(Math.log10(raw)));const r=raw/p;return (r<1.5?1:r<3?2:r<7?5:10)*p;}
+  function ticks(a,b,n){const st=niceStep((b-a)/n);const out=[];for(let v=Math.ceil(a/st-1e-9)*st;v<=b+1e-9;v+=st)out.push(Math.abs(v)<st*1e-6?0:v);return out;}
+  function fmt(v){return Math.abs(v)<1e-9?'0':String(+v.toPrecision(3));}
+  let clipN=0;
+  function plot(id,o){
+    const W=o.w||640,H=o.height||280,m={l:o.ml||58,r:20,t:22,b:o.xlabel?46:28};
+    const x0=o.x[0],x1=o.x[1],y0=o.y[0],y1=o.y[1];
+    const sx=v=>m.l+(v-x0)/(x1-x0)*(W-m.l-m.r), sy=v=>H-m.b-(v-y0)/(y1-y0)*(H-m.t-m.b);
+    const cid='clip'+(++clipN);
+    let s=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block;font-size:13px" role="img" aria-label="${o.label||'plot'}">`;
+    s+=`<defs><clipPath id="${cid}"><rect x="${m.l}" y="${m.t}" width="${W-m.l-m.r}" height="${H-m.t-m.b}"/></clipPath></defs>`;
+    const grid='stroke="currentColor" stroke-opacity="0.12"';
+    (o.xtk||ticks(x0,x1,o.xt||6).map(t=>[t,fmt(t)])).forEach(([t,lab])=>{s+=`<line x1="${sx(t)}" x2="${sx(t)}" y1="${m.t}" y2="${H-m.b}" ${grid}/><text x="${sx(t)}" y="${H-m.b+16}" text-anchor="middle" fill="currentColor">${lab}</text>`;});
+    (o.ytk||ticks(y0,y1,o.yt||5).map(t=>[t,fmt(t)])).forEach(([t,lab])=>{s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(t)}" y2="${sy(t)}" ${grid}/><text x="${m.l-8}" y="${sy(t)+4}" text-anchor="end" fill="currentColor">${lab}</text>`;});
+    if(y0<0&&y1>0)s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(0)}" y2="${sy(0)}" stroke="currentColor" stroke-opacity="0.45"/>`;
+    s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${H-m.b}" y2="${H-m.b}" stroke="currentColor" stroke-opacity="0.5"/>`;
+    if(o.xlabel) s+=`<text x="${(m.l+W-m.r)/2}" y="${H-6}" text-anchor="middle" fill="currentColor" opacity="0.8">${o.xlabel}</text>`;
+    if(o.ylabel) s+=`<text x="${m.l}" y="${m.t-8}" text-anchor="start" fill="currentColor" opacity="0.8">${o.ylabel}</text>`;
+    s+=`<g clip-path="url(#${cid})">`;
+    (o.areas||[]).forEach(a=>{s+=`<polygon fill="${a.color}" fill-opacity="${a.op||0.2}" stroke="none" points="${a.pts.map(q=>sx(q[0]).toFixed(1)+','+sy(q[1]).toFixed(1)).join(' ')}"/>`;});
+    (o.hlines||[]).forEach(l=>{s+=`<line x1="${m.l}" x2="${W-m.r}" y1="${sy(l.y)}" y2="${sy(l.y)}" stroke="${l.color}" stroke-width="1.6" ${l.dash?'stroke-dasharray="6 4"':''}/>`;});
+    (o.lines||[]).forEach(l=>{s+=`<polyline fill="none" stroke="${l.color}" stroke-width="${l.width||2}" ${l.dash?'stroke-dasharray="6 4"':''} stroke-linejoin="round" points="${l.pts.filter(q=>isFinite(q[1])).map(q=>sx(q[0]).toFixed(1)+','+sy(q[1]).toFixed(1)).join(' ')}"/>`;});
+    (o.dots||[]).forEach(d=>{s+=`<circle cx="${sx(d.x)}" cy="${sy(d.y)}" r="${d.r||5}" fill="${d.color}"/>`;});
+    s+='</g></svg>';
+    if(o.legend) s+='<div class="fe-legend">'+o.legend.map(l=>`<span><i style="border-color:${l.color};${l.dash?'border-top-style:dashed;':''}"></i>${l.label}</span>`).join('')+'</div>';
+    document.getElementById(id).innerHTML=s;
+  }
+  function val(id){return +document.getElementById(id).value;}
+  function show(id){const e=document.getElementById(id),st=String(e.step||'1');const d=st.includes('.')?st.split('.')[1].length:0;const o=document.getElementById(id+'-v');if(o)o.textContent=(+e.value).toFixed(d);}
+  function bind(ids,fn){ids.forEach(id=>{document.getElementById(id).addEventListener('input',()=>{show(id);fn();});show(id);});fn();}
+  function span(vals,pad){let a=Math.min(...vals),b=Math.max(...vals);if(b-a<1e-12){a-=1;b+=1;}const p=(b-a)*(pad||0.12);return [a-p,b+p];}
+  function TB(head,rows){let s='<'+'table class="fe-table">';
+    if(head)s+='<tr>'+head.map(h=>'<th>'+h+'</th>').join('')+'</tr>';
+    rows.forEach(r=>{s+='<tr>'+r.map((c,i)=>{if(i===0)return '<th>'+c+'</th>';let cls='';
+      if(typeof c==='object'&&c){cls=c.cls||'';c=c.v;}
+      return '<td'+(cls?' class="'+cls+'"':'')+'>'+c+'</td>';}).join('')+'</tr>';});
+    return s+'</table>';}
+  function band(K,F,bw){const n=F.length,A=K.map(r=>r.slice()),b=F.slice();
+    for(let i=0;i<n;i++)for(let r=i+1;r<=Math.min(n-1,i+bw);r++){const m=A[r][i]/A[i][i];if(!m)continue;
+      for(let c=i;c<=Math.min(n-1,i+bw);c++)A[r][c]-=m*A[i][c];b[r]-=m*b[i];}
+    const d=new Array(n).fill(0);for(let i=n-1;i>=0;i--){let s=b[i];for(let c=i+1;c<=Math.min(n-1,i+bw);c++)s-=A[i][c]*d[c];d[i]=s/A[i][i];}return d;}
+  function gauss(n){const x=[],w=[];for(let i=1;i<=n;i++){let z=Math.cos(Math.PI*(i-0.25)/(n+0.5)),pp=1;
+      for(let it=0;it<100;it++){let p1=1,p2=0;for(let j=1;j<=n;j++){const p3=p2;p2=p1;p1=((2*j-1)*z*p2-(j-1)*p3)/j;}
+        pp=n*(z*p1-p2)/(z*z-1);const z1=z;z=z1-p1/pp;if(Math.abs(z-z1)<1e-15)break;}
+      x.push(z);w.push(2/((1-z*z)*pp*pp));}return {x,w};}
+  const SUP={'-':'⁻','0':'⁰','1':'¹','2':'²','3':'³','4':'⁴','5':'⁵','6':'⁶','7':'⁷','8':'⁸','9':'⁹'};
+  function sup(n){return String(n).split('').map(c=>SUP[c]||c).join('');}
+  function fmtE(v){if(!isFinite(v))return '—';if(Math.abs(v)<1e-300)return '0';const e=Math.floor(Math.log10(Math.abs(v)));
+    if(e>=-3&&e<=3)return String(+v.toPrecision(4));return (v/Math.pow(10,e)).toFixed(3)+'×10'+sup(e);}
+  return {C,plot,val,bind,show,span,TB,band,gauss,sup,fmtE};
+})();
+</script>
+```
+
+::: {.callout-note appearance="minimal"}
+This is **version 2** of the Section 4.1 page. [Version 1 is here](hughes-4-1-best-approximation.html) if you want to compare.
+:::
+
+# Where we are in the story
+
+Up to now, we've been building a machine.
+
+$$
+\text{physics}\;\longrightarrow\;\text{weak form}\;\longrightarrow\;\text{shape functions}\;\longrightarrow\;\boldsymbol{K}\boldsymbol{d}=\boldsymbol{F}
+$$
+
+We know how to turn the crank.
+
+But we've never asked the obvious question:
+
+> **How do we know the answer that comes out is any good?**
+
+That's all Section 4.1 is about.
+
+Hughes's answer comes in two sentences. If you remember nothing else, remember these:
+
+::: {.aha}
+1. **FE gives you the best answer your mesh can possibly make.**
+2. **That best answer gets better, at a predictable speed, as the elements get smaller.**
+:::
+
+Put those together, and you get a guarantee: refine the mesh, and the FE answer heads toward the true answer.
+
+Your reading note says you're not expected to understand all of this yet. So here's the plan:
+
+We'll take **one tiny example**, a bar with only **one** unknown, and calculate everything by hand.
+
+Then, every time Hughes draws a box around an equation, we'll see that it's something we already watched happen in that example.
+
+**The roadmap:**
+
+| Part | Question |
+|---|---|
+| 1 | What do all these symbols mean? (just enough) |
+| 2 | The tiny example: which answer is "best"? |
+| 3 | Hughes's boxed theorem, matched to the example |
+| 4 | How fast does the error shrink? |
+| 5 | Does Gauss quadrature break any of this? |
+| 6 | When does FE fail anyway? |
+
+# Part 1: Just enough vocabulary
+
+## 1. Two problems that look almost identical
+
+Hughes starts by writing two problems side by side.
+
+The **exact** problem (4.1.1):
+
+$$
+a(\boldsymbol{w},\boldsymbol{u}) = (\boldsymbol{w},\ell) + (\boldsymbol{w},\boldsymbol{h})_\Gamma
+\qquad\text{for all } \boldsymbol{w}\in\mathcal{V}
+$$
+
+The **finite element** problem (4.1.2):
+
+$$
+a(\boldsymbol{w}^h,\boldsymbol{u}^h) = (\boldsymbol{w}^h,\ell) + (\boldsymbol{w}^h,\boldsymbol{h})_\Gamma
+\qquad\text{for all } \boldsymbol{w}^h\in\mathcal{V}^h
+$$
+
+Let's slow down here.
+
+Look closely. They're **the same equation**.
+
+The only difference is the little $h$'s.
+
+- $\boldsymbol{u}$ is the **exact** solution: the true temperature or displacement. It's bold because in elasticity it's a vector.
+- $\boldsymbol{u}^h$ is the **FE** solution. The superscript $h$ means "built out of shape functions on a mesh."
+- $\boldsymbol{w}$ is a **weighting function**: the "test" function you multiply the differential equation by, back in Chapter 1.
+- $\boldsymbol{w}^h$ is a weighting function built out of shape functions.
+
+::: {.eng}
+**In plain English:** the FE problem is the exact problem, except you're only allowed to use functions your mesh can build.
+:::
+
+## 2. The four sets: $\mathcal{S}$, $\mathcal{V}$, $\mathcal{S}^h$, $\mathcal{V}^h$
+
+You'll see things like "find $\boldsymbol{u}\in\mathcal{S}$."
+
+The symbol $\in$ just means **"is one of."**
+
+So "$\boldsymbol{u}\in\mathcal{S}$" means "$\boldsymbol{u}$ is one of the functions in the set $\mathcal{S}$."
+
+There are four sets:
+
+| Set | What's in it |
+|---|---|
+| $\mathcal{S}$ | Every possible **candidate solution**: any function that takes the prescribed values where $u$ is fixed |
+| $\mathcal{V}$ | Every possible **weighting function**: same kind of functions, but **zero** wherever $u$ is fixed |
+| $\mathcal{S}^h$ | The candidate solutions **your mesh can build** |
+| $\mathcal{V}^h$ | The weighting functions **your mesh can build** |
+
+Hughes assumes
+
+$$
+\mathcal{S}^h\subset\mathcal{S}.
+$$
+
+The symbol $\subset$ means **"is inside."**
+
+::: {.eng}
+**In plain English:** every function your mesh can build is also a legal candidate for the real problem. (It's continuous, and it satisfies the fixed boundary values exactly.)
+:::
+
+::: {.callout-warning appearance="simple"}
+## Heads-up: Hughes uses the letter $h$ for three different things
+
+| You see | It means |
+|---|---|
+| superscript $h$, like $\boldsymbol{u}^h$ | "built from the mesh" |
+| $\boldsymbol{h}$ inside $(\boldsymbol{w},\boldsymbol{h})_\Gamma$ | the prescribed **heat flux or traction** on the boundary |
+| $h$ by itself (Part 4) | the **element size** |
+
+If an equation suddenly stops making sense, check which $h$ you're looking at.
+:::
+
+## 3. What is $a(\cdot\,,\cdot)$?
+
+The two dots are **empty slots**. You put one function in each.
+
+For 1D heat conduction:
+
+$$
+a(w,u)=\int_0^1 \kappa\, w_{,x}\,u_{,x}\,dx
+$$
+
+where:
+
+- $\kappa$ is the thermal conductivity
+- $w_{,x}$ means $\dfrac{dw}{dx}$ (Hughes's comma means "derivative with respect to")
+- $u_{,x}$ means $\dfrac{du}{dx}$
+
+You've actually met this before.
+
+When you plug in two shape functions, you get a stiffness-matrix entry:
+
+$$
+a(N_A,N_B)=K_{AB}.
+$$
+
+::: {.eng}
+**In plain English:** $a(\cdot\,,\cdot)$ is the integral that turns into the stiffness matrix.
+:::
+
+The other two pieces of the equation:
+
+- $(w,\ell)=\displaystyle\int w\,\ell\,dx$ is the heat source (or body force) term. It turns into $\boldsymbol{F}$.
+- $(w,h)_\Gamma$ is the boundary flux term. Our example won't have one.
+
+## 4. Two rules for $a(\cdot\,,\cdot)$ that we'll use constantly
+
+Hughes assumes $a(\cdot\,,\cdot)$ is **symmetric** and **bilinear**.
+
+**Symmetric** means you can swap the slots:
+
+$$
+a(w,u)=a(u,w).
+$$
+
+That's true for heat conduction because $w_{,x}u_{,x}=u_{,x}w_{,x}$. (Multiplication doesn't care about order.)
+
+It's also why $\boldsymbol{K}$ is a symmetric matrix.
+
+**Bilinear** means you can pull out constants and split sums, in either slot:
+
+$$
+a(\alpha w_1+\beta w_2,\;u)=\alpha\,a(w_1,u)+\beta\,a(w_2,u).
+$$
+
+The practical upshot: you can **FOIL** it, just like $(x+y)(x+y)$:
+
+$$
+a(p+q,\;p+q)=a(p,p)+2a(p,q)+a(q,q).
+$$
+
+(The two middle terms $a(p,q)$ and $a(q,p)$ combine into $2a(p,q)$ because of symmetry.)
+
+We'll use this FOIL move about five times on this page.
+
+## 5. The error, and how to measure it
+
+The error is
+
+$$
+\boxed{\boldsymbol{e}=\boldsymbol{u}^h-\boldsymbol{u}}
+$$
+
+Notice this isn't one number. It's a whole **function**: the error at every point $x$.
+
+So how do you say how "big" a function is?
+
+Hughes plugs it into both slots of $a(\cdot\,,\cdot)$:
+
+$$
+a(e,e)=\int_0^1\kappa\,\big(e_{,x}\big)^2\,dx.
+$$
+
+::: {.eng}
+**In plain English:** at every point, square the **slope** error. Add it all up.
+:::
+
+This is called the **energy norm** of the error (squared). "Norm" is math-speak for "size." In elasticity, $a(e,e)$ is (twice) the strain energy stored in the error.
+
+One thing to notice now, because it matters later:
+
+> $a(e,e)$ only looks at **slopes**, not values.
+
+# Part 2: The tiny example
+
+## 6. Our tiny problem
+
+A bar from $x=0$ to $x=1$.
+
+- Both ends held at temperature $u=0$
+- Uniform heat source $\ell=1$
+- Conductivity $\kappa=1$
+
+The differential equation is
+
+$$
+-u_{,xx}=1.
+$$
+
+The exact solution is
+
+$$
+\boxed{u(x)=\frac{x(1-x)}{2}}
+$$
+
+Quick check: $u_{,xx}=-1$ ✓, $u(0)=0$ ✓, $u(1)=0$ ✓.
+
+Now the mesh. **Two linear elements:**
+
+```{.ascii}
+ u = 0                                u = 0
+   ●─────────────────●─────────────────●
+  x=0   element 1   x=½   element 2   x=1
+                     d
+             (the one unknown)
+```
+
+Both ends are fixed. So there's only **one** unknown: the temperature $d$ at the middle node.
+
+## 7. Every answer our mesh can build
+
+With one unknown, every function our mesh can build looks like this:
+
+$$
+U^h(x)=d\,N_1(x)
+$$
+
+where $N_1$ is the **hat function** for the middle node: it's 1 at $x=\tfrac12$ and 0 at both ends.
+
+Let's make that concrete.
+
+- $d=0.1$ gives a short tent.
+- $d=0.2$ gives a taller tent.
+- Every value of $d$ gives a different tent.
+
+So $\mathcal{S}^h$, "every function your mesh can build," is just **all tents**.
+
+One knob: $d$.
+
+Hughes uses a **capital** $\boldsymbol{U}^h$ for "any one of these candidates."
+
+The **lowercase** $\boldsymbol{u}^h$ is the one tent that FE actually picks.
+
+Now the question becomes really concrete:
+
+> **Which tent height $d$ is best?**
+
+## 8. Give every tent an error score
+
+For each tent, measure its error with the energy norm from step 5:
+
+$$
+E(d)=a\big(U^h-u,\;U^h-u\big).
+$$
+
+Now FOIL it (step 4):
+
+$$
+E(d)=\underbrace{a(U^h,U^h)}_{\text{piece 1}}\;-\;2\,\underbrace{a(U^h,u)}_{\text{piece 2}}\;+\;\underbrace{a(u,u)}_{\text{piece 3}}
+$$
+
+Three pieces. Let's do them one at a time.
+
+## 9. Piece 1: $a(U^h,U^h)$
+
+Since $U^h=dN_1$, pull $d$ out of both slots (bilinearity):
+
+$$
+a(dN_1,\,dN_1)=d^2\,a(N_1,N_1).
+$$
+
+Now we need the slope of the hat function.
+
+- On the left half, $N_1$ climbs from 0 to 1 over a length of $\tfrac12$. Slope $=+2$.
+- On the right half, it drops from 1 to 0. Slope $=-2$.
+
+So
+
+$$
+a(N_1,N_1)=\int_0^{1/2}(2)^2\,dx+\int_{1/2}^{1}(-2)^2\,dx=4\cdot\tfrac12+4\cdot\tfrac12=4.
+$$
+
+Wait. That 4 should look familiar.
+
+It's $\boldsymbol{K}$! Our whole stiffness matrix is $1\times1$, and that one entry is 4.
+
+(Check it with assembly: each element has $k^e=\tfrac1{h_e}=2$ on the diagonal, and the middle node gets $2+2=4$. Same reason the middle of the global matrix became $2/L$ when we assembled two elements.)
+
+$$
+\text{piece 1}=K\,d^2=4d^2
+$$
+
+## 10. Piece 2: $a(U^h,u)$, the clever one
+
+Pull out $d$:
+
+$$
+a(U^h,u)=d\;a(N_1,u).
+$$
+
+Here's the problem.
+
+$a(N_1,u)$ contains $u$, the exact solution. And the whole point of FE is that **we don't know $u$**.
+
+But look back at the exact problem in step 1. It says
+
+$$
+a(\boldsymbol{w},\boldsymbol{u})=(\boldsymbol{w},\ell)\qquad\text{for every } \boldsymbol{w} \text{ in } \mathcal{V}.
+$$
+
+$N_1$ is zero at both ends, so it's in $\mathcal{V}$. So we're allowed to pick $\boldsymbol{w}=N_1$:
+
+$$
+a(N_1,u)=(N_1,\ell)=\int_0^1 N_1\cdot 1\,dx.
+$$
+
+That's just the area under the tent: $\tfrac12\times\text{base }1\times\text{height }1=\tfrac12$.
+
+And that $\tfrac12$ is $\boldsymbol{F}$!
+
+::: {.aha}
+**This is the trick that makes FE possible.** We needed something that involves the unknown exact solution, and the weak form handed it to us anyway. It's just the load vector $\boldsymbol{F}$.
+:::
+
+$$
+\text{piece 2 (with its } -2\text{)}=-2\,F\,d=-d
+$$
+
+::: {.callout-note collapse="true"}
+## Don't trust the trick? Check it by brute force
+$u_{,x}=\tfrac12-x$, and $N_{1,x}=+2$ on the left half, $-2$ on the right half.
+
+$$
+a(N_1,u)=\int_0^{1/2}2\Big(\tfrac12-x\Big)dx+\int_{1/2}^1(-2)\Big(\tfrac12-x\Big)dx
+$$
+
+First integral: $2\big[\tfrac x2-\tfrac{x^2}2\big]_0^{1/2}=2\big(\tfrac14-\tfrac18\big)=\tfrac14$.
+
+Second integral: $-2\big[\tfrac x2-\tfrac{x^2}2\big]_{1/2}^1=-2\big(0-\tfrac18\big)=\tfrac14$.
+
+Total: $\tfrac14+\tfrac14=\tfrac12$ ✓. Same as $F$.
+:::
+
+## 11. Piece 3: $a(u,u)$
+
+$$
+a(u,u)=\int_0^1\Big(\tfrac12-x\Big)^2dx=\frac1{12}.
+$$
+
+This one's just a number. It doesn't depend on $d$ at all.
+
+(It slides the curve up or down. It doesn't move it sideways.)
+
+## 12. Put the pieces together
+
+$$
+E(d)=4d^2-d+\frac1{12}
+$$
+
+Or, in letters:
+
+$$
+\boxed{E(d)=K\,d^2-2F\,d+a(u,u)}
+$$
+
+That's a parabola in $d$. A **bowl**.
+
+The best tent is at the **bottom of the bowl**.
+
+## 13. Find the bottom of the bowl
+
+Bottom of a bowl means the slope is zero. Take the derivative and set it to zero:
+
+$$
+\frac{dE}{dd}=2K\,d-2F=0
+$$
+
+which gives
+
+$$
+\boxed{K\,d=F}
+$$
+
+Stop and look at that for a second.
+
+The condition for **"smallest possible error"** is exactly the equation FE has been solving all along.
+
+::: {.aha}
+**Solving $\boldsymbol{K}\boldsymbol{d}=\boldsymbol{F}$ is the same thing as finding the bottom of the error bowl.** FE never knew $u$. But it found the bottom of a bowl that's defined by $u$.
+:::
+
+The numbers:
+
+$$
+4d=\tfrac12\quad\Longrightarrow\quad d=\tfrac18.
+$$
+
+And the smallest possible error is
+
+$$
+E\big(\tfrac18\big)=4\cdot\tfrac1{64}-\tfrac18+\tfrac1{12}=\tfrac1{16}-\tfrac18+\tfrac1{12}=\frac{1}{48}.
+$$
+
+(By the way, the exact temperature at the middle is $u(\tfrac12)=\tfrac{(1/2)(1/2)}2=\tfrac18$. Same answer! That's a special coincidence for uniform 1D bars. The bonus button in the widget breaks it.)
+
+## 14. Try it yourself
+
+::: {.callout-tip icon=false}
+## What to do
+Drag the tent height $d$ and watch the error score. Try to find a tent with less error than the FE answer. (You can't.)
+:::
+
+```{=html}
+<div class="fe-widget" id="bw">
+<div class="fe-btns"><button id="bw-jump">Jump to the FE answer (solve Kd = F)</button><button id="bw-tap">Bonus: make the bar tapered (κ goes 1 → 10)</button></div>
+<div class="fe-ctrl"><label for="bw-d">tent height d</label><input type="range" id="bw-d" min="0" max="0.25" step="0.0025" value="0.2"><output id="bw-d-v"></output></div>
+<div class="fe-row">
+  <div><p class="fe-cap"><b>The tent vs. the exact temperature</b></p><div id="bw-u"></div></div>
+  <div><p class="fe-cap"><b>Slopes.</b> Shaded = slope error, the thing a(e, e) squares and adds up.</p><div id="bw-du"></div></div>
+</div>
+<p class="fe-cap"><b>The error bowl</b>: E(d) for every possible tent height</p>
+<div id="bw-bowl"></div>
+<div id="bw-out" class="fe-out"></div>
+</div>
+<script>
+(function(){
+  const $=id=>document.getElementById(id),G=FE.gauss(10);
+  const bb=9,LL=Math.log(1+bb),CC=1/LL-1/bb;
+  const MODES={
+    uni:{kap:x=>1,u:x=>x*(1-x)/2,up:x=>0.5-x,max:0.25,step:0.0025,start:0.2},
+    tap:{kap:x=>1+bb*x,u:x=>-x/bb+(CC+1/bb)*Math.log(1+bb*x)/bb,up:x=>(CC-x)/(1+bb*x),max:0.05,step:0.0005,start:0.04}};
+  function integ(f,a,b){let s=0;for(let g=0;g<10;g++)s+=G.w[g]*(b-a)/2*f((a+b)/2+G.x[g]*(b-a)/2);return s;}
+  function setup(M){const K=integ(x=>4*M.kap(x),0,0.5)+integ(x=>4*M.kap(x),0.5,1);
+    const Auu=integ(x=>M.kap(x)*M.up(x)**2,0,0.5)+integ(x=>M.kap(x)*M.up(x)**2,0.5,1);return {K,F:0.5,Auu,dFE:0.5/K};}
+  let mode='uni',P=setup(MODES.uni),d=0.2;
+  const f4=v=>v.toFixed(4);
+  function render(){
+    const M=MODES[mode],E=x=>P.K*x*x-2*P.F*x+P.Auu,atFE=Math.abs(d-P.dFE)<1e-9;
+    const tcol=atFE?FE.C.orange:FE.C.purple;
+    const ex=[],dex=[];for(let i=0;i<=200;i++){const x=i/200;ex.push([x,M.u(x)]);dex.push([x,M.up(x)]);}
+    const tent=[[0,0],[0.5,d],[1,0]];
+    FE.plot('bw-u',{w:420,x:[0,1],y:FE.span(ex.map(q=>q[1]).concat([d,0])),height:290,label:'tent versus exact',xlabel:'x',
+      lines:[{pts:ex,color:FE.C.gray,dash:true},{pts:tent,color:tcol,width:2.6}],
+      dots:[{x:0.5,y:d,color:tcol,r:6},{x:0.5,y:M.u(0.5),color:FE.C.gray,r:4}],
+      legend:[{label:'exact u',color:FE.C.gray,dash:true},{label:atFE?'tent = FE answer uʰ':'your tent Uʰ = d·N₁',color:tcol}]});
+    const s1=2*d,s2=-2*d,stepPts=[[0,s1],[0.5,s1],[0.5,s2],[1,s2]];
+    const area=(a,b,s)=>{const p=[];for(let i=0;i<=40;i++){const x=a+(b-a)*i/40;p.push([x,M.up(x)]);}p.push([b,s],[a,s]);return p;};
+    const allS=dex.map(q=>q[1]).concat([s1,s2]);
+    FE.plot('bw-du',{w:420,x:[0,1],y:FE.span(allS),height:290,label:'slopes',xlabel:'x',
+      areas:[{pts:area(0,0.5,s1),color:FE.C.red,op:0.18},{pts:area(0.5,1,s2),color:FE.C.red,op:0.18}],
+      lines:[{pts:dex,color:FE.C.gray,dash:true},{pts:stepPts,color:tcol,width:2.6}],
+      legend:[{label:'exact slope u′',color:FE.C.gray,dash:true},{label:'tent slope',color:tcol}]});
+    const bowl=[];for(let i=0;i<=80;i++){const x=M.max*i/80;bowl.push([x,E(x)]);}
+    const ymax=Math.max(...bowl.map(q=>q[1]))*1.05;
+    FE.plot('bw-bowl',{w:460,x:[0,M.max],y:[0,ymax],height:260,label:'error bowl',xlabel:'tent height d',ml:62,
+      lines:[{pts:bowl,color:FE.C.purple,width:2.2}],
+      dots:[{x:P.dFE,y:E(P.dFE),color:FE.C.orange,r:6},{x:d,y:E(d),color:tcol,r:7}],
+      legend:[{label:'error score E(d)',color:FE.C.purple},{label:'bottom = FE answer',color:FE.C.orange}]});
+    const ae=E(P.dFE),aw=P.K*(d-P.dFE)**2,slope=2*(P.K*d-P.F);
+    let s='<b>Your tent:</b> d = '+f4(d)+'. &nbsp; Kd = '+f4(P.K*d)+' &nbsp;vs.&nbsp; F = 0.5<br>'
+      +'<b>Error score:</b> E(d) = '+FE.fmtE(E(d))+' &nbsp;=&nbsp; '+FE.fmtE(ae)+' (bottom of the bowl) + '+FE.fmtE(aw)+' (extra climb)<br>'
+      +'<b>Slope of the bowl:</b> dE/dd = 2(Kd − F) = '+(Math.abs(slope)<1e-12?'0':slope.toFixed(4));
+    s+=atFE?'<div class="fe-status fe-ok"><b>You\'re at the bottom.</b> The slope of the bowl is zero, so Kd = F. This tent is the FE solution uʰ, and no other tent has a smaller error score.</div>'
+           :'<div class="fe-status fe-warn">Not at the bottom yet: Kd ≠ F. Every other tent pays the "extra climb."</div>';
+    if(mode==='tap')s+='<div class="fe-status fe-warn"><b>Tapered bar:</b> K = '+P.K.toFixed(1)+', so the FE answer is d = F/K = '+f4(P.dFE)+'. But the exact temperature at the middle is u(½) = '+f4(M.u(0.5))+'. FE gets the nodal temperature <b>wrong</b>, and it\'s still at the bottom of the bowl. "Best" means best at matching slopes (energy), not best at matching values.</div>';
+    $('bw-out').innerHTML=s;
+    const sl=$('bw-d');sl.value=d;$('bw-d-v').textContent=f4(d);
+  }
+  $('bw-d').addEventListener('input',()=>{d=+$('bw-d').value;render();});
+  $('bw-jump').addEventListener('click',()=>{d=P.dFE;render();});
+  $('bw-tap').addEventListener('click',()=>{mode=mode==='uni'?'tap':'uni';const M=MODES[mode];P=setup(M);
+    const sl=$('bw-d');sl.max=M.max;sl.step=M.step;d=M.start;$('bw-tap').classList.toggle('on',mode==='tap');render();});
+  render();
+})();
+</script>
+```
+
+**Things to notice:**
+
+1. Drag $d$ and the purple dot slides along a bowl. The orange dot at the bottom is the FE answer.
+2. Press **Jump**. The slope of the bowl becomes exactly zero, and $Kd=F$.
+3. At the FE answer, look at the slope plot. On each element, the shaded area above the line equals the shaded area below it. The FE slope is the **average** of the true slope. That's what "best fit of the slopes" looks like.
+4. Try the **bonus** button. Now FE misses the true temperature at the middle node, but it's still at the bottom of the bowl.
+
+# Part 3: The boxed theorem
+
+## 15. Here's the box
+
+Now we're ready for Hughes's first boxed result. For $\boldsymbol{e}=\boldsymbol{u}^h-\boldsymbol{u}$:
+
+$$
+\boxed{
+\begin{aligned}
+&\text{(a)}\quad a(\boldsymbol{w}^h,\boldsymbol{e})=0 &&\text{for all } \boldsymbol{w}^h\in\mathcal{V}^h\\[4pt]
+&\text{(b)}\quad a(\boldsymbol{e},\boldsymbol{e})\le a(\boldsymbol{U}^h-\boldsymbol{u},\;\boldsymbol{U}^h-\boldsymbol{u}) &&\text{for all } \boldsymbol{U}^h\in\mathcal{S}^h
+\end{aligned}}
+$$
+
+This looks intimidating. But we just watched both parts happen.
+
+Let's translate, starting with (b) because it's the one we've been staring at.
+
+::: {.eng}
+**(b) in plain English:** the FE error score is less than or equal to the error score of **any** other candidate your mesh can build. FE sits at the bottom of the bowl.
+
+**(a) in plain English:** the bowl is **flat** at the bottom.
+:::
+
+## 16. Part (a) in our example
+
+The slope of our bowl was
+
+$$
+\frac{dE}{dd}=2\big(K\,d-F\big).
+$$
+
+Using bilinearity, that's the same as $2\,a\big(N_1,\;U^h-u\big)$.
+
+(Check: $a(N_1,\,dN_1-u)=d\,a(N_1,N_1)-a(N_1,u)$, which is $Kd-F$.)
+
+At the bottom, $U^h$ is the FE answer $u^h$, so $U^h-u$ is the error $e$. The slope is zero:
+
+$$
+a(N_1,e)=0.
+$$
+
+Every weighting function our mesh can build is $c\,N_1$ for some number $c$. So
+
+$$
+a(w^h,e)=c\cdot a(N_1,e)=c\cdot 0=0.
+$$
+
+That's part (a).
+
+## 17. Why is it called "orthogonal"?
+
+Hughes says part (a) means "the error is **orthogonal** to $\mathcal{V}^h$."
+
+Orthogonal just means **perpendicular**.
+
+Remember the dot product for ordinary vectors:
+
+$$
+\boldsymbol{x}\cdot\boldsymbol{y}=x_1y_1+x_2y_2+x_3y_3.
+$$
+
+Two vectors are perpendicular when their dot product is zero.
+
+Now look at $a(\cdot\,,\cdot)$ again:
+
+$$
+a(w,u)=\int \kappa\,w_{,x}\,u_{,x}\,dx.
+$$
+
+It's the same idea: multiply matching pieces and add them up. The sum just became an integral.
+
+So $a(\cdot\,,\cdot)$ is a **dot product for functions**, and
+
+$$
+a(w^h,e)=0
+$$
+
+means
+
+> the error is perpendicular to every function the mesh can build.
+
+This is called **Galerkin orthogonality**.
+
+## 18. Why (a) is always true (Hughes's proof, three steps)
+
+We showed (a) for our example. Hughes shows it for every problem. It's short.
+
+**Step 1.** The exact equation works for **every** $\boldsymbol{w}$ in $\mathcal{V}$. Every $\boldsymbol{w}^h$ is in $\mathcal{V}$, so it works for $\boldsymbol{w}^h$ too:
+
+$$
+a(\boldsymbol{w}^h,\boldsymbol{u})=(\boldsymbol{w}^h,\ell)+(\boldsymbol{w}^h,\boldsymbol{h})_\Gamma
+$$
+
+(This is exactly the move we made in step 10, with $\boldsymbol{w}^h=N_1$.)
+
+**Step 2.** The FE equation, for the same $\boldsymbol{w}^h$:
+
+$$
+a(\boldsymbol{w}^h,\boldsymbol{u}^h)=(\boldsymbol{w}^h,\ell)+(\boldsymbol{w}^h,\boldsymbol{h})_\Gamma
+$$
+
+**Step 3.** Subtract step 1 from step 2. The right sides are identical, so they cancel:
+
+$$
+a(\boldsymbol{w}^h,\boldsymbol{u}^h)-a(\boldsymbol{w}^h,\boldsymbol{u})=0
+$$
+
+Combine the left side with bilinearity:
+
+$$
+a(\boldsymbol{w}^h,\;\boldsymbol{u}^h-\boldsymbol{u})=a(\boldsymbol{w}^h,\boldsymbol{e})=0 \qquad\blacksquare
+$$
+
+::: {.eng}
+**In plain English:** the exact solution and the FE solution answer the same question for every weighting function the mesh can build. So, as far as the mesh can tell, they're identical. Whatever's left over, the error, is invisible to the mesh.
+:::
+
+## 19. Why (b) is always true, matched to our bowl
+
+Here's Hughes's proof of (b), with our example running alongside it.
+
+**Step 1.** Take any candidate $\boldsymbol{U}^h$. Write it as the FE answer plus a change:
+
+$$
+\boldsymbol{U}^h=\boldsymbol{u}^h+\boldsymbol{w}^h,\qquad \boldsymbol{w}^h=\boldsymbol{U}^h-\boldsymbol{u}^h.
+$$
+
+($\boldsymbol{w}^h$ is zero at the fixed ends, because both tents are, so it's in $\mathcal{V}^h$.)
+
+*In our example:* $w^h=\big(d-\tfrac18\big)N_1$. It's how far your tent is from the FE tent.
+
+**Step 2.** Then the candidate's error is
+
+$$
+\boldsymbol{U}^h-\boldsymbol{u}=(\boldsymbol{u}^h-\boldsymbol{u})+\boldsymbol{w}^h=\boldsymbol{e}+\boldsymbol{w}^h.
+$$
+
+**Step 3.** FOIL its error score:
+
+$$
+a(\boldsymbol{e}+\boldsymbol{w}^h,\;\boldsymbol{e}+\boldsymbol{w}^h)=a(\boldsymbol{e},\boldsymbol{e})+2\,a(\boldsymbol{w}^h,\boldsymbol{e})+a(\boldsymbol{w}^h,\boldsymbol{w}^h)
+$$
+
+**Step 4.** The middle term is zero by part (a):
+
+$$
+a(\boldsymbol{U}^h-\boldsymbol{u},\;\boldsymbol{U}^h-\boldsymbol{u})=a(\boldsymbol{e},\boldsymbol{e})+a(\boldsymbol{w}^h,\boldsymbol{w}^h)
+$$
+
+**Step 5.** $a(\boldsymbol{w}^h,\boldsymbol{w}^h)$ is a sum of squared slopes, so it can't be negative. Drop it, and the right side can only get smaller:
+
+$$
+a(\boldsymbol{e},\boldsymbol{e})\le a(\boldsymbol{U}^h-\boldsymbol{u},\;\boldsymbol{U}^h-\boldsymbol{u})\qquad\blacksquare
+$$
+
+Now here's the fun part. Step 4 in our example says:
+
+$$
+\boxed{E(d)=\underbrace{\tfrac1{48}}_{a(e,e)}+\underbrace{4\big(d-\tfrac18\big)^2}_{a(w^h,w^h)}}
+$$
+
+Let's check it. Expand $4\big(d-\tfrac18\big)^2=4d^2-d+\tfrac1{16}$. Add $\tfrac1{48}$:
+
+$$
+4d^2-d+\tfrac1{16}+\tfrac1{48}=4d^2-d+\tfrac{1}{12}\;✓
+$$
+
+Same bowl as step 12.
+
+::: {.aha}
+**Hughes's proof of (b) is just "completing the square."** The bowl = the height of the bottom, $a(e,e)$, plus the extra climb, $a(w^h,w^h)$. The widget shows both numbers live.
+:::
+
+## 20. The picture: a right triangle
+
+Hughes says "$\boldsymbol{u}^h$ is the **projection** of $\boldsymbol{u}$ onto $\mathcal{S}^h$." Here's what that means.
+
+```{=html}
+<svg viewBox="0 0 560 300" width="100%" style="max-width:560px;display:block;margin:0.6rem auto;font-size:14px" role="img" aria-label="projection picture: the exact solution sits above the plane of mesh functions; the FE solution is the foot of the perpendicular">
+  <polygon points="40,240 340,240 500,150 200,150" fill="rgba(46,134,193,.12)" stroke="#2e86c1" stroke-opacity=".6"/>
+  <text x="58" y="265" fill="#2e86c1"><tspan font-family="serif" font-style="italic">S</tspan><tspan baseline-shift="super" font-size="70%">h</tspan>: every function your mesh can build</text>
+  <line x1="260" y1="45" x2="260" y2="200" stroke="#d62828" stroke-width="2.5" stroke-dasharray="6 4"/>
+  <line x1="260" y1="45" x2="400" y2="215" stroke="#6c5ce7" stroke-width="2.5"/>
+  <line x1="260" y1="200" x2="400" y2="215" stroke="#1d9e75" stroke-width="2.5"/>
+  <polyline points="260,186 273,187.4 273,201.4" fill="none" stroke="currentColor" stroke-opacity=".7"/>
+  <circle cx="260" cy="45" r="6" fill="currentColor"/>
+  <circle cx="260" cy="200" r="6" fill="#d4572a"/>
+  <circle cx="400" cy="215" r="6" fill="#6c5ce7"/>
+  <text x="272" y="42" fill="currentColor">u (exact, not on the plane)</text>
+  <text x="200" y="215" fill="#d4572a" text-anchor="end">u<tspan baseline-shift="super" font-size="70%">h</tspan> (FE)</text>
+  <text x="412" y="228" fill="#6c5ce7">U<tspan baseline-shift="super" font-size="70%">h</tspan> (any other)</text>
+  <text x="248" y="125" fill="#d62828" text-anchor="end">e</text>
+  <text x="345" y="120" fill="#6c5ce7">U<tspan baseline-shift="super" font-size="70%">h</tspan> − u</text>
+  <text x="318" y="236" fill="#1d9e75" font-size="12">w<tspan baseline-shift="super" font-size="70%">h</tspan></text>
+</svg>
+```
+
+- The flat plane is $\mathcal{S}^h$: every function your mesh can build. (For us: every tent.)
+- The exact $\boldsymbol{u}$ floats above the plane. No tent is exactly the parabola.
+- Part (a): the error $\boldsymbol{e}$ is perpendicular to the plane. So $\boldsymbol{u}^h$ is the spot directly underneath $\boldsymbol{u}$.
+- Step 4 of the proof is the **Pythagorean theorem**: hypotenuse² = $a(\boldsymbol{e},\boldsymbol{e})$ + $a(\boldsymbol{w}^h,\boldsymbol{w}^h)$.
+- The hypotenuse is always the longest side. So every other candidate is farther away.
+
+## 21. A bonus Hughes gets for free: FE models are too stiff
+
+Our bar has zero fixed values at both ends. In that case, Hughes's corollary (the "Pythagorean theorem") says
+
+$$
+a(\boldsymbol{u},\boldsymbol{u})=a(\boldsymbol{u}^h,\boldsymbol{u}^h)+a(\boldsymbol{e},\boldsymbol{e}).
+$$
+
+Check it with our numbers:
+
+- $a(u,u)=\tfrac1{12}$ (piece 3)
+- $a(u^h,u^h)=K\,d^2=4\cdot\tfrac1{64}=\tfrac1{16}$
+- $a(e,e)=\tfrac1{48}$
+
+$$
+\tfrac1{16}+\tfrac1{48}=\tfrac{3}{48}+\tfrac1{48}=\tfrac4{48}=\tfrac1{12}\;✓
+$$
+
+Since $a(\boldsymbol{e},\boldsymbol{e})\ge0$, that means
+
+$$
+a(\boldsymbol{u}^h,\boldsymbol{u}^h)\le a(\boldsymbol{u},\boldsymbol{u}).
+$$
+
+::: {.eng}
+**In plain English:** the FE model stores **less** energy than the real thing. Under the same loads, it deflects **less**. Displacement-based FE models are too stiff, and they loosen up as you refine.
+:::
+
+## 22. "Best"... at what?
+
+This is the one subtle point in Part 3.
+
+FE is best **in energy**: $a(e,e)=\int\kappa\,(e_{,x})^2\,dx$.
+
+That's a fit of the **slopes**, not the values.
+
+- In heat conduction: FE is optimizing the **heat flux**.
+- In elasticity: FE is optimizing the **strains, and so the stresses**.
+
+It's **not** promising to get the nodal temperatures or displacements exactly right. The bonus button in the widget showed that.
+
+::: {.callout-note collapse="true"}
+## Bonus: the potential-energy version (Hughes's exercise)
+Hughes defines the potential energy $I(v)=\tfrac12a(v,v)-(v,\ell)$. In elasticity, that's strain energy minus the work done by the loads.
+
+Plug in our tent $v=dN_1$:
+
+$$
+I(dN_1)=\tfrac12\cdot4d^2-d\cdot\tfrac12=2d^2-\tfrac d2=\tfrac12\Big(E(d)-\tfrac1{12}\Big).
+$$
+
+So $I$ is **the same bowl**, just scaled by $\tfrac12$ and shifted down. Minimizing potential energy and minimizing the error score are the same thing.
+
+This only works because $a(\cdot\,,\cdot)$ is symmetric. That's what Hughes means by Vainberg's theorem. Problems with a non-symmetric $a(\cdot\,,\cdot)$, like convection in fluid flow, don't have a bowl, so they lose the "best" guarantee. That's why plain Galerkin can wiggle in convection-dominated flow.
+:::
+
+# Part 4: How fast does the error shrink?
+
+## 23. A new question
+
+We now know FE picks the best tent.
+
+But with two elements, even the best tent has error $\tfrac1{48}$.
+
+So the next question is:
+
+> **What happens to the error when we use more elements?**
+
+## 24. Refine our bar and watch
+
+Same bar. Same exact solution. Just more elements.
+
+| Elements | Element size $h$ | Energy error $a(e,e)$ | Slope error $\sqrt{a(e,e)}$ | Value error $\lVert e\rVert_0$ |
+|---|---|---|---|---|
+| 2 | 1/2 | 1/48 | 0.1443 | 0.02282 |
+| 4 | 1/4 | 1/192 | 0.0722 | 0.005705 |
+| 8 | 1/8 | 1/768 | 0.0361 | 0.001426 |
+
+(The "value error" $\lVert e\rVert_0$ is the same idea, but squaring the temperature error instead of the slope error: $\sqrt{\int e^2\,dx}$.)
+
+Look at the pattern each time $h$ is cut in half:
+
+- Slope error: **divided by 2**
+- Value error: **divided by 4**
+
+::: {.callout-note collapse="true"}
+## Where those numbers come from (one element at a time)
+On each element, FE hits the exact values at both nodes (special to this bar). So the FE slope on an element is the **average** of the exact slope there.
+
+The exact slope $u_{,x}=\tfrac12-x$ is a straight line that drops by $h$ across an element. So the slope error runs in a straight line from $-\tfrac h2$ to $+\tfrac h2$.
+
+Square it and integrate over one element:
+
+$$
+\int_{-h/2}^{h/2}s^2\,ds=\frac{2}{3}\Big(\frac h2\Big)^3=\frac{h^3}{12}.
+$$
+
+There are $1/h$ elements, so the total is
+
+$$
+a(e,e)=\frac1h\cdot\frac{h^3}{12}=\frac{h^2}{12}.
+$$
+
+With $h=\tfrac12$: $\tfrac{1/4}{12}=\tfrac1{48}$ ✓. That's the bottom of our bowl.
+
+The value error works the same way and comes out to $\lVert e\rVert_0=h^2/\sqrt{120}$.
+:::
+
+## 25. Write the pattern with $h$
+
+From the box above:
+
+$$
+\text{slope error}=\frac{h}{\sqrt{12}}\;\propto\;h^{1},
+\qquad
+\text{value error}=\frac{h^2}{\sqrt{120}}\;\propto\;h^{2}.
+$$
+
+($\propto$ means "is proportional to.")
+
+So:
+
+$$
+\boxed{\text{error}\;\approx\;C\,h^{p}}
+$$
+
+The power $p$ is called the **rate of convergence**.
+
+What it means in practice:
+
+| Rate $p$ | Halve $h$ → error divided by |
+|---|---|
+| 1 | 2 |
+| 2 | 4 |
+| 3 | 8 |
+
+Everything in the rest of Part 4 is Hughes working out what $p$ is for **any** element and **any** problem.
+
+## 26. Measuring size, including derivatives: $\lVert\cdot\rVert_m$
+
+Hughes needs a ruler that can measure values, slopes, or both. He calls it the **Sobolev norm** $\lVert w\rVert_m$.
+
+The subscript $m$ says **how many derivatives** to include.
+
+In 1D:
+
+| Norm | Formula | Measures |
+|---|---|---|
+| $\lVert w\rVert_0$ | $\Big(\displaystyle\int w^2\,dx\Big)^{1/2}$ | values only |
+| $\lVert w\rVert_1$ | $\Big(\displaystyle\int \big(w^2+w_{,x}^2\big)\,dx\Big)^{1/2}$ | values + slopes |
+| $\lVert w\rVert_2$ | $\Big(\displaystyle\int \big(w^2+w_{,x}^2+w_{,xx}^2\big)\,dx\Big)^{1/2}$ | values + slopes + curvature |
+
+That's all equation (4.1.4) is. It looks scarier because it's written for 3D vectors:
+
+$$
+\lVert \boldsymbol{w}\rVert_m=\Big[\int_\Omega\big(w_iw_i+w_{i,j}w_{i,j}+\cdots\big)\,d\Omega\Big]^{1/2}
+$$
+
+Two index-notation reminders:
+
+- A **repeated index is summed**: $w_iw_i=w_1^2+w_2^2+w_3^2$.
+- A **comma means derivative**: $w_{i,j}=\partial w_i/\partial x_j$.
+
+So $w_{i,j}w_{i,j}$ is "all nine first derivatives, squared and added." Same idea as $w_{,x}^2$, just in 3D.
+
+**One more letter:** $m$ also stands for the highest derivative inside $a(\cdot\,,\cdot)$.
+
+- Heat conduction and elasticity: $a$ has first derivatives, so $m=1$.
+- Bernoulli–Euler beams: $a$ has curvature (second derivatives), so $m=2$.
+
+## 27. The interpolation box (4.1.6): how well can a mesh fit a curve at all?
+
+Before talking about FE, Hughes asks a simpler question:
+
+> If you just **connect the dots** through the exact values at the nodes, how close do you get?
+
+That connect-the-dots function is called the **interpolate**, and he calls it $\boldsymbol{U}^h$.
+
+His answer:
+
+$$
+\boxed{\lVert \boldsymbol{u}-\boldsymbol{U}^h\rVert_m\le c\,h^{\alpha}\,\lVert\boldsymbol{u}\rVert_r},
+\qquad \alpha=\min(k+1-m,\;r-m)
+$$
+
+Let's take that one symbol at a time.
+
+- $\lVert \boldsymbol{u}-\boldsymbol{U}^h\rVert_m$: how far connect-the-dots is from the truth, measured with ruler $m$.
+- $h$: the **mesh parameter**, basically the size of the **biggest** element. (Hughes's Fig. 4.1.1: the diameter of the smallest circle that fits around the largest element.)
+- $k$: the polynomial degree of your shape functions. Linear elements: $k=1$. Quadratic: $k=2$. (Technically, the highest degree where **every** polynomial up to that degree is included.)
+- $r$: how **smooth** the exact solution is. It has $r$ derivatives that don't blow up.
+- $\lVert\boldsymbol{u}\rVert_r$: how big and wiggly the exact solution is. A wiggly $u$ is harder to fit.
+- $c$: a constant that doesn't depend on $h$ or $u$. (It does depend on element shape: distorted elements make it bigger.)
+- $\alpha$: the rate. The power of $h$.
+- $\min(a,b)$: "whichever is smaller."
+
+Notice there's **no FE** in this box. It's pure geometry: how well can short straight lines (or parabolas) hug a curve?
+
+## 28. Why $k+1-m$?
+
+Let's do linear elements, $k=1$. One element of length $h$, connect-the-dots through the two end values.
+
+**Values ($m=0$).** The biggest gap between a straight line and a curve, over a length $h$, is
+
+$$
+\text{gap}\le\frac{h^2}{8}\,\max|u_{,xx}|.
+$$
+
+That's $h^2=h^{k+1-0}$. ✓
+
+**Slopes ($m=1$).** The line's slope matches the curve's slope somewhere in the middle. Over a length $h$, the curve's slope can drift away from that by at most $h\cdot\max|u_{,xx}|$.
+
+That's $h^1=h^{k+1-1}$. ✓
+
+::: {.eng}
+**In plain English:** each derivative you measure costs you one power of $h$. Higher-order elements (bigger $k$) buy powers back.
+:::
+
+**And the $r-m$ part?** Both bounds above used $\max|u_{,xx}|$. If $u_{,xx}$ is infinite somewhere, those bounds are gone, and the rate drops. That happens at sharp inside corners, crack tips, and point loads. We'll see it in the widget in step 33.
+
+## 29. The fundamental error estimate (the big box)
+
+Now we combine everything:
+
+- Part 3 says **FE beats every candidate** in energy, including connect-the-dots.
+- Step 27 says **connect-the-dots** has error $\le c\,h^\alpha$.
+
+So FE must have error $\le$ (something) $\times\,h^\alpha$ too:
+
+$$
+\boxed{\lVert\boldsymbol{e}\rVert_m\le\bar c\,h^{\alpha}\,\lVert\boldsymbol{u}\rVert_r}
+$$
+
+Hughes's proof is four lines. Here they are, each with a translation:
+
+$$
+\begin{aligned}
+\lVert\boldsymbol{e}\rVert_m &\le \tfrac1{c_1}\,a(\boldsymbol{e},\boldsymbol{e})^{1/2} && \text{switch rulers: Sobolev → energy}\\
+&\le \tfrac1{c_1}\,a(\boldsymbol{u}-\boldsymbol{U}^h,\;\boldsymbol{u}-\boldsymbol{U}^h)^{1/2} && \text{FE beats connect-the-dots (part b)}\\
+&\le \tfrac{c_2}{c_1}\,\lVert\boldsymbol{u}-\boldsymbol{U}^h\rVert_m && \text{switch rulers back: energy → Sobolev}\\
+&\le \underbrace{\tfrac{c_2}{c_1}\,c}_{\bar c}\;h^{\alpha}\,\lVert\boldsymbol{u}\rVert_r && \text{connect-the-dots estimate (4.1.6)}
+\end{aligned}
+$$
+
+The only new idea is "switching rulers." That's assumption (4.1.3), **equivalent norms**:
+
+$$
+c_1\lVert \boldsymbol{w}\rVert_m\;\le\;a(\boldsymbol{w},\boldsymbol{w})^{1/2}\;\le\;c_2\lVert\boldsymbol{w}\rVert_m
+$$
+
+::: {.eng}
+**In plain English:** the energy ruler and the Sobolev ruler always agree, within a fixed factor. If one says "small," the other says "small" too. So we can do the comparison with whichever ruler is convenient.
+:::
+
+::: {.callout-note collapse="true"}
+## What $c_1$ and $c_2$ are for our bar
+$a(w,w)=\int w_{,x}^2\,dx$ and $\lVert w\rVert_1^2=\int w^2\,dx+\int w_{,x}^2\,dx$.
+
+- The energy only has the slope part, so $a(w,w)\le\lVert w\rVert_1^2$. That gives $c_2=1$.
+- A function pinned to zero at both ends can't be big without having slope. (The precise statement: $\int w^2\le\tfrac1{\pi^2}\int w_{,x}^2$.) That gives $c_1=1/\sqrt{1+1/\pi^2}\approx0.95$.
+
+The pinned ends matter. With **no** fixed temperature anywhere, a constant $w$ has zero energy but nonzero size, and the lower bound fails. That's the theory version of "a model with no supports has a singular $\boldsymbol{K}$."
+:::
+
+## 30. The standard error estimate
+
+If the exact solution is smooth (no corners, cracks, or point loads), then $r$ is big, and the $\min$ picks $k+1-m$:
+
+$$
+\boxed{\lVert\boldsymbol{e}\rVert_m\le c\,h^{k+1-m}\,\lVert\boldsymbol{u}\rVert_{k+1}}
+$$
+
+Plug in linear elements for heat conduction: $k=1$, $m=1$.
+
+$$
+k+1-m=1+1-1=1
+$$
+
+So the error in the $H^1$ norm (mostly slopes) goes like $h^1$.
+
+That matches our table: slope error halves when $h$ halves. ✓
+
+## 31. Lower norms converge faster (Aubin–Nitsche)
+
+What about the **value** error? The box above only covers the norm $m$ that matches $a(\cdot\,,\cdot)$.
+
+Hughes quotes a result (the Aubin–Nitsche method) for any norm $s$ between $0$ and $m$:
+
+$$
+\boxed{\lVert\boldsymbol{e}\rVert_s\le c\,h^{\beta}\,\lVert\boldsymbol{u}\rVert_{k+1}},
+\qquad \beta=\min\big(k+1-s,\;2(k+1-m)\big)
+$$
+
+Here, $s$ is just "which ruler you're measuring with": $s=0$ for values, $s=1$ for slopes.
+
+Plug in $k=1$, $m=1$.
+
+**Values, $s=0$:**
+
+$$
+\beta=\min\big(1+1-0,\;2(1+1-1)\big)=\min(2,\,2)=2
+$$
+
+**Slopes, $s=1$:**
+
+$$
+\beta=\min\big(1+1-1,\;2\big)=\min(1,\,2)=1
+$$
+
+That gives Hughes's last boxed pair:
+
+$$
+\boxed{\lVert\boldsymbol{e}\rVert_0\le c\,h^2\,\lVert\boldsymbol{u}\rVert_2\qquad\qquad\lVert\boldsymbol{e}\rVert_1\le c\,h\,\lVert\boldsymbol{u}\rVert_2}
+$$
+
+And look: that's **exactly** our table. Values divided by 4, slopes divided by 2. ✓
+
+## 32. What that means in mechanics language
+
+- $\lVert\boldsymbol{e}\rVert_0$ is the error in **displacements** (or temperatures).
+- $\lVert\boldsymbol{e}\rVert_1$ is the error in **displacement gradients**: strains, stresses, heat flux.
+
+So with linear elements:
+
+::: {.aha}
+**Halve the element size: displacement error ÷ 4, stress error ÷ 2.**
+
+Stresses converge more slowly than displacements. A converged displacement does **not** mean a converged stress.
+:::
+
+## 33. Watch the rates happen
+
+::: {.callout-tip icon=false}
+## What to do
+Start with the smooth case and check that the slopes match steps 30 and 31. Then press the other two buttons and watch what happens when the exact solution isn't smooth.
+:::
+
+Same kind of bar, $-u_{,xx}=\ell$ with $u(0)=u(1)=0$, solved on 2, 4, 8, …, 256 elements, with linear ($k=1$) and quadratic ($k=2$) elements. On a log–log plot, a rate $p$ shows up as a straight line with slope $p$.
+
+```{=html}
+<div class="fe-widget" id="cv">
+<div class="fe-btns" id="cv-btns">
+  <button data-c="sin" class="on">Smooth: u = sin(πx)</button>
+  <button data-c="p15">Curvature blows up at x = 0: u = x<sup>1.5</sup> − x</button>
+  <button data-c="p075">Slope blows up at x = 0: u = x<sup>0.75</sup> − x</button>
+</div>
+<p class="fe-cap"><b>Error vs. element size h</b> (log–log). Finer meshes are to the <b>left</b>. Steeper line = faster convergence.</p>
+<div id="cv-plot"></div>
+<div class="scroll-x" id="cv-tab"></div>
+<div id="cv-msg"></div>
+</div>
+<script>
+(function(){
+  const $=id=>document.getElementById(id),G3=FE.gauss(3),G12=FE.gauss(12),G20=FE.gauss(20),NS=[2,4,8,16,32,64,128,256];
+  function pw(g){return {u:x=>Math.pow(x,g)-x,up:x=>g*Math.pow(x,g-1)-1,f:x=>-g*(g-1)*Math.pow(x,g-2),sing:true,r:g+0.5};}
+  const CASES={sin:{u:x=>Math.sin(Math.PI*x),up:x=>Math.PI*Math.cos(Math.PI*x),f:x=>Math.PI*Math.PI*Math.sin(Math.PI*x),sing:false,r:Infinity},p15:pw(1.5),p075:pw(0.75)};
+  function shp(k,xi){return k===1?{N:[(1-xi)/2,(1+xi)/2],dN:[-0.5,0.5]}:{N:[xi*(xi-1)/2,1-xi*xi,xi*(xi+1)/2],dN:[xi-0.5,-2*xi,xi+0.5]};}
+  function eint(xa,xb,sing,fn){const h=xb-xa;let s=0;
+    if(sing&&xa===0){for(let g=0;g<20;g++){const q=(G20.x[g]+1)/2,x=h*q**4;s+=G20.w[g]/2*4*h*q**3*fn(x,2*x/h-1);}}
+    else for(let g=0;g<12;g++){const xi=G12.x[g];s+=G12.w[g]*h/2*fn((xa+xb)/2+xi*h/2,xi);}return s;}
+  function fe(k,n,cs){const h=1/n,nn=k*n+1,ne=k+1,K=[],F=new Array(nn).fill(0);for(let i=0;i<nn;i++)K.push(new Array(nn).fill(0));
+    for(let e=0;e<n;e++){const xa=e*h,xb=xa+h,dof=[];for(let a=0;a<ne;a++)dof.push(k*e+a);
+      for(let g=0;g<3;g++){const dN=shp(k,G3.x[g]).dN,w=G3.w[g]*h/2;for(let a=0;a<ne;a++)for(let b=0;b<ne;b++)K[dof[a]][dof[b]]+=w*dN[a]*dN[b]*4/(h*h);}
+      for(let a=0;a<ne;a++)F[dof[a]]+=eint(xa,xb,cs.sing,(x,xi)=>shp(k,xi).N[a]*cs.f(x));}
+    const d=FE.band(K.slice(1,nn-1).map(r=>r.slice(1,nn-1)),F.slice(1,nn-1),k),U=[0].concat(d,[0]);let L2=0,S1=0;
+    for(let e=0;e<n;e++){const xa=e*h,xb=xa+h;
+      L2+=eint(xa,xb,cs.sing,(x,xi)=>{const N=shp(k,xi).N;let v=0;for(let a=0;a<ne;a++)v+=N[a]*U[k*e+a];return (v-cs.u(x))**2;});
+      S1+=eint(xa,xb,cs.sing,(x,xi)=>{const dN=shp(k,xi).dN;let v=0;for(let a=0;a<ne;a++)v+=dN[a]*2/h*U[k*e+a];return (v-cs.up(x))**2;});}
+    return {L2:Math.sqrt(L2),H1:Math.sqrt(L2+S1)};}
+  const cache={};
+  function study(key){if(!cache[key]){const cs=CASES[key],o={};[1,2].forEach(k=>o[k]=NS.map(n=>fe(k,n,cs)));cache[key]=o;}return cache[key];}
+  const fr=v=>(+v.toFixed(2)).toString();
+  function render(key){
+    const cs=CASES[key],S=study(key),lg=Math.log10,X=NS.map(n=>lg(1/n));
+    const series=[[1,'L2',FE.C.orange,false,'linear, values ‖e‖₀'],[1,'H1',FE.C.purple,false,'linear, slopes ‖e‖₁'],[2,'L2',FE.C.orange,true,'quadratic, values ‖e‖₀'],[2,'H1',FE.C.purple,true,'quadratic, slopes ‖e‖₁']];
+    const all=[];const lines=series.map(([k,q,c,d])=>{const p=S[k].map((r,i)=>[X[i],lg(r[q])]);p.forEach(z=>all.push(z[1]));return {pts:p,color:c,dash:d,width:2.2};});
+    const dots=[];series.forEach(([k,q,c],si)=>lines[si].pts.forEach(z=>dots.push({x:z[0],y:z[1],color:c,r:3})));
+    const ylo=Math.floor(Math.min(...all)),yhi=Math.ceil(Math.max(...all));const yt=[];const stp=Math.max(1,Math.ceil((yhi-ylo)/6));
+    for(let v=ylo;v<=yhi;v+=stp)yt.push([v,'10'+FE.sup(v)]);
+    FE.plot('cv-plot',{w:560,x:[lg(1/256)-0.1,lg(1/2)+0.1],y:[ylo,yhi],height:340,label:'convergence plot',xlabel:'element size h',ml:62,
+      xtk:[2,8,32,128].map(n=>[lg(1/n),'1/'+n]),ytk:yt,lines,dots,legend:series.map(s=>({label:s[4],color:s[2],dash:s[3]}))});
+    const rows=[];[1,2].forEach(k=>{const a=Math.min(k,cs.r-1),b=Math.min(k+1,a+1);
+      [['L2','values',b],['H1','slopes',a]].forEach(([q,lab,pred])=>{const E=S[k],n=E.length,meas=Math.log2(E[n-2][q]/E[n-1][q]);
+        rows.push([(k===1?'linear':'quadratic')+', '+lab,(cs.r===Infinity?'':'≈ ')+fr(pred),{v:meas.toFixed(2),cls:Math.abs(meas-pred)<0.1?'new':''},'÷ '+Math.pow(2,meas).toFixed(1)]);});});
+    $('cv-tab').innerHTML='<p class="fe-cap">Measured rate = the slope between the two finest meshes. Green = matches the prediction.</p>'
+      +FE.TB(['','predicted rate p','measured rate','halve h → error'],rows);
+    const msg={sin:'<div class="fe-status fe-ok"><b>Smooth:</b> linear elements give rates 2 (values) and 1 (slopes), just like our hand table. Quadratic elements gain one full power of h on both.</div>',
+      p15:'<div class="fe-status fe-warn"><b>Not smooth enough:</b> u″ is infinite at x = 0, so r ≈ 2 and the min(…, r − m) in α kicks in. Quadratic elements now converge at the <b>same</b> rate as linear ones. The extra polynomial degree is wasted.</div>',
+      p075:'<div class="fe-status fe-bad"><b>Infinite slope at x = 0:</b> this is what stress does at a crack tip or a sharp inside corner. Slope error shrinks like h<sup>0.25</sup>: halving h only divides it by about 1.2. Refining everywhere barely helps. The fix is to refine near that point or model a real fillet.</div>'};
+    $('cv-msg').innerHTML=msg[key];
+    document.querySelectorAll('#cv-btns button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-c')===key));
+  }
+  document.querySelectorAll('#cv-btns button').forEach(b=>b.addEventListener('click',()=>render(b.getAttribute('data-c'))));
+  render('sin');
+})();
+</script>
+```
+
+## 34. Your turn: Exercises 3 and 4
+
+Both exercises are just "plug into $\beta$," like step 31.
+
+$$
+\beta=\min\big(k+1-s,\;2(k+1-m)\big)
+$$
+
+- **Exercise 3:** quadratic elements ($k=2$) for heat or elasticity ($m=1$). Do $s=0$ and $s=1$. Then check your answers against the "quadratic" rows of the smooth case in the widget above.
+- **Exercise 4:** beams ($m=2$) with Hermite cubics ($k=3$). Do $s=0$, $1$, and $2$. Watch which side of the $\min$ wins each time.
+
+# Part 5: Does Gauss quadrature break this?
+
+## 35. The catch
+
+Everything in Part 4 assumed the integrals in $\boldsymbol{K}$ and $\boldsymbol{F}$ were done **exactly**.
+
+But real codes use Gauss quadrature. And on curved or distorted elements, Gauss quadrature usually isn't exact.
+
+So: **how many Gauss points do you need to keep the rates from Part 4?**
+
+Quick reminder of the key Gauss fact:
+
+| Gauss points $n$ | Exact for polynomials through degree $2n-1$ |
+|---|---|
+| 1 | 1 |
+| 2 | 3 |
+| 3 | 5 |
+
+On quads and bricks you use $n$ points in each direction ($2\times2$, $3\times3$, …).
+
+## 36. Two degrees: $k$ and $\bar k$
+
+Take the bilinear quad (Q4). Its shape functions are built from
+
+$$
+1,\quad \xi,\quad \eta,\quad \xi\eta.
+$$
+
+Two questions:
+
+- **What's the highest degree where you have *every* polynomial?** Degree 1: you have $1,\xi,\eta$. But degree 2 needs $\xi^2,\ \xi\eta,\ \eta^2$, and you're missing $\xi^2$ and $\eta^2$. So $k=1$.
+- **What's the highest-degree term you have at all?** $\xi\eta$ has degree $1+1=2$. So $\bar k=2$.
+
+That's the difference: $k$ is "complete through," $\bar k$ is "highest term present."
+
+## 37. Hughes's rule
+
+To keep the **full** rate of convergence, the quadrature rule must be exact through degree
+
+$$
+\boxed{\bar k+k-2m}
+$$
+
+To keep at least **first-order** convergence, it must be exact through degree $\bar k-m$.
+
+Let's do Hughes's Example 1.
+
+**Bilinear quad, heat or elasticity** ($\bar k=2$, $k=1$, $m=1$):
+
+$$
+\bar k+k-2m=2+1-2=1
+$$
+
+One Gauss point is exact through degree $2(1)-1=1$. So **1-point Gauss is enough** for accuracy.
+
+**8-node serendipity quad** ($\bar k=3$, $k=2$, $m=1$):
+
+$$
+\bar k+k-2m=3+2-2=3
+$$
+
+You need $2n-1\ge3$, so $n=2$: **$2\times2$ Gauss**.
+
+::: {.callout-warning appearance="simple"}
+## Hughes's caution
+The minimum rule can be **too few points** for a different reason: the element can develop fake zero-energy wiggle modes (**rank deficiency**, also called hourglassing). That's Section 4.6. For now: accurate enough isn't automatically safe.
+:::
+
+```{=html}
+<div class="fe-widget" id="qd">
+<div class="fe-btns" id="qd-btns"></div>
+<div class="fe-row">
+  <div><div id="qd-mon"></div></div>
+  <div><div id="qd-out"></div></div>
+</div>
+<div id="qd-flag"></div>
+</div>
+<script>
+(function(){
+  const $=id=>document.getElementById(id);
+  const E={
+    bar2:{name:'2-node bar',shape:'line',mons:[[0],[1]],k:1,m:1,full:1},
+    bar3:{name:'3-node bar',shape:'line',mons:[[0],[1],[2]],k:2,m:1,full:2},
+    t3:{name:'T3 triangle',shape:'tri',mons:[[0,0],[1,0],[0,1]],k:1,m:1,full:1},
+    t6:{name:'T6 triangle',shape:'tri',mons:[[0,0],[1,0],[0,1],[2,0],[1,1],[0,2]],k:2,m:1,full:3},
+    q4:{name:'Q4 bilinear quad',shape:'quad',mons:[[0,0],[1,0],[0,1],[1,1]],k:1,m:1,full:2},
+    q8:{name:'Q8 serendipity quad',shape:'quad',mons:[[0,0],[1,0],[0,1],[2,0],[1,1],[0,2],[2,1],[1,2]],k:2,m:1,full:3},
+    q9:{name:'Q9 biquadratic quad',shape:'quad',mons:[[0,0],[1,0],[0,1],[2,0],[1,1],[0,2],[2,1],[1,2],[2,2]],k:2,m:1,full:3},
+    h8:{name:'H8 trilinear brick',shape:'hex',mons:[[0,0,0],[1,0,0],[0,1,0],[0,0,1],[1,1,0],[0,1,1],[1,0,1],[1,1,1]],k:1,m:1,full:2}
+  };
+  const VAR=['ξ','η','ζ'];
+  function mono(ex){const s=ex.map((p,i)=>p===0?'':VAR[i]+(p>1?FE.sup(p):'')).join('');return s||'1';}
+  function rule(shape,d){d=Math.max(d,0);
+    if(shape==='line'||shape==='quad'||shape==='hex'){const n=Math.max(1,Math.ceil((d+1)/2)),dim={line:1,quad:2,hex:3}[shape];
+      return {pts:Math.pow(n,dim),label:dim===1?n+'-point Gauss':Array(dim).fill(n).join('×')+' Gauss'};}
+    const t=[[1,1],[2,3],[3,4],[4,6],[5,7]].find(r=>r[0]>=Math.max(d,1));return {pts:t[1],label:t[1]+'-point triangle rule'};}
+  function fullRule(el){if(el.shape==='line')return {pts:el.full,label:el.full+'-point Gauss'};
+    if(el.shape==='quad')return {pts:el.full*el.full,label:el.full+'×'+el.full+' Gauss'};
+    if(el.shape==='hex')return {pts:el.full**3,label:el.full+'×'+el.full+'×'+el.full+' Gauss'};
+    return {pts:el.full,label:el.full+'-point triangle rule'};}
+  let cur='q4';
+  $('qd-btns').innerHTML=Object.keys(E).map(k=>'<button data-e="'+k+'">'+E[k].name+'</button>').join('');
+  function render(){
+    const el=E[cur],deg=el.mons.map(e=>e.reduce((a,b)=>a+b,0)),kb=Math.max(...deg);
+    const dFull=kb+el.k-2*el.m,dFirst=kb-el.m,rF=rule(el.shape,dFull),r1=rule(el.shape,dFirst),fr=fullRule(el);
+    let s='';
+    if(el.shape==='tri'||el.shape==='quad'){const has=new Set(el.mons.map(e=>e.join(','))),W=360,H=200,dy=40;
+      s='<p class="fe-cap"><b>Pascal\'s triangle.</b> Filled = in the shape functions. Row k is the last full row; row k̄ is the highest row used.</p>';
+      s+=`<svg viewBox="0 0 ${W} ${H}" width="100%" style="max-width:${W}px;display:block;font-size:13px" role="img" aria-label="Pascal triangle">`;
+      for(let row=0;row<=4;row++){const y=22+row*dy,lab=row===el.k&&row===kb?'k = k̄':row===el.k?'k':row===kb?'k̄':'';
+        s+=`<text x="8" y="${y+4}" fill="currentColor" opacity=".7">deg ${row}</text>`;
+        if(lab)s+=`<text x="${W-6}" y="${y+4}" text-anchor="end" fill="#d4572a" font-weight="600">${lab}</text>`;
+        for(let j=0;j<=row;j++){const x=W/2+(j-row/2)*58,key=(row-j)+','+j,on=has.has(key);
+          s+=`<rect x="${x-25}" y="${y-12}" width="50" height="24" rx="12" fill="${on?'rgba(212,87,42,.25)':'transparent'}" stroke="${on?'#d4572a':'currentColor'}" stroke-opacity="${on?1:.25}"/>`;
+          s+=`<text x="${x}" y="${y+4}" text-anchor="middle" fill="currentColor" opacity="${on?1:.4}">${mono([row-j,j])}</text>`;}}
+      s+='</svg>';}
+    else{s='<p class="fe-cap"><b>Terms in the shape functions</b> (small number = degree)</p><div class="chips">'+el.mons.map((e,i)=>'<span class="on">'+mono(e)+'<small>'+deg[i]+'</small></span>').join('')+'</div>';}
+    $('qd-mon').innerHTML=s;
+    $('qd-out').innerHTML=FE.TB(null,[
+      ['k (full through)',el.k],['k̄ (highest term)',kb],['m',el.m],
+      ['full rate needs degree','k̄ + k − 2m = '+kb+' + '+el.k+' − '+2*el.m+' = <b>'+dFull+'</b>'],
+      ['→ fewest points',{v:rF.label,cls:'new'}],
+      ['first order needs degree','k̄ − m = <b>'+dFirst+'</b>'],
+      ['→ fewest points',r1.label],
+      ['usual "full" rule',fr.label]]);
+    $('qd-flag').innerHTML=rF.pts<fr.pts
+      ?'<div class="fe-status fe-warn">The fewest points for accuracy ('+rF.label+') is <b>less</b> than the usual full rule ('+fr.label+'). Accurate, but watch for rank deficiency (Section 4.6).</div>'
+      :'<div class="fe-status fe-ok">The fewest points for accuracy is the same as the usual full rule. Nothing extra to worry about here.</div>';
+    document.querySelectorAll('#qd-btns button').forEach(b=>b.classList.toggle('on',b.getAttribute('data-e')===cur));
+  }
+  document.querySelectorAll('#qd-btns button').forEach(b=>b.addEventListener('click',()=>{cur=b.getAttribute('data-e');render();}));
+  render();
+})();
+</script>
+```
+
+Click **Q4** and **Q8** to see Hughes's Example 1. Click **T3** or **T6**: for triangles, $\bar k=k$, which is Hughes's Example 2.
+
+# Part 6: When does it fail anyway?
+
+## 38. The weak spot in the guarantee
+
+Remember what part (b) actually promised:
+
+> FE gives the **best** answer your mesh can build.
+
+But what if **every** answer your mesh can build is bad?
+
+Then the best of a bad bunch is still bad.
+
+That's exactly what happens in **constrained** problems: problems where the true solution has to obey an extra rule at every point.
+
+- **Nearly incompressible materials** (rubber, $\nu\to0.5$; incompressible fluid flow): the material must keep its volume everywhere.
+- **Thin beams, plates, and shells** modeled with shear-deformable elements: the shear strain must be almost zero.
+
+Low-order elements can barely satisfy those rules, except by hardly moving at all. The result is a model that's **far too stiff**. That's called **locking**.
+
+In terms of the big box from step 29: the rate $h^\alpha$ is still true. But the constant $\bar c$ becomes enormous.
+
+## 39. Watch a beam lock
+
+A cantilever beam of length 1 with a load at the tip, modeled with **Timoshenko beam** elements (each node has a deflection and a rotation). The thinner the beam, the stronger the "shear strain ≈ 0" rule.
+
+- **Full integration** of the shear term uses 2 Gauss points (exact).
+- **Reduced integration** uses 1 point. That's what Part 5's rule says is enough for accuracy here.
+
+```{=html}
+<div class="fe-widget" id="lk">
+<div class="fe-ctrl">
+<label for="lk-s">length / thickness</label><input type="range" id="lk-s" min="0" max="8" step="1" value="5"><output id="lk-s-v"></output>
+<label for="lk-n">elements</label><input type="range" id="lk-n" min="0" max="6" step="1" value="3"><output id="lk-n-v"></output>
+</div>
+<div class="fe-row">
+  <div><p class="fe-cap"><b>Deflected shape</b> (divided by the exact tip deflection)</p><div id="lk-shape"></div></div>
+  <div><p class="fe-cap"><b>Tip deflection ÷ exact</b> vs. number of elements</p><div id="lk-conv"></div></div>
+</div>
+<div id="lk-msg"></div>
+</div>
+<script>
+(function(){
+  const $=id=>document.getElementById(id),SL=[2,5,10,20,50,100,200,500,1000],NE=[1,2,4,8,16,32,64];
+  function beam(n,sl,reduced){const L=1,E=1,G=E/2.6,t=L/sl,I=t**3/12,A=t,EI=E*I,GA=5/6*G*A,P=1,he=L/n,nd=2*(n+1);
+    const K=[],F=new Array(nd).fill(0);for(let i=0;i<nd;i++)K.push(new Array(nd).fill(0));
+    const q=reduced?{x:[0],w:[2]}:{x:[-1/Math.sqrt(3),1/Math.sqrt(3)],w:[1,1]};
+    for(let e=0;e<n;e++){const D=[2*e,2*e+1,2*e+2,2*e+3];
+      K[D[1]][D[1]]+=EI/he;K[D[3]][D[3]]+=EI/he;K[D[1]][D[3]]-=EI/he;K[D[3]][D[1]]-=EI/he;
+      q.x.forEach((xi,g)=>{const B=[-1/he,-(1-xi)/2,1/he,-(1+xi)/2],w=q.w[g]*he/2;
+        for(let a=0;a<4;a++)for(let b=0;b<4;b++)K[D[a]][D[b]]+=GA*w*B[a]*B[b];});}
+    F[nd-2]=P;const d=FE.band(K.slice(2).map(r=>r.slice(2)),F.slice(2),3),W=[0];for(let i=0;i<n;i++)W.push(d[2*i]);
+    const ex=P*L**3/(3*EI)+P*L/GA,wex=x=>P/EI*(L*x*x/2-x**3/6)+P*x/GA;return {W,ex,wex,he};}
+  function run(){
+    const sl=SL[FE.val('lk-s')],n=NE[FE.val('lk-n')];$('lk-s-v').textContent=sl;$('lk-n-v').textContent=n;
+    const bf=beam(n,sl,false),br=beam(n,sl,true),ex=[];for(let i=0;i<=100;i++){const x=i/100;ex.push([x,bf.wex(x)/bf.ex]);}
+    const P=b=>b.W.map((w,i)=>[i*b.he,w/b.ex]);
+    FE.plot('lk-shape',{w:420,x:[0,1],y:[-0.05,1.1],height:290,label:'deflected shape',xlabel:'x / L',
+      lines:[{pts:ex,color:FE.C.gray,dash:true},{pts:P(br),color:FE.C.teal,width:2.5},{pts:P(bf),color:FE.C.orange,width:2.5}],
+      dots:P(bf).map(q=>({x:q[0],y:q[1],color:FE.C.orange,r:3.5})).concat(P(br).map(q=>({x:q[0],y:q[1],color:FE.C.teal,r:3.5}))),
+      legend:[{label:'exact',color:FE.C.gray,dash:true},{label:'full integration',color:FE.C.orange},{label:'reduced (1 point)',color:FE.C.teal}]});
+    const cf=NE.map(m=>{const b=beam(m,sl,false);return [Math.log2(m),b.W[m]/b.ex];}),cr=NE.map(m=>{const b=beam(m,sl,true);return [Math.log2(m),b.W[m]/b.ex];});
+    FE.plot('lk-conv',{w:420,x:[-0.2,6.2],y:[0,1.1],height:290,label:'tip deflection ratio',xlabel:'number of elements',
+      xtk:NE.map(m=>[Math.log2(m),String(m)]),hlines:[{y:1,color:FE.C.gray,dash:true}],
+      lines:[{pts:cf,color:FE.C.orange,width:2.5},{pts:cr,color:FE.C.teal,width:2.5}],
+      dots:[{x:Math.log2(n),y:cf[NE.indexOf(n)][1],color:FE.C.orange,r:6},{x:Math.log2(n),y:cr[NE.indexOf(n)][1],color:FE.C.teal,r:6}]});
+    const rf=cf[NE.indexOf(n)][1],rr=cr[NE.indexOf(n)][1];
+    $('lk-msg').innerHTML='<div class="fe-status '+(rf<0.5?'fe-bad':rf<0.9?'fe-warn':'fe-ok')+'">Length/thickness = '+sl+', '+n+' element'+(n>1?'s':'')+': full integration gets <b>'+(100*rf).toFixed(1)+'%</b> of the true tip deflection. Reduced gets <b>'+(100*rr).toFixed(1)+'%</b>.'
+      +(rf<0.5?' The fully integrated beam is <b>locked</b>.':'')+'</div>';
+  }
+  FE.bind(['lk-s','lk-n'],run);
+})();
+</script>
+```
+
+**Things to notice:**
+
+1. At **length/thickness = 5** (a stubby beam), both versions work. Full integration just needs a few more elements.
+2. At **100** with 8 elements, full integration gets about **2%** of the right answer. Even with 64 elements, it's only around half. It *does* converge, just as Part 4 promised. The constant is just huge.
+3. One Gauss point fixes it. But using fewer points than "exact" is a deliberate **variational crime**. The rest of Chapter 4 is about when crimes like that are safe.
+
+# The one thing I want you to take away
+
+Don't think of Section 4.1 as a pile of inequalities.
+
+It's one idea, followed by one consequence:
+
+$$
+\underbrace{\boldsymbol{K}\boldsymbol{d}=\boldsymbol{F}}_{\text{what FE solves}}
+\;\Longleftrightarrow\;
+\underbrace{\text{bottom of the error bowl}}_{\text{best approximation}}
+\;\Longrightarrow\;
+\text{FE error}\;\le\;\text{connect-the-dots error}\;\le\;c\,h^{\alpha}
+$$
+
+In words:
+
+1. Solving $\boldsymbol{K}\boldsymbol{d}=\boldsymbol{F}$ automatically finds the candidate with the smallest energy error. (Part 3)
+2. So FE is at least as good as connect-the-dots, and connect-the-dots gets better like $h^{\alpha}$. (Part 4)
+3. That guarantee survives Gauss quadrature if you use enough points (Part 5), but not locking (Part 6).
+
+**What this means when you run a model in Ansys:**
+
+- Refine the mesh and watch your answer settle. With linear elements, displacements should settle about twice as fast as stresses.
+- Stresses at sharp inside corners or point loads never settle. That's the $r$ in the rate, not a bad mesh.
+- If a thin or nearly incompressible part seems far too stiff, suspect locking before anything else.
+
+**Next up: Section 4.2** takes on locking directly, starting with incompressible elasticity and Stokes flow.
+
+# Check yourself
+
+1. In our bar with **4** elements, what's the smallest possible energy error $a(e,e)$?
+
+::: {.callout-note collapse="true"}
+## Answer
+$a(e,e)=h^2/12$ with $h=\tfrac14$: $\tfrac{1/16}{12}=\tfrac1{192}$. That's four times smaller than with 2 elements, because energy error goes like $h^2$.
+:::
+
+2. FE needed $a(N_1,u)$, which contains the exact solution it doesn't know. How did it get that number?
+
+::: {.callout-note collapse="true"}
+## Answer
+The exact weak form says $a(w,u)=(w,\ell)$ for every $w$ in $\mathcal{V}$. Pick $w=N_1$, and $a(N_1,u)=(N_1,\ell)$, which is just the load vector entry $F_1$. No knowledge of $u$ needed.
+:::
+
+3. A Q4 elasticity model with a smooth solution. You cut every element in half. Roughly how much do the displacement error and the stress error drop?
+
+::: {.callout-note collapse="true"}
+## Answer
+$k=1$, $m=1$: displacements go like $h^2$, so ÷4. Stresses go like $h$, so ÷2.
+:::
+
+4. In the tapered bar, FE got the middle temperature wrong. Does that mean it's not the best answer?
+
+::: {.callout-note collapse="true"}
+## Answer
+No. "Best" means smallest **energy** error: best fit of the slopes (heat flux). The widget showed it's still at the bottom of the bowl. Matching nodal values exactly isn't what Galerkin optimizes.
+:::
+
+5. Q9 elements for 2D heat conduction: how many Gauss points keep the full rate?
+
+::: {.callout-note collapse="true"}
+## Answer
+$\bar k=4$ (the $\xi^2\eta^2$ term), $k=2$, $m=1$: $4+2-2=4$. You need $2n-1\ge4$, so $n=3$: $3\times3$ Gauss. Check it in the Part 5 widget.
+:::
